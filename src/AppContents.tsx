@@ -7,6 +7,9 @@ import OrganizationForm from "./components/OrganizationForm/OrganizationForm";
 import SuccessMessage from "./components/SuccessFullMessage/SuccessMessage";
 import LoginForm from "./components/LoginForm/LoginForm";
 import LoginOtpForm from "./components/LoginOtp/LoginOtpForm";
+import PrivateRoute from "./Layouts/PrivateRoute";
+import AppLayout from "./Layouts/AppLayout";
+import OrganizationList from "./Pages/Organization/OrganizationList";
 
 function AppContents() {
   return (
@@ -18,9 +21,19 @@ function AppContents() {
         <Route path="success" element={<SuccessMessage />} />
         <Route path="login" element={<LoginForm />} />
         <Route path="login-otp" element={<LoginOtpForm />} />
-
-      
       </Route>
+
+      <Route
+        path="/"
+        element={
+          <PrivateRoute>
+            <AppLayout />
+          </PrivateRoute>
+        }
+      >
+        <Route path="/organization-list" element={<OrganizationList />} />
+      </Route>
+
       <Route path="/home" element={<Home />} />
     </Routes>
   );

@@ -66,8 +66,53 @@ export type OrganizationAddPayloads = {
     lat: string;
     lng: string;
     postalCode: string;
+    line_1: string;
+    line_2: string;
+    country: string;
+    state_or_province: string;
+    district: string;
+    city: string;
+    village: string;
+    town: string;
+    land_mark: string;
+    instruction: string;
   };
 };
+
+
+export interface OrganizationLoginRequestPayload {
+  emailMobile: string  | number;
+  device_type: string
+  device_id: string;
+  frontend_type: string
+}
+
+export type VerifyOtpToGetToken = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    verified: boolean;
+    loggedUserDetails: {
+      organization_id: string | null;
+      user_id: string;
+      name: string;
+      email: string;
+      mobile: string;
+      user_role: string;         
+      user_type: string;         
+      central_account_id: string;
+      time_zone: string;
+      currency: string | null;
+      country: string | null;
+      access: string | null;
+      center_id: string | null;
+      image: string | null;
+    };
+  };
+}
+
+
 
 
 

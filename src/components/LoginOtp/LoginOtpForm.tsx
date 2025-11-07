@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
+import apis from "../../APis/Api";
+import type { VerifyOtpPayload, ResendOtpPayload } from "../../APis/Types";
+import Notification from "../GlobalNotification/Notification";
+import useAuthStore from "../../GlobalStore/store";
 const OTP_LENGTH = 4;
 
 const LoginOtpForm: React.FC = () => {
@@ -8,11 +11,34 @@ const LoginOtpForm: React.FC = () => {
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const location = useLocation();
   const navigate = useNavigate();
+  const [notif, setNotif] = useState<{
+    open: boolean;
+    data: { success: boolean; message: string };
+  }>({ open: false, data: { success: false, message: "" } });
 
   // identifier can be phone or email passed from LoginForm
-  const state = (location.state || {}) as { identifier?: string };
+  const state = (location.state || {}) as {
+    identifier?: string;
+    otp_id?: string;
+    request_id?: string;
+    device_type?: string;
+    device_id?: string;
+    frontend_type?: string;
+  };
   const identifier = state.identifier || "";
   const isEmail = identifier.includes("@");
+  const [localOtpId, setLocalOtpId] = useState<string | undefined>(
+    state.otp_id
+  );
+  const localRequestId = state.request_id;
+  const localDeviceType = state.device_type;
+  const localDeviceId = state.device_id;
+  const localFrontendType = state.frontend_type;
+
+  const [timer, setTimer] = useState<number>(60);
+  const [resendLoading, setResendLoading] = useState<boolean>(false);
+
+  console.log("LoginOtpForm state:", state);
 
   useEffect(() => {
     // focus first input on mount
@@ -65,23 +91,135 @@ const LoginOtpForm: React.FC = () => {
     e.preventDefault();
   };
 
-  const handleVerify = () => {
+  //Request OTP verification
+
+  const handleVerify = async () => {
     const code = otp.join("");
-    // placeholder: integrate with auth flow
-    console.log("Verifying OTP:", code, "for", identifier);
-    // TODO: call verify API
+    const payload: VerifyOtpPayload = {
+      otp: code,
+      otp_id: localOtpId ?? "",
+      request_id: localRequestId ?? "",
+      device_type: localDeviceType ?? "",
+      device_id: localDeviceId ?? "",
+      frontend_type: localFrontendType ?? "",
+    };
+
+    console.log("Verify payload:", payload);
+
+    try {
+      const response = await apis.OrganizationLoginOtpVerification(payload);
+      console.log("OTP Verification response:", response);
+
+      setNotif({
+        open: true,
+        data: {
+          success: !!response?.success,
+          message: response?.message,
+        },
+      });
+
+      if (response?.data?.loggedUserDetails) {
+        const { organization_id, center_id } = response.data.loggedUserDetails;
+
+        // store whole logged-in details in global store
+        const setOrganizationDetails =
+          useAuthStore.getState().setOrganizationDetails;
+        try {
+          setOrganizationDetails(response.data.loggedUserDetails);
+        } catch (e) {
+          // ignore if store setter unavailable
+          console.warn("Could not set organization details in store:", e);
+        }
+
+        setTimeout(() => {
+          if (!organization_id && !center_id) {
+            navigate("/organization-list");
+          } else if (organization_id && !center_id) {
+            navigate("/center");
+          } else if (!organization_id && center_id) {
+            navigate("/organization");
+          } else if (organization_id && center_id) {
+            navigate("/providers");
+          }
+        }, 1500);
+      }
+    } catch (err: unknown) {
+      console.error("OTP verification error:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : String(err ?? "Network or server error");
+      setNotif({ open: true, data: { success: false, message } });
+    }
   };
 
-  const handleResend = () => {
-    console.log("Resend OTP requested");
-    // TODO: call resend API
+  //resend OTP
+
+  const handleResend = async () => {
+    if (timer > 0) return;
+    if (!localRequestId) {
+      setNotif({
+        open: true,
+        data: {
+          success: false,
+          message: "No request id available to resend OTP",
+        },
+      });
+      return;
+    }
+
+    setResendLoading(true);
+    try {
+      const payload: ResendOtpPayload = {
+        request_id: localRequestId || "",
+        device_type: localDeviceType ?? "",
+        device_id: localDeviceId ?? "",
+        frontend_type: localFrontendType ?? "",
+      };
+
+      const response = await apis.OrganizationLoginResendOtpVerification(
+        payload
+      );
+      console.log("Resend OTP response:", response);
+
+      const success = response?.success ?? false;
+      const message = response?.message;
+      setNotif({ open: true, data: { success, message } });
+      if (success) {
+        setLocalOtpId(response.data?.otp_id);
+
+        setTimer(60);
+      }
+    } catch (err: unknown) {
+      console.error("Resend error:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : String(err ?? "Network or server error");
+      setNotif({ open: true, data: { success: false, message } });
+    } finally {
+      setResendLoading(false);
+    }
   };
+
+  useEffect(() => {
+    setTimer(60);
+    const id = setInterval(() => {
+      setTimer((t) => (t > 0 ? t - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
       <h2 className="text-center text-lg font-semibold text-gray-800">
         Verify Your Account
       </h2>
+      <Notification
+        open={notif.open}
+        data={notif.data}
+        onClose={() => setNotif((prev) => ({ ...prev, open: false }))}
+      />
 
       <p className="mt-2 text-center text-sm text-gray-500">
         {identifier ? (
@@ -141,8 +279,15 @@ const LoginOtpForm: React.FC = () => {
         <button
           onClick={handleResend}
           className="w-full border border-blue-600 text-blue-600 py-2 rounded-md hover:bg-blue-50 transition-colors"
+          disabled={timer > 0 || resendLoading}
         >
-          Resend OTP
+          {resendLoading
+            ? "Resending..."
+            : timer > 0
+            ? `Resend OTP (${Math.floor(timer / 60)}:${String(
+                timer % 60
+              ).padStart(2, "0")})`
+            : "Resend OTP"}
         </button>
       </div>
     </div>

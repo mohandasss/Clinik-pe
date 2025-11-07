@@ -1,4 +1,4 @@
-import type { OrganizationAddPayloads, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse } from "./Types";
+import type { OrganizationAddPayloads, OrganizationLoginRequestPayload, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse, VerifyOtpToGetToken } from "./Types";
 import apiAgent from "./apiAgents";
 
 class Apis {
@@ -49,6 +49,45 @@ class Apis {
       .execute();
     return response.data as OrganizationSuccessResponse;
   }
+
+  async OrganizationLogin(
+    payload: OrganizationLoginRequestPayload
+  ): Promise<OrganizationSuccessResponse> {
+    const response = await apiAgent
+      .path("/organization/login")
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as OrganizationSuccessResponse;
+  }
+
+  async OrganizationLoginOtpVerification(
+    payload: VerifyOtpPayload
+  ): Promise<VerifyOtpToGetToken> {
+    const response = await apiAgent
+      .path("/organization/login-otp-verification")
+      .method("POST")
+      .json(payload)
+      .execute();
+
+    return response.data as VerifyOtpToGetToken;
+  }
+  async OrganizationLoginResendOtpVerification(
+    payload: ResendOtpPayload
+  ): Promise<ResendOtpResponse> {
+    const response = await apiAgent
+      .path("/organization/resend-login-otp")
+      .method("POST")
+      .json(payload)
+      .execute();
+
+    return response.data as ResendOtpResponse;
+  }
+
+
+
+
+
 }
 const apis = new Apis();
 export default apis;

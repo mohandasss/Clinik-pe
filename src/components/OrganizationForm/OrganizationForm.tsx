@@ -75,6 +75,16 @@ const OrganizationForm: React.FC = () => {
     }
     // Build API payload in required snake_case shape
     const addr = addresses[0] || {
+      line_1: "",
+      line_2: "",
+      country: "",
+      state_or_province: "",
+      district: "",
+      city: "",
+      village: "",
+      town: "",
+      land_mark: "",
+      instruction: "",
       address: "",
       postal_code: "",
       lat: "",
@@ -92,6 +102,16 @@ const OrganizationForm: React.FC = () => {
         lat: (addr.lat || "").toString(),
         lng: (addr.lng || "").toString(),
         postalCode: (addr.postal_code || "").toString(),
+        line_1: "",
+        line_2: "",
+        country: "",
+        state_or_province: "",
+        district: "",
+        city: "",
+        village: "",
+        town: "",
+        land_mark: "",
+        instruction: "",
       },
       branch_email: (branchEmail || "").trim(),
     };
@@ -107,7 +127,9 @@ const OrganizationForm: React.FC = () => {
         message: response.message,
       },
     });
-    // navigate("/success");
+    setTimeout(() => {
+       navigate("/success");
+    }, 1500);
   };
 
   const [notif, setNotif] = useState<{
