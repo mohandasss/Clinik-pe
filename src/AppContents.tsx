@@ -10,31 +10,46 @@ import LoginOtpForm from "./components/LoginOtp/LoginOtpForm";
 import PrivateRoute from "./Layouts/PrivateRoute";
 import AppLayout from "./Layouts/AppLayout";
 import OrganizationList from "./Pages/Organization/OrganizationList";
+import ClinicList from "./Pages/Clinic/ClinicList";
+import ProviderList from "./Pages/Provider/ProviderList";
+import AddOrganization from "./Pages/Organization/AddOrganization";
+import PublicRoute from "./Layouts/PublicRoute";
 
 function AppContents() {
   return (
     <Routes>
-      <Route path="/" element={<OnboardingPage />}>
+      {/* Public routes */}
+      <Route
+        path="/"
+        element={
+          <PublicRoute>
+            <OnboardingPage />
+          </PublicRoute>
+        }
+      >
         <Route index element={<OnboardingForm />} />
         <Route path="otp" element={<OnboardingOtpForm />} />
-        <Route path="organization" element={<OrganizationForm />} />
+        <Route path="organization-onboard" element={<OrganizationForm />} />
         <Route path="success" element={<SuccessMessage />} />
         <Route path="login" element={<LoginForm />} />
         <Route path="login-otp" element={<LoginOtpForm />} />
       </Route>
 
+      {/* Private routes */}
       <Route
-        path="/"
         element={
           <PrivateRoute>
             <AppLayout />
           </PrivateRoute>
         }
       >
-        <Route path="/organization-list" element={<OrganizationList />} />
+        <Route path="/organization" element={<OrganizationList />} />
+        <Route path="/organization/add" element={<AddOrganization />} />
+        <Route path="/clinic" element={<ClinicList />} />
+        <Route path="/providers" element={<ProviderList />} />
       </Route>
 
-      <Route path="/home" element={<Home />} />
+     
     </Routes>
   );
 }

@@ -133,7 +133,7 @@ const LoginOtpForm: React.FC = () => {
 
         setTimeout(() => {
           if (!organization_id && !center_id) {
-            navigate("/organization-list");
+            navigate("/organization");
           } else if (organization_id && !center_id) {
             navigate("/center");
           } else if (!organization_id && center_id) {

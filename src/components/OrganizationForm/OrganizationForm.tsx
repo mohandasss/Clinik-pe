@@ -46,6 +46,16 @@ const OrganizationForm: React.FC = () => {
   // modal state for map selector
   const [mapOpen, setMapOpen] = useState(false);
 
+  type Errors = {
+    organizationName?: string;
+    address?: string;
+    primaryContact?: string;
+    secondaryContact?: string;
+    branchEmail?: string;
+  };
+
+  const [errors, setErrors] = useState<Errors>({});
+
   const handleMapLocationSelect = (lat: number, lng: number) => {
     updateAddress(0, "lat", String(lat));
     updateAddress(0, "lng", String(lng));
@@ -59,17 +69,36 @@ const OrganizationForm: React.FC = () => {
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     // Basic validation
-    if (
-      !organizationName.trim() ||
-      !addresses[0]?.address?.trim() ||
-      !primaryContact.trim()
-    ) {
+    const newErrors: Errors = {};
+    if (!organizationName.trim())
+      newErrors.organizationName = "Organization name is required";
+    if (!addresses[0]?.address?.trim())
+      newErrors.address = "Primary address is required";
+    // validate primary contact (expect 10 digits)
+    const primaryDigits = (primaryContact || "").replace(/\D/g, "");
+    if (!primaryContact.trim()) {
+      newErrors.primaryContact = "Primary contact is required";
+    } else if (primaryDigits.length !== 10) {
+      newErrors.primaryContact = "Enter a valid 10-digit mobile number";
+    }
+    // secondary contact optional but if provided validate
+    if (secondaryContact.trim()) {
+      const sec = secondaryContact.replace(/\D/g, "");
+      if (sec.length !== 10)
+        newErrors.secondaryContact = "Enter a valid 10-digit mobile number";
+    }
+    // email validation if provided
+    if (branchEmail.trim()) {
+      const emailRegex = /^\S+@\S+\.\S+$/;
+      if (!emailRegex.test(branchEmail.trim()))
+        newErrors.branchEmail = "Enter a valid email address";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       setNotif({
         open: true,
-        data: {
-          success: false,
-          message: "Please fill in all required fields.",
-        },
+        data: { success: false, message: "Please fix the highlighted errors." },
       });
       return;
     }
@@ -128,7 +157,7 @@ const OrganizationForm: React.FC = () => {
       },
     });
     setTimeout(() => {
-       navigate("/success");
+      navigate("/success");
     }, 1500);
   };
 
@@ -165,7 +194,11 @@ const OrganizationForm: React.FC = () => {
             <TextInput
               placeholder="Enter organization name"
               value={organizationName}
-              onChange={(e) => setOrganizationName(e.currentTarget.value)}
+              onChange={(e) => {
+                setOrganizationName(e.currentTarget.value);
+                setErrors((s) => ({ ...s, organizationName: undefined }));
+              }}
+              error={errors.organizationName}
             />
           </div>
           <div className="flex-1">
@@ -225,9 +258,11 @@ const OrganizationForm: React.FC = () => {
                           : "Enter additional address"
                       }
                       value={addr.address}
-                      onChange={(e) =>
-                        updateAddress(i, "address", e.currentTarget.value)
-                      }
+                      onChange={(e) => {
+                        updateAddress(i, "address", e.currentTarget.value);
+                        setErrors((s) => ({ ...s, address: undefined }));
+                      }}
+                      error={i === 0 ? errors.address : undefined}
                     />
                   </div>
 
@@ -311,7 +346,11 @@ const OrganizationForm: React.FC = () => {
             <TextInput
               placeholder="Enter primary contact number"
               value={primaryContact}
-              onChange={(e) => setPrimaryContact(e.currentTarget.value)}
+              onChange={(e) => {
+                setPrimaryContact(e.currentTarget.value);
+                setErrors((s) => ({ ...s, primaryContact: undefined }));
+              }}
+              error={errors.primaryContact}
             />
           </div>
           <div className="flex-1">
@@ -319,7 +358,11 @@ const OrganizationForm: React.FC = () => {
             <TextInput
               placeholder="Enter secondary number"
               value={secondaryContact}
-              onChange={(e) => setSecondaryContact(e.currentTarget.value)}
+              onChange={(e) => {
+                setSecondaryContact(e.currentTarget.value);
+                setErrors((s) => ({ ...s, secondaryContact: undefined }));
+              }}
+              error={errors.secondaryContact}
             />
           </div>
         </div>
@@ -329,7 +372,11 @@ const OrganizationForm: React.FC = () => {
           <TextInput
             placeholder="Enter branch email address"
             value={branchEmail}
-            onChange={(e) => setBranchEmail(e.currentTarget.value)}
+            onChange={(e) => {
+              setBranchEmail(e.currentTarget.value);
+              setErrors((s) => ({ ...s, branchEmail: undefined }));
+            }}
+            error={errors.branchEmail}
           />
         </div>
 

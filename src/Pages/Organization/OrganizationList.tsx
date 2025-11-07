@@ -1,9 +1,26 @@
-import React from "react";
+import React, { useEffect } from "react";
 import StatCard from "./Components/StatCard";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import OrganizationTable from "./Components/OrganizationTable";
+import apis from "../../APis/Api";
+import type { OrganizationListResponse } from "../../APis/Types";
 
 const OrganizationList: React.FC = () => {
+  const [organizations, setOrganizations] =
+    React.useState<OrganizationListResponse | null>(null);
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const response = await apis.GetOrganizationsList();
+        console.log(response);
+        // store full response so we can access both data.organization and pagination
+        setOrganizations(response);
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+      }
+    };
+    fetchOrganizations();
+  }, []);
   return (
     <div className="  space-y-6 p-0">
       <div className="flex gap-4">
@@ -31,7 +48,14 @@ const OrganizationList: React.FC = () => {
         />
       </div>
       {/* Organization Table */}
-      <OrganizationTable />
+      <OrganizationTable
+        orgData={organizations?.data?.organization ?? []}
+        total={
+          organizations?.data?.pagination?.totalRecords ??
+          organizations?.data?.organization?.length ??
+          0
+        }
+      />
     </div>
   );
 };

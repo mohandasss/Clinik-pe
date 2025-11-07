@@ -2,25 +2,71 @@ import React, { useEffect, useRef, useState } from "react";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
 import { IconDots } from "@tabler/icons-react";
 import { Button, Select } from "@mantine/core";
-import { useNavigate } from "react-router-dom";
-import type { Organization } from "../../../APis/Types";
 
-const OrganizationTable: React.FC<{
-  orgData?: Organization[];
-  total?: number;
-}> = ({ orgData = [], total }) => {
-  const navigate = useNavigate();
+type Row = {
+  id: number;
+  logoColor?: string; // used to render small square logo
+  centerName: string;
+  type: string;
+  location: string;
+  contactPerson: string;
+  providers: number;
+  status: "Active" | "Inactive";
+};
+
+const rowsData: Row[] = [
+  {
+    id: 1,
+    logoColor: "bg-blue-100",
+    centerName: "Medilife Center",
+    type: "Clinic",
+    location: "New York, USA",
+    contactPerson: "Dr. John Doe",
+    providers: 10,
+    status: "Active",
+  },
+  {
+    id: 2,
+    logoColor: "bg-purple-100",
+    centerName: "Global Healthcare Center",
+    type: "Diagnostic",
+    location: "Mumbai, India",
+    contactPerson: "Ms. Priya Singh",
+    providers: 5,
+    status: "Active",
+  },
+  {
+    id: 3,
+    logoColor: "bg-green-100",
+    centerName: "EcoEnergy Clinic",
+    type: "Diagnostic",
+    location: "San Francisco, USA",
+    contactPerson: "Mr. Alan Green",
+    providers: 4,
+    status: "Inactive",
+  },
+  {
+    id: 4,
+    logoColor: "bg-amber-100",
+    centerName: "FinanceFirst Clinic",
+    type: "Diagnostic",
+    location: "Bengaluru, India",
+    contactPerson: "Ms. Sita Rao",
+    providers: 2,
+    status: "Inactive",
+  },
+];
+
+const ClinicTable: React.FC = () => {
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement | null>(null);
   const pageSize = 5;
-  // pagination slice
-  const paginated = (orgData || []).slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
 
-  const toggleRow = (id: string) => {
+  // pagination slice
+  const paginated = rowsData.slice((page - 1) * pageSize, page * pageSize);
+
+  const toggleRow = (id: number) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
@@ -28,8 +74,7 @@ const OrganizationTable: React.FC<{
 
   const toggleSelectAll = () => {
     const ids = paginated.map((r) => r.id);
-    const allSelected =
-      ids.length > 0 && ids.every((id) => selected.includes(id));
+    const allSelected = ids.every((id) => selected.includes(id));
     if (allSelected) {
       // remove these ids
       setSelected((prev) => prev.filter((id) => !ids.includes(id)));
@@ -39,9 +84,6 @@ const OrganizationTable: React.FC<{
     }
   };
 
-  const handleAdd = () => {
-    navigate("/organization/add");
-  };
   useEffect(() => {
     const ids = paginated.map((r) => r.id);
     const someSelected = ids.some((id) => selected.includes(id));
@@ -52,7 +94,7 @@ const OrganizationTable: React.FC<{
     }
   }, [paginated, selected]);
 
-  const columns: DataTableColumn<Organization>[] = [
+  const columns: DataTableColumn<Row>[] = [
     {
       accessor: "select",
       width: 40,
@@ -79,32 +121,68 @@ const OrganizationTable: React.FC<{
       ),
     },
     {
-      accessor: "name",
-      title: "Organization Name",
+      accessor: "logo",
+      title: "Logo",
       render: (r) => (
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-8 h-8 rounded-md flex items-center justify-center bg-gray-100 text-gray-700`}
+        <div
+          className={`w-8 h-8 rounded-md flex items-center justify-center ${r.logoColor}`}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            {r.name ? r.name.charAt(0).toUpperCase() : "O"}
-          </div>
-          <div className="text-gray-800">{r.name}</div>
+            <rect
+              x="4"
+              y="4"
+              width="16"
+              height="16"
+              rx="2"
+              fill="currentColor"
+            />
+          </svg>
         </div>
       ),
     },
-    { accessor: "country", title: "Country" },
-    { accessor: "timezone", title: "Timezone" },
-    { accessor: "centers", title: "Centers" },
+    {
+      accessor: "centerName",
+      title: "Center Name",
+      render: (r) => <div className="text-gray-800">{r.centerName}</div>,
+    },
+    {
+      accessor: "type",
+      title: "Type",
+      render: (r) => {
+        const map: Record<string, string> = {
+          Clinic: "bg-green-100 text-green-700",
+          Diagnostic: "bg-purple-100 text-purple-700",
+          Satellite: "bg-amber-100 text-amber-700",
+        };
+        const cls = map[r.type] ?? "bg-gray-100 text-gray-700";
+        return (
+          <span
+            className={`inline-flex items-center px-2 py-1.5 text-xs rounded-full ${cls}`}
+          >
+            {r.type}
+          </span>
+        );
+      },
+    },
+    { accessor: "location", title: "Location" },
+    { accessor: "contactPerson", title: "Contact Person" },
+    { accessor: "providers", title: "Providers" },
     {
       accessor: "status",
       title: "Status",
       render: (r) =>
         r.status === "Active" ? (
-          <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs">
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-600 text-xs">
             Active
           </span>
         ) : (
-          <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs">
             Inactive
           </span>
         ),
@@ -125,12 +203,12 @@ const OrganizationTable: React.FC<{
     <div className="bg-white rounded-lg shadow-sm p-4 ring-1 ring-gray-100">
       {/* Filters & Actions */}
       <div className="flex  items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">Organizations</h2>
+        <h2 className="text-lg font-semibold text-gray-800">Clinics</h2>
 
         <div className="flex items-center gap-3">
           <Select
-            placeholder="All Countries"
-            data={["All Countries", "India", "United States"]}
+            placeholder="All Type"
+            data={["All Countries", "Clinic", "Diagnostic"]}
             classNames={{
               input:
                 "border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-0 focus-visible:outline-none",
@@ -147,12 +225,11 @@ const OrganizationTable: React.FC<{
           />
 
           <Button
-            onClick={handleAdd}
             variant="filled"
             color="blue"
             className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-md"
           >
-            + Add Organization
+            + Add Center
           </Button>
         </div>
       </div>
@@ -170,11 +247,7 @@ const OrganizationTable: React.FC<{
 
       {/* Pagination */}
       <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
-        <div>
-          Showing {paginated.length > 0 ? (page - 1) * pageSize + 1 : 0} to{" "}
-          {(page - 1) * pageSize + paginated.length} of{" "}
-          {total ?? (orgData ? orgData.length : 0)} entries
-        </div>
+        <div>Showing 1 to 10 of {rowsData.length} entries</div>
 
         <div className="inline-flex items-center gap-2">
           <button
@@ -212,4 +285,4 @@ const OrganizationTable: React.FC<{
   );
 };
 
-export default OrganizationTable;
+export default ClinicTable;

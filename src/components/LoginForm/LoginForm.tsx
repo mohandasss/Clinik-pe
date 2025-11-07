@@ -23,6 +23,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     open: boolean;
     data: { success: boolean; message: string };
   }>({ open: false, data: { success: true, message: "" } });
+  const [identifierError, setIdentifierError] = useState<string | null>(null);
 
   useEffect(() => {
     const state = (location.state || {}) as { identifier?: string };
@@ -59,9 +60,45 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     if (isMobileInput) {
       const digits = emailMobile.replace(/\D/g, "");
       const code = (countryCode || "+91").replace(/\D/g, "");
+      // validate mobile length (example: for +91 require exactly 10 digits)
+      if (code === "91") {
+        if (digits.length !== 10) {
+          setIdentifierError("Enter a valid 10-digit mobile number");
+          setNotif({
+            open: true,
+            data: { success: false, message: "Invalid mobile number" },
+          });
+          return;
+        }
+      } else {
+        if (digits.length < 6 || digits.length > 15) {
+          setIdentifierError("Enter a valid mobile number");
+          setNotif({
+            open: true,
+            data: { success: false, message: "Invalid mobile number" },
+          });
+          return;
+        }
+      }
+
       emailMobile = `+${code}${digits}`;
     }
 
+    // if not mobile, validate email format
+    if (!isMobileInput) {
+      const email = emailMobile;
+      const emailRegex = /^\S+@\S+\.\S+$/;
+      if (!emailRegex.test(email)) {
+        setIdentifierError("Enter a valid email address or mobile number");
+        setNotif({
+          open: true,
+          data: { success: false, message: "Invalid email address" },
+        });
+        return;
+      }
+    }
+
+    setIdentifierError(null);
     const payload = {
       emailMobile,
       device_type: deviceType,
@@ -72,7 +109,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     console.log("Login payload:", payload);
 
     const response = await apis.OrganizationLogin(payload);
-    console.log("Login response:", response.data.otpDetails);
+    console.log("Login response:", response.data);
 
     setNotif({
       open: true,
@@ -83,8 +120,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     if (onLogin) onLogin(trimmed);
 
     // extract otp details and navigate to the OTP page with required state
-    const otp_id = response?.data?.otpDetails.otp_id;
-    const request_id = response?.data?.otpDetails.request_id;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = response?.data;
+    const otp_id = data?.otpDetails?.otp_id ?? data?.otp_id;
+    const request_id = data?.otpDetails?.request_id ?? data?.request_id;
 
     // Navigate to login-otp so the OTP form has identifier + otp/request ids
     if (response?.success) {
@@ -145,17 +184,29 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
               <input
                 placeholder="Mobile number"
                 value={identifier}
-                onChange={(e) => setIdentifier(e.currentTarget.value)}
+                onChange={(e) => {
+                  setIdentifier(e.currentTarget.value);
+                  setIdentifierError(null);
+                }}
                 ref={numberInputRef}
                 autoFocus
                 className="px-3 py-2 rounded-md border border-gray-200 flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {identifierError ? (
+                <Text color="red" size="sm">
+                  {identifierError}
+                </Text>
+              ) : null}
             </div>
           ) : (
             <TextInput
               placeholder="Mobile or Email id"
               value={identifier}
-              onChange={(e) => setIdentifier(e.currentTarget.value)}
+              onChange={(e) => {
+                setIdentifier(e.currentTarget.value);
+                setIdentifierError(null);
+              }}
+              error={identifierError ?? undefined}
               size="md"
             />
           )}

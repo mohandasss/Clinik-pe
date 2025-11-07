@@ -19,7 +19,7 @@ export type OrganizationSuccessResponse = {
   };
 };
 
-export type VerifyOtpPayload =  {
+export type VerifyOtpPayload = {
   request_id: string;
   otp_id: string;
   otp: string;
@@ -81,13 +81,13 @@ export type OrganizationAddPayloads = {
 
 
 export interface OrganizationLoginRequestPayload {
-  emailMobile: string  | number;
+  emailMobile: string | number;
   device_type: string
   device_id: string;
   frontend_type: string
 }
 
-export type VerifyOtpToGetToken = {
+export type AccessToken = {
   success: boolean;
   httpStatus: number;
   message: string;
@@ -99,8 +99,8 @@ export type VerifyOtpToGetToken = {
       name: string;
       email: string;
       mobile: string;
-      user_role: string;         
-      user_type: string;         
+      user_role: string;
+      user_type: string;
       central_account_id: string;
       time_zone: string;
       currency: string | null;
@@ -111,6 +111,62 @@ export type VerifyOtpToGetToken = {
     };
   };
 }
+
+export type OrganizationAddInside = {
+  organization_name: string;
+  address: string;
+  phone: string;
+  legal_id: string;
+  email: string;
+  founded_date: string; // You can use Date if you plan to parse it as a Date object
+};
+export type OrganizationAddInsideResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+
+};
+
+
+//twin
+export interface Organization {
+  id: string;
+  uid: string;
+  central_account_id: string;
+  name: string;
+  country: string | null;
+  currency: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string | null;
+  time_zone: string;
+  legal_id: string;
+  founded_date: string;
+  phone: string;
+  email: string;
+  address: string;
+}
+
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalRecords: number;
+  pageCount: number;
+}
+
+export interface OrganizationListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    organization: Organization[];
+    pagination: Pagination;
+  };
+}
+
+
+
+
 
 
 

@@ -1,13 +1,13 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Avatar,
-  Group,
   TextInput,
   ActionIcon,
   Menu,
   UnstyledButton,
   Text,
+  Select,
 } from "@mantine/core";
 import {
   IconSearch,
@@ -16,6 +16,8 @@ import {
   IconChevronDown,
 } from "@tabler/icons-react";
 import useAuthStore from "../../GlobalStore/store";
+import apis from "../../APis/Api";
+// import useOrgStore from "../../GlobalStore/orgStore";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -32,6 +34,33 @@ const Header: React.FC = () => {
     .join("")
     .toUpperCase();
 
+  const { pathname } = useLocation();
+
+  // ✅ URLs where dropdown should appear
+  const pagesWithDropdown = ["/clinic-details", "/providers"];
+
+  const shouldShowDropdown = pagesWithDropdown.some((p) =>
+    pathname.startsWith(p)
+  );
+
+  //get dropdown options
+  useEffect(() => {
+    if (!shouldShowDropdown) return;
+
+    const fetchDropdownOptions = async () => {
+      const response = await apis.SwitchClinic();
+      console.log("Dropdown options:", response);
+    };
+    fetchDropdownOptions();
+  }, [shouldShowDropdown]);
+
+  //mock for now
+  const [orgValue, setOrgValue] = useState<string | null>(null);
+  const dummyOrgs = [
+    { label: "Organization A", value: "1" },
+    { label: "Organization B", value: "2" },
+  ];
+
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -39,6 +68,7 @@ const Header: React.FC = () => {
 
   return (
     <header className="flex items-center justify-between px-6 py-3 bg-white shadow-sm">
+      {/* Search Input */}
       <div className="flex-1 max-w-lg">
         <TextInput
           placeholder="Search patients, appointments, charts..."
@@ -53,11 +83,30 @@ const Header: React.FC = () => {
         />
       </div>
 
-      <div className="ml-4">
+      {/* ✅ Dropdown when needed */}
+
+      {/* Notification and Profile */}
+      <div className="ml-4 flex items-center gap-4">
+        {/* Dropdown */}
+        {shouldShowDropdown && (
+          <div className="w-60">
+            <Select
+              classNames={{
+                input:
+                  "border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-0 focus-visible:outline-none",
+              }}
+              value={orgValue}
+              placeholder="Select organization"
+              data={dummyOrgs}
+              onChange={(value) => setOrgValue(value)}
+            />
+          </div>
+        )}
+
+        {/* Bell and profile */}
         <div className="flex items-center gap-4">
-          {/* bell with red dot */}
           <div className="relative">
-            <ActionIcon variant="subtle" mt={4} color="gray" size={35}>
+            <ActionIcon variant="subtle" color="gray" size={35}>
               <IconBell size={18} />
             </ActionIcon>
             <span className="absolute top-1 -right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />

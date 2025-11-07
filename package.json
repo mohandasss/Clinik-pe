@@ -12,6 +12,7 @@
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^5.0.1",
     "@mantine/core": "^8.3.6",
+    "@mantine/dates": "^8.3.6",
     "@mantine/hooks": "^8.3.6",
     "@mantine/notifications": "^8.3.6",
     "@tabler/icons-react": "^3.35.0",

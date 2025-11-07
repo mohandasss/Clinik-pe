@@ -23,7 +23,6 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({ onSubmit }) => {
   const location = useLocation();
   const [formData, setFormData] = useState<OnboardingFormData>({
     fullName: "",
-
     phoneNumber: "",
     emailAddress: "",
     role: "",

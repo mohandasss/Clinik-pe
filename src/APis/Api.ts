@@ -1,4 +1,4 @@
-import type { OrganizationAddPayloads, OrganizationLoginRequestPayload, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse, VerifyOtpToGetToken } from "./Types";
+import type { OrganizationAddPayloads, OrganizationLoginRequestPayload, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse, AccessToken, OrganizationAddInside, OrganizationAddInsideResponse, OrganizationListResponse } from "./Types";
 import apiAgent from "./apiAgents";
 
 class Apis {
@@ -6,7 +6,7 @@ class Apis {
     payload: OrganizationRegistrationPayload
   ): Promise<| OrganizationSuccessResponse> {
     const response = await apiAgent
-      .path("/organization")
+      .path("/organization/register")
       .method("POST")
       .json(payload)
       .execute();
@@ -63,14 +63,14 @@ class Apis {
 
   async OrganizationLoginOtpVerification(
     payload: VerifyOtpPayload
-  ): Promise<VerifyOtpToGetToken> {
+  ): Promise<AccessToken> {
     const response = await apiAgent
       .path("/organization/login-otp-verification")
       .method("POST")
       .json(payload)
       .execute();
 
-    return response.data as VerifyOtpToGetToken;
+    return response.data as AccessToken;
   }
   async OrganizationLoginResendOtpVerification(
     payload: ResendOtpPayload
@@ -82,6 +82,38 @@ class Apis {
       .execute();
 
     return response.data as ResendOtpResponse;
+  }
+
+  //switch accesss clinic // later needed
+  async SwitchClinic(
+  ): Promise<AccessToken> {
+    const response = await apiAgent
+      .path("/organization/switch-clinic")
+      .method("POST")
+      .execute();
+
+    return response.data as AccessToken;
+  }
+
+  async AddOrganizationFromInside(
+    payload: OrganizationAddInside
+  ): Promise<OrganizationAddInsideResponse> {
+    const response = await apiAgent
+      .path("/organization")
+      .method("POST")
+      .json(payload)
+      .execute();
+
+    return response.data as OrganizationAddInsideResponse;
+  }
+
+  async GetOrganizationsList(): Promise<OrganizationListResponse> {
+    const response = await apiAgent
+      .path("/organization/list")
+      .method("GET")
+      .query({})
+      .execute();
+    return response.data as OrganizationListResponse;
   }
 
 
