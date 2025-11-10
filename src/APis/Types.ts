@@ -177,10 +177,11 @@ export type CenterRequestPayload = {
   email: string;
   primary_contact: string;
   secondary_contact: string;
-  profile_image: string;
+  image_path: string;
   is_clinic: number;
   is_diagnostic: number;
   working_hours: WorkingHour[];
+  organization_id?: string;
 };
 
 export interface CreateCenterResponse {
@@ -209,7 +210,7 @@ export interface Center {
   central_account_id: string;
   organization_id: string | null;
   name: string;
-  address: string | null; 
+  address: string | null;
   email: string;
   primary_contact: string;
   secondary_contact: string;
@@ -251,6 +252,58 @@ export interface Pagination {
   totalRecords: number;
   pageCount: number;
 }
+export interface ExperienceItem {
+  uid: string;
+  name: string;
+}
+
+
+export interface ExperienceResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: ExperienceItem[];
+}
+
+export interface QualificationItem {
+  uid: string;
+  name: string;
+}
+
+export interface QualificationResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: QualificationItem[];
+}
+
+
+export interface SpecialityItem {
+  uid: string;
+  name: string;
+}
+
+export interface SpecialityResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: SpecialityItem[];
+}
+
+
+export interface UploadData {
+  uploadPath: string;
+}
+
+export interface FileUploadResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: UploadData;
+}
+
+
+
 
 
 

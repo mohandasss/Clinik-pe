@@ -1,9 +1,11 @@
 import React, { useRef } from "react";
 import { IconCamera, IconPlus } from "@tabler/icons-react";
+import apis from "../../APis/Api";
 
 interface ImageUploadProps {
   photo: File | null;
   onPhotoChange: (file: File | null) => void;
+  onUploadPathChange?: (path: string) => void;
   title?: string;
   description?: string;
   subtitle?: string;
@@ -13,6 +15,7 @@ interface ImageUploadProps {
 const ImageUpload: React.FC<ImageUploadProps> = ({
   photo,
   onPhotoChange,
+  onUploadPathChange,
   title = "Photo",
   description = "Upload a professional headshot",
   subtitle = "JPG, PNG up to 5MB",
@@ -20,7 +23,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 }) => {
   const fileRef = useRef<HTMLInputElement | null>(null);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     e.stopPropagation();
     const file = e.target.files?.[0];
@@ -28,6 +31,17 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       onPhotoChange(file);
       // Reset the input value to allow selecting the same file again
       e.target.value = "";
+
+      // Call the image upload API
+      const formData = new FormData();
+      formData.append("file", file);
+      try {
+        const response = await apis.ImageUpload(formData);
+        console.log("Image upload response:", response.data.uploadPath);
+        onUploadPathChange?.(response.data.uploadPath);
+      } catch (error) {
+        console.error("Image upload failed:", error);
+      }
     }
   };
 

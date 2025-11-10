@@ -1,4 +1,4 @@
-import type { OrganizationAddPayloads, OrganizationLoginRequestPayload, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse, AccessToken, OrganizationAddInside, OrganizationAddInsideResponse, OrganizationListResponse, ClinicRequestPayload, CenterRequestPayload, CreateCenterResponse, CenterListResponse } from "./Types";
+import type { OrganizationAddPayloads, OrganizationLoginRequestPayload, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse, AccessToken, OrganizationAddInside, OrganizationAddInsideResponse, OrganizationListResponse, ClinicRequestPayload, CenterRequestPayload, CreateCenterResponse, CenterListResponse, ExperienceResponse, QualificationResponse, SpecialityResponse, FileUploadResponse } from "./Types";
 import apiAgent from "./apiAgents";
 
 class Apis {
@@ -85,15 +85,15 @@ class Apis {
   }
 
   //switch accesss clinic // later needed
-  async SwitchClinic(
-  ): Promise<AccessToken> {
-    const response = await apiAgent
-      .path("/organizations/switch-clinic")
-      .method("POST")
-      .execute();
+  // async SwitchClinic(
+  // ): Promise<AccessToken> {
+  //   const response = await apiAgent
+  //     .path("/organizations/switch-clinic")
+  //     .method("POST")
+  //     .execute();
 
-    return response.data as AccessToken;
-  }
+  //   return response.data as AccessToken;
+  // }
 
   async AddOrganizationFromInside(
     payload: OrganizationAddInside
@@ -140,10 +140,12 @@ class Apis {
 
   //add clinic
   async AddClinicFromInside(
+    organization_id: string,
     payload: CenterRequestPayload
   ): Promise<CreateCenterResponse> {
+    console.log("Adding clinic with payload:", organization_id);
     const response = await apiAgent
-      .path("/center")
+      .path(`/organizations/${organization_id}/centers`)
       .method("POST")
       .json(payload)
       .execute();
@@ -176,6 +178,40 @@ class Apis {
       .query(queryPayload)
       .execute();
     return response.data as CenterListResponse;
+  }
+
+  async GetExperience(): Promise<ExperienceResponse> {
+
+    const response = await apiAgent
+      .path("/doctor/master/experience")
+      .method("GET")
+      .execute();
+    return response.data as ExperienceResponse;
+  }
+
+  async GetQualification(): Promise<QualificationResponse> {
+    const response = await apiAgent
+      .path("/doctor/master/qualification")
+      .method("GET")
+      .execute();
+    return response.data as QualificationResponse;
+  }
+
+  async GetSpecialities(): Promise<SpecialityResponse> {
+    const response = await apiAgent
+      .path("/doctor/master/speciality")
+      .method("GET")
+      .execute();
+    return response.data as SpecialityResponse;
+  }
+
+  async ImageUpload(payload: FormData): Promise<FileUploadResponse> {
+    const response = await apiAgent
+      .path("/file-upload")
+      .method("POST")
+      .form(payload)
+      .execute();
+    return response.data as FileUploadResponse
   }
 
 

@@ -12,6 +12,7 @@ type User = {
 
 export type OrganizationDetails = {
     organization_id: string | null;
+    organization_name: string;
     user_id: string;
     name: string;
     email: string;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Paper,
@@ -13,6 +13,7 @@ import { IconArrowLeft, IconClock } from "@tabler/icons-react";
 import Notification from "../../components/GlobalNotification/Notification";
 import ImageUpload from "../../components/ImageUpload/ImageUpload";
 import apis from "../../APis/Api";
+import useAuthStore from "../../GlobalStore/store";
 
 interface WorkingHours {
   monday: { enabled: boolean; start: string; end: string };
@@ -27,10 +28,28 @@ interface WorkingHours {
 const AddCenter: React.FC = () => {
   const navigate = useNavigate();
 
+  const organizationDetails = useAuthStore(
+    (state) => state.organizationDetails
+  );
+  console.log("Organization Details from Store:", organizationDetails);
+  const organizationId = organizationDetails?.organization_id
+    ? String(organizationDetails.organization_id)
+    : undefined;
+
+  useEffect(() => {
+    if (organizationDetails?.organization_name) {
+      setForm((prev) => ({
+        ...prev,
+        organization: organizationDetails.organization_name,
+      }));
+    }
+  }, [organizationDetails]);
+
   const [centerPhoto, setCenterPhoto] = useState<File | null>(null);
+  const [uploadPath, setUploadPath] = useState<string>("");
   const [form, setForm] = useState({
     centerName: "",
-    parentOrganization: "",
+    organization: "",
     phoneNumber: "",
     secondaryPhone: "",
     emailAddress: "",
@@ -144,7 +163,7 @@ const AddCenter: React.FC = () => {
       secondary_contact: form.secondaryPhone.trim()
         ? `+91${form.secondaryPhone.trim()}`
         : "",
-      profile_image: centerPhoto ? centerPhoto.name : "",
+      image_path: uploadPath,
       is_clinic: form.type === "Clinic" || form.type === "Both" ? 1 : 0,
       is_diagnostic: form.type === "Diagnostic" || form.type === "Both" ? 1 : 0,
       working_hours: workingHoursArray,
@@ -180,8 +199,19 @@ const AddCenter: React.FC = () => {
       return;
     }
 
+    if (!organizationId) {
+      setNotif({
+        open: true,
+        data: {
+          success: false,
+          message: "Organization ID not found. Please login again.",
+        },
+      });
+      return;
+    }
+
     const payload = buildPayload();
-    const response = await apis.AddClinicFromInside(payload);
+    const response = await apis.AddClinicFromInside(organizationId, payload);
     console.log("AddClinic response:", response);
     if (response && response.success) {
       setNotif({
@@ -299,6 +329,7 @@ const AddCenter: React.FC = () => {
           <ImageUpload
             photo={centerPhoto}
             onPhotoChange={setCenterPhoto}
+            onUploadPathChange={setUploadPath}
             title="Center Photo"
             description="Upload a professional headshot"
             subtitle="JPG, PNG up to 5MB"
@@ -336,25 +367,18 @@ const AddCenter: React.FC = () => {
                 )}
               </div>
 
-              {/* Parent Organization */}
+              {/* Organization */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">
-                  Parent Organization
+                  Organization
                 </label>
-                <Select
-                  placeholder="St. Jude's Hospital"
-                  data={[
-                    "St. Jude's Hospital",
-                    "City Medical Center",
-                    "Health Plus",
-                  ]}
-                  value={form.parentOrganization}
-                  onChange={(val) =>
-                    handleChange("parentOrganization", val || "")
-                  }
+                <TextInput
+                  placeholder="Organization Name"
+                  value={form.organization}
+                  disabled
                   classNames={{
                     input:
-                      "text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500",
+                      "text-sm px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600",
                   }}
                 />
               </div>
