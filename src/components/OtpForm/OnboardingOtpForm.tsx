@@ -3,7 +3,7 @@ import { Button, TextInput, ActionIcon } from "@mantine/core";
 import { useNavigate, useLocation } from "react-router-dom";
 import { IconPencil } from "@tabler/icons-react";
 import OtpPinInput from "./Components/OtpPinInput";
-import Notification from "../GlobalNotification/Notification";
+import Notification from "../Global/Notification";
 import { useDeviceId } from "../../Customhooks/useDeviceId";
 import { useDeviceType } from "../../Customhooks/useDeviceType";
 import apis from "../../APis/Api";
@@ -89,12 +89,11 @@ const OnboardingOtpForm: React.FC = () => {
         setNotif({ open: true, data: { success, message } });
 
         if (success) {
-          setTimeout(() => navigate("/organization"), 1500);
+          setTimeout(() => navigate("/organization-onboard"), 1500);
         }
       } catch (err) {
         console.error(err);
-        let message = "Network error";
-        if (err instanceof Error) message = err.message;
+        
         setNotif({ open: true, data: { success: false, message } });
       }
     };
@@ -224,7 +223,6 @@ const OnboardingOtpForm: React.FC = () => {
             </>
           ) : (
             <>
-              
               <button
                 className="text-blue-600"
                 onClick={handleResend}

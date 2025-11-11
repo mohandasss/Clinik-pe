@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useDeviceId } from "../../Customhooks/useDeviceId";
 import { TextInput, Select, Button } from "@mantine/core";
-import Notification from "../GlobalNotification/Notification";
+import Notification from "../Global/Notification";
 import apis from "../../APis/Api";
 import { useNavigate } from "react-router-dom";
 import { useDeviceType } from "../../Customhooks/useDeviceType";

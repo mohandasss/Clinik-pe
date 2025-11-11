@@ -303,6 +303,41 @@ export interface FileUploadResponse {
 }
 
 
+export type DoctorExperience = {
+  speciality_id: string;
+  years_of_experience: string;
+};
+
+export type DoctorLicense = {
+  speciality_id: string;
+  license_number: string;
+};
+
+export type DoctorQualification = {
+  name: string;
+  qualification_id: string;
+  institute_id: string;
+  institute_name: string;
+};
+
+export type DoctorSpeciality = {
+  name: string;
+  speciality_id: string;
+};
+
+export type ProviderDetails = {
+  contact_email: string;
+  contact_mobile: string;
+  doctorExperiences: DoctorExperience[];
+  doctorLicenses: DoctorLicense[];
+  doctorQualification: DoctorQualification[];
+  doctorSpecialty: DoctorSpeciality[];
+  image_path: string;
+  name: string;
+  time_zone: string;
+};
+
+
 
 
 

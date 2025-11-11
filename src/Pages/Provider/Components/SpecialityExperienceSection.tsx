@@ -4,10 +4,22 @@ import { IconPlus } from "@tabler/icons-react";
 import type { ExperienceItem } from "../../../APis/Types";
 
 interface SpecialityExperienceSectionProps {
-  specialityGroups: Array<{ speciality: string; experience: string }>;
+  specialityGroups: Array<{
+    speciality: string;
+    specialityId: string | null;
+    experience: string;
+    experienceId: string | null;
+  }>;
   specialityOptions: string[];
   experienceOptions: ExperienceItem[];
-  onUpdate: (groups: Array<{ speciality: string; experience: string }>) => void;
+  onUpdate: (
+    groups: Array<{
+      speciality: string;
+      specialityId: string | null;
+      experience: string;
+      experienceId: string | null;
+    }>
+  ) => void;
   onAddSpeciality: () => void;
 }
 
@@ -37,7 +49,15 @@ const SpecialityExperienceSection: React.FC<
   };
 
   const handleAdd = () => {
-    onUpdate([...specialityGroups, { speciality: "", experience: "" }]);
+    onUpdate([
+      ...specialityGroups,
+      {
+        speciality: "",
+        specialityId: null,
+        experience: "",
+        experienceId: null,
+      },
+    ]);
   };
 
   return (

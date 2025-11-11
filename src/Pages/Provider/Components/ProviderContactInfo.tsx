@@ -25,9 +25,9 @@ const ProviderContactInfo: React.FC<ProviderContactInfoProps> = ({
   return (
     <>
       {/* Row 2: Medical Center | Email Address */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 gap-6 mb-6">
         {/* Medical Center */}
-        <div>
+        {/* <div>
           <label className="block text-sm font-medium text-gray-900 mb-2">
             Medical Center<span className="text-red-500">*</span>
           </label>
@@ -48,10 +48,10 @@ const ProviderContactInfo: React.FC<ProviderContactInfoProps> = ({
               {errors.medicalCenter}
             </Text>
           )}
-        </div>
+        </div> */}
 
         {/* Email Address */}
-        <div>
+        <div className="flex-1">
           <label className="block text-sm font-medium text-gray-900 mb-2">
             Email Address
           </label>
@@ -62,7 +62,7 @@ const ProviderContactInfo: React.FC<ProviderContactInfoProps> = ({
             error={errors.emailAddress}
             classNames={{
               input:
-                "text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500",
+                "text-sm flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500",
             }}
           />
           {errors.emailAddress && (

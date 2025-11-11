@@ -4,7 +4,8 @@ import { Paper, TextInput, Button, Text } from "@mantine/core";
 import { useDeviceId } from "../../Customhooks/useDeviceId";
 import { useDeviceType } from "../../Customhooks/useDeviceType";
 import apis from "../../APis/Api";
-import Notification from "../GlobalNotification/Notification";
+import Notification from "../Global/Notification";
+import { LoadingButton } from "../Global/LoadingButton";
 
 interface LoginFormProps {
   onLogin?: (identifier: string) => void;
@@ -109,12 +110,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     console.log("Login payload:", payload);
 
     const response = await apis.OrganizationLogin(payload);
+    console.log(response);
     console.log("Login response:", response.data);
-
-    setNotif({
-      open: true,
-      data: { success: !!response.success, message: response.message },
-    });
+    if (response.success) {
+      setNotif({
+        open: true,
+        data: { success: response.success, message: response.message },
+      });
+    } else {
+      setNotif({
+        open: true,
+        data: { success: response.success, message: response.message },
+      });
+    }
 
     const trimmed = identifier.trim();
     if (onLogin) onLogin(trimmed);
@@ -211,13 +219,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             />
           )}
 
-          <Button
+          <LoadingButton
             type="submit"
             fullWidth
             styles={{ root: { backgroundColor: "#0b5ed7" } }}
+            onClick={handleSubmit}
           >
             Login Now
-          </Button>
+          </LoadingButton>
         </form>
       </Paper>
     </div>

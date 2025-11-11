@@ -8,7 +8,7 @@ import {
   ActionIcon,
   Modal,
 } from "@mantine/core";
-import Notification from "../GlobalNotification/Notification";
+import Notification from "../Global/Notification";
 import { useNavigate } from "react-router-dom";
 import { IconMapPin } from "@tabler/icons-react";
 import SelectableMap from "../../MapSelector/SelectableMap";
@@ -149,16 +149,26 @@ const OrganizationForm: React.FC = () => {
     console.log("Organization API payload:", response);
 
     // optionally show a notification and navigate
-    setNotif({
-      open: true,
-      data: {
-        success: response.success,
-        message: response.message,
-      },
-    });
-    setTimeout(() => {
-      navigate("/success");
-    }, 1500);
+    if (response.success) {
+      setNotif({
+        open: true,
+        data: {
+          success: response.success,
+          message: response.message,
+        },
+      });
+      setTimeout(() => {
+        navigate("/success");
+      }, 1500);
+    } else {
+      setNotif({
+        open: true,
+        data: {
+          success: response.success,
+          message: response.message,
+        },
+      });
+    }
   };
 
   const [notif, setNotif] = useState<{

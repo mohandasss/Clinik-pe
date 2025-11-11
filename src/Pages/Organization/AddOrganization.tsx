@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Paper, TextInput, Button, Text, Anchor, Select } from "@mantine/core";
-import Notification from "../../components/GlobalNotification/Notification";
+import Notification from "../../components/Global/Notification";
 import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../APis/Api";
 

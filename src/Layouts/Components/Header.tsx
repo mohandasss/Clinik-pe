@@ -8,6 +8,9 @@ import {
   UnstyledButton,
   Text,
   Select,
+  Modal,
+  Button,
+  Group,
 } from "@mantine/core";
 import {
   IconSearch,
@@ -47,23 +50,45 @@ const Header: React.FC = () => {
   useEffect(() => {
     if (!shouldShowDropdown) return;
 
-    const fetchDropdownOptions = async () => {
-      const response = await apis.SwitchClinic();
-      console.log("Dropdown options:", response);
-    };
-    fetchDropdownOptions();
+    // TODO: Implement SwitchClinic API when available
+    // const fetchDropdownOptions = async () => {
+    //   const response = await apis.SwitchClinic();
+    //   console.log("Dropdown options:", response);
+    // };
+    // fetchDropdownOptions();
   }, [shouldShowDropdown]);
 
-  //mock for now
   const [orgValue, setOrgValue] = useState<string | null>(null);
   const dummyOrgs = [
     { label: "Organization A", value: "1" },
     { label: "Organization B", value: "2" },
   ];
 
+  // Logout confirmation modal state
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const handleLogout = () => {
-    logout();
-    navigate("/login");
+    setIsLogoutModalOpen(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      // Clear Zustand store first
+      logout();
+
+      // Call API with isLocalStorageClear: true
+      await apis.Logout({ isLocalStorageClear: true });
+
+      // Redirect to login
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setIsLoggingOut(false);
+      setIsLogoutModalOpen(false);
+    }
   };
 
   return (
@@ -137,6 +162,31 @@ const Header: React.FC = () => {
           </Menu>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        opened={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        title="Confirm Logout"
+        centered
+      >
+        <Text size="sm" mb="lg">
+          Are you sure you want to logout? You will be redirected to the login
+          page.
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="subtle" onClick={() => setIsLogoutModalOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            color="red"
+            loading={isLoggingOut}
+            onClick={handleConfirmLogout}
+          >
+            Logout
+          </Button>
+        </Group>
+      </Modal>
     </header>
   );
 };

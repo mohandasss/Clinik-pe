@@ -4,10 +4,20 @@ import { IconPlus } from "@tabler/icons-react";
 import type { QualificationItem } from "../../../APis/Types";
 
 interface DegreesUniversitySectionProps {
-  degreeGroups: Array<{ degrees: string; universityInstitute: string }>;
+  degreeGroups: Array<{
+    degrees: string;
+    degreesId: string | null;
+    universityInstitute: string;
+    instituteId: string | null;
+  }>;
   qualificationOptions: QualificationItem[];
   onUpdate: (
-    groups: Array<{ degrees: string; universityInstitute: string }>
+    groups: Array<{
+      degrees: string;
+      degreesId: string | null;
+      universityInstitute: string;
+      instituteId: string | null;
+    }>
   ) => void;
 }
 
@@ -33,7 +43,15 @@ const DegreesUniversitySection: React.FC<DegreesUniversitySectionProps> = ({
   };
 
   const handleAdd = () => {
-    onUpdate([...degreeGroups, { degrees: "", universityInstitute: "" }]);
+    onUpdate([
+      ...degreeGroups,
+      {
+        degrees: "",
+        degreesId: null,
+        universityInstitute: "",
+        instituteId: null,
+      },
+    ]);
   };
 
   return (

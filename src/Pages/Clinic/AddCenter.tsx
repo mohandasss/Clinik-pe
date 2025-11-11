@@ -10,7 +10,7 @@ import {
   Checkbox,
 } from "@mantine/core";
 import { IconArrowLeft, IconClock } from "@tabler/icons-react";
-import Notification from "../../components/GlobalNotification/Notification";
+import Notification from "../../components/Global/Notification";
 import ImageUpload from "../../components/ImageUpload/ImageUpload";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";

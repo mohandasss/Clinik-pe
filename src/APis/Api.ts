@@ -1,4 +1,4 @@
-import type { OrganizationAddPayloads, OrganizationLoginRequestPayload, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse, AccessToken, OrganizationAddInside, OrganizationAddInsideResponse, OrganizationListResponse, ClinicRequestPayload, CenterRequestPayload, CreateCenterResponse, CenterListResponse, ExperienceResponse, QualificationResponse, SpecialityResponse, FileUploadResponse } from "./Types";
+import type { OrganizationAddPayloads, OrganizationLoginRequestPayload, OrganizationRegistrationPayload, OrganizationSuccessResponse, ResendOtpPayload, ResendOtpResponse, VerifyOtpPayload, VerifyOtpResponse, AccessToken, OrganizationAddInside, OrganizationAddInsideResponse, OrganizationListResponse, ClinicRequestPayload, CenterRequestPayload, CreateCenterResponse, CenterListResponse, ExperienceResponse, QualificationResponse, SpecialityResponse, FileUploadResponse, ProviderDetails } from "./Types";
 import apiAgent from "./apiAgents";
 
 class Apis {
@@ -214,9 +214,31 @@ class Apis {
     return response.data as FileUploadResponse
   }
 
+  async AddProvider(
+    organization_id: string,
+    payload: ProviderDetails
+  ): Promise<OrganizationSuccessResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/doctor`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as OrganizationSuccessResponse;
+  }
 
 
 
+  async Logout(
+    payload: {
+      isLocalStorageClear: boolean
+    }
+  ): Promise<void> {
+    await apiAgent
+      .path("/logout")
+      .method("POST")
+      .json(payload)
+      .execute();
+  }
 
 
 }

@@ -11,7 +11,7 @@ type User = {
 } | null;
 
 export type OrganizationDetails = {
-    organization_id: string | null;
+    organization_id: string;
     organization_name: string;
     user_id: string;
     name: string;
@@ -42,13 +42,22 @@ const useAuthStore = create<AuthState>()(
         (set) => ({
             user: null,
             setUser: (user) => set({ user }),
-            logout: () => set({ user: null }),
+            logout: () => {
+                
+                set({ user: null, organizationDetails: null });
+               
+                try {
+                    localStorage.removeItem("auth-storage");
+                } catch {
+                    // ignore if localStorage is not available
+                }
+            },
 
             organizationDetails: null,
             setOrganizationDetails: (details) => set({ organizationDetails: details }),
         }),
         {
-            name: "auth-storage", 
+            name: "auth-storage",
         }
     )
 );

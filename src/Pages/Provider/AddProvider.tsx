@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Paper, Button, Text, Anchor } from "@mantine/core";
 import { IconArrowLeft } from "@tabler/icons-react";
-import Notification from "../../components/GlobalNotification/Notification";
+import Notification from "../../components/Global/Notification";
 import ImageUpload from "../../components/ImageUpload/ImageUpload";
 import ProviderBasicInfo from "./Components/ProviderBasicInfo";
 import ProviderContactInfo from "./Components/ProviderContactInfo";
@@ -10,6 +10,7 @@ import SpecialityExperienceSection from "./Components/SpecialityExperienceSectio
 import DegreesUniversitySection from "./Components/DegreesUniversitySection";
 import AddSpecialityModal from "./Components/AddSpecialityModal";
 import apis from "../../APis/Api";
+import useAuthStore from "../../GlobalStore/store";
 import type {
   ExperienceItem,
   QualificationItem,
@@ -18,6 +19,11 @@ import type {
 
 const AddProvider = () => {
   const navigate = useNavigate();
+
+  // Get auth store data
+  const organizationDetails = useAuthStore(
+    (state) => state.organizationDetails
+  );
 
   // Lookup options from APIs
   const [experienceOptions, setExperienceOptions] = useState<ExperienceItem[]>(
@@ -55,6 +61,7 @@ const AddProvider = () => {
 
   // Form state
   const [providerPhoto, setProviderPhoto] = useState<File | null>(null);
+  const [uploadPath, setUploadPath] = useState<string>("");
   const [form, setForm] = useState({
     fullName: "",
     licenseNumber: "",
@@ -71,14 +78,33 @@ const AddProvider = () => {
     medicalCenter: "",
   });
 
-  // Groups state
+  // Groups state with tracking for IDs
   const [specialityGroups, setSpecialityGroups] = useState<
-    Array<{ speciality: string; experience: string }>
-  >([{ speciality: "", experience: "" }]);
+    Array<{
+      speciality: string;
+      specialityId: string | null;
+      experience: string;
+      experienceId: string | null;
+    }>
+  >([
+    { speciality: "", specialityId: null, experience: "", experienceId: null },
+  ]);
 
   const [degreeGroups, setDegreeGroups] = useState<
-    Array<{ degrees: string; universityInstitute: string }>
-  >([{ degrees: "", universityInstitute: "" }]);
+    Array<{
+      degrees: string;
+      degreesId: string | null;
+      universityInstitute: string;
+      instituteId: string | null;
+    }>
+  >([
+    {
+      degrees: "",
+      degreesId: null,
+      universityInstitute: "",
+      instituteId: null,
+    },
+  ]);
 
   // Modal state
   const [newSpeciality, setNewSpeciality] = useState("");
@@ -118,10 +144,10 @@ const AddProvider = () => {
     }
 
     // Medical Center validation
-    if (!form.medicalCenter.trim()) {
-      newErrors.medicalCenter = "Medical center is required";
-      isValid = false;
-    }
+    // if (!form.medicalCenter.trim()) {
+    //   newErrors.medicalCenter = "Medical center is required";
+    //   isValid = false;
+    // }
 
     // Phone Number validation
     if (!form.phoneNumber.trim()) {
@@ -160,23 +186,53 @@ const AddProvider = () => {
   };
 
   const buildPayload = () => {
-    return {
-      full_name: form.fullName.trim(),
-      license_number: form.licenseNumber.trim(),
-      medical_center: form.medicalCenter.trim(),
-      email_address: form.emailAddress.trim(),
-      phone_number: `+91${form.phoneNumber.trim()}`,
-      status: form.status,
-      specialities: specialityGroups.map((group) => ({
-        speciality: group.speciality.trim(),
-        experience: group.experience.trim(),
-      })),
-      degrees: degreeGroups.map((group) => ({
-        degree: group.degrees.trim(),
-        university: group.universityInstitute.trim(),
-      })),
-      profile_image: providerPhoto ? providerPhoto.name : "",
+    // Build doctorSpecialty array
+    const doctorSpecialty = specialityGroups
+      .filter((group) => group.speciality.trim())
+      .map((group) => ({
+        name: group.speciality.trim(),
+        speciality_id: group.specialityId ?? "",
+      }));
+
+    // Build doctorQualification array
+    const doctorQualification = degreeGroups
+      .filter((group) => group.degrees.trim())
+      .map((group) => ({
+        name: group.degrees.trim(),
+        qualification_id: group.degreesId ?? "",
+        institute_id: group.instituteId ?? "",
+        institute_name: group.universityInstitute.trim(),
+      }));
+
+    // Build doctorExperiences array - grouped by speciality
+    const doctorExperiences = specialityGroups
+      .filter((group) => group.experience.trim() && group.speciality.trim())
+      .map((group) => ({
+        speciality_id: group.specialityId ?? "",
+        years_of_experience: group.experience.trim(),
+      }));
+
+    // Build doctorLicenses array - if license number is provided
+    const doctorLicenses = specialityGroups
+      .filter((group) => group.speciality.trim() && form.licenseNumber.trim())
+      .map((group) => ({
+        speciality_id: group.specialityId ?? "",
+        license_number: form.licenseNumber.trim(),
+      }));
+
+    const payload = {
+      name: form.fullName.trim(),
+      contact_email: form.emailAddress.trim(),
+      contact_mobile: form.phoneNumber.trim(),
+      image_path: uploadPath,
+      time_zone: organizationDetails?.time_zone || "Asia/Kolkata",
+      doctorSpecialty,
+      doctorQualification,
+      doctorExperiences,
+      doctorLicenses,
     };
+
+    return payload;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -189,19 +245,44 @@ const AddProvider = () => {
 
     try {
       const payload = buildPayload();
-      // TODO: Replace with actual API call
-      // const response = await apis.AddProvider(payload);
       console.log("Provider payload:", payload);
 
-      setNotif({
-        open: true,
-        data: { success: true, message: "Provider added successfully" },
-      });
+      const orgId = organizationDetails?.organization_id;
+      if (!orgId) {
+        setNotif({
+          open: true,
+          data: {
+            success: false,
+            message: "Organization ID not found. Please login again.",
+          },
+        });
+        return;
+      }
 
-      setTimeout(() => {
-        setNotif((s) => ({ ...s, open: false }));
-        navigate("/providers");
-      }, 1500);
+      const response = await apis.AddProvider(orgId, payload);
+      console.log("Add Provider API Response:", response);
+
+      if (response && response.success) {
+        setNotif({
+          open: true,
+          data: {
+            success: true,
+            message: response.message || "Provider added successfully",
+          },
+        });
+        setTimeout(() => {
+          setNotif((s) => ({ ...s, open: false }));
+          navigate("/providers");
+        }, 1500);
+      } else {
+        setNotif({
+          open: true,
+          data: {
+            success: false,
+            message: response?.message || "Failed to add provider",
+          },
+        });
+      }
     } catch (err) {
       setNotif({
         open: true,
@@ -252,6 +333,7 @@ const AddProvider = () => {
           <ImageUpload
             photo={providerPhoto}
             onPhotoChange={setProviderPhoto}
+            onUploadPathChange={setUploadPath}
             title="Provider Photo"
             description="Upload a professional photo"
             subtitle="JPG, PNG up to 5MB"

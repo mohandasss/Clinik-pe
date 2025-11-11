@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import apis from "../../APis/Api";
 import type { VerifyOtpPayload, ResendOtpPayload } from "../../APis/Types";
-import Notification from "../GlobalNotification/Notification";
+import Notification from "../Global/Notification";
 import useAuthStore from "../../GlobalStore/store";
+import { LoadingButton } from "../Global/LoadingButton";
 const OTP_LENGTH = 4;
 
 const LoginOtpForm: React.FC = () => {
@@ -127,9 +128,10 @@ const LoginOtpForm: React.FC = () => {
         try {
           setOrganizationDetails(response.data.loggedUserDetails);
         } catch (e) {
-          // ignore if store setter unavailable
           console.warn("Could not set organization details in store:", e);
         }
+        console.log("Organization ID:", organization_id);
+        console.log("centers", center_id);
 
         setTimeout(() => {
           if (!organization_id && !center_id) {
@@ -269,12 +271,12 @@ const LoginOtpForm: React.FC = () => {
       </div>
 
       <div className="mt-6 space-y-3">
-        <button
+        <LoadingButton
           onClick={handleVerify}
           className="w-full bg-blue-600 text-white py-2 rounded-md shadow-sm hover:bg-blue-700 transition-colors"
         >
           Verify Now
-        </button>
+        </LoadingButton>  
 
         <button
           onClick={handleResend}
