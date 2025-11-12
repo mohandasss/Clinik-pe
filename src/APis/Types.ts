@@ -473,6 +473,32 @@ export type AddDoctorAvailabilityResponse = {
 };
 
 
+export  type PaymentSetting = {
+  key:
+    | "payment.cash"
+    | "payment.online"
+    | "payment.bank_account_name"
+    | "payment.bank_account_type"
+    | "payment.bank_account_number"
+    | "payment.ifsc_code"
+    | "payment.bank_name"
+    | "payment.branch_name";
+  value: string | boolean;
+};
+
+ export type PaymentSettingsPayload = {
+  central_account_id: string;
+  settings: PaymentSetting[];
+};
+export  type SyncSettingsResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: null;
+};
+
+
+
 
 
 

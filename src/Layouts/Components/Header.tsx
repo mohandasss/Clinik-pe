@@ -12,6 +12,7 @@ import {
   Button,
   Group,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import {
   IconSearch,
   IconBell,
@@ -28,10 +29,9 @@ type HeaderProps = {
   setIsSmall: React.Dispatch<React.SetStateAction<boolean>>;
 };
 const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
-
-
   const navigate = useNavigate();
   const organizationDetails = useAuthStore((s) => s.organizationDetails);
+  const setOrganizationDetails = useAuthStore((s) => s.setOrganizationDetails);
   const logout = useAuthStore((s) => s.logout);
   const setSelectedCenter = useDropdownStore((s) => s.setSelectedCenter);
 
@@ -47,18 +47,16 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
 
   const { pathname } = useLocation();
 
-  // ✅ URLs where dropdown should appear
-  const pagesWithDropdown = ["/clinic-details", "/providers", "/availability/add"];
-
-  const shouldShowDropdown = pagesWithDropdown.some((p) =>
-    pathname.startsWith(p)
-  );
+  // show dropdown everywhere except organization pages
+  const shouldShowDropdown = !pathname.startsWith("/organization");
 
   const [orgValue, setOrgValue] = useState<string | null>(null);
   const [centersOptions, setCentersOptions] = useState<
     { label: string; value: string }[]
   >([]);
   const [isCentersLoading, setIsCentersLoading] = useState(false);
+
+  const SELECTED_CENTER_KEY = "selected-center";
 
   // get dropdown options
   useEffect(() => {
@@ -93,6 +91,153 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
     fetchCenters();
   }, [shouldShowDropdown, organizationDetails?.organization_id]);
 
+  // when centers load, restore previously selected center from localStorage or dropdown store
+  useEffect(() => {
+    if (centersOptions.length === 0) return;
+
+    // try Zustand store first
+    const currentSelected = useDropdownStore.getState().selectedCenter;
+    if (currentSelected && currentSelected.center_id) {
+      setOrgValue(currentSelected.center_id);
+      return;
+    }
+
+    // then try persisted localStorage
+    try {
+      const raw = localStorage.getItem(SELECTED_CENTER_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          center_id: string;
+          center_name: string;
+        };
+        if (parsed && parsed.center_id) {
+          // ensure the center exists in options
+          const exists = centersOptions.some(
+            (c) => c.value === parsed.center_id
+          );
+          if (exists) {
+            setOrgValue(parsed.center_id);
+            setSelectedCenter({
+              center_id: parsed.center_id,
+              center_name: parsed.center_name,
+            });
+            // Also update organizationDetails with center info so other components (which read auth store)
+            // can access the selected center name. Only do this if organizationDetails is already present
+            // (we avoid constructing a partial OrganizationDetails object when it's null).
+            if (organizationDetails) {
+              try {
+                setOrganizationDetails({
+                  ...organizationDetails,
+                  center_id: parsed.center_id,
+                  center_name: parsed.center_name,
+                });
+              } catch (e) {
+                // If for any reason updating fails, log and continue; this is non-critical
+                console.warn(
+                  "Failed to update organizationDetails with center_name",
+                  e
+                );
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [
+    centersOptions,
+    setSelectedCenter,
+    organizationDetails,
+    setOrganizationDetails,
+  ]);
+
+  // handle center switch: obtain fresh payload and update auth-storage
+  const handleCenterChange = async (value: string | null) => {
+    setOrgValue(value);
+    if (!value) return;
+
+    const orgId = organizationDetails?.organization_id;
+    if (!orgId) {
+      notifications.show({
+        title: "Error",
+        message: "No organization selected",
+        color: "red",
+      });
+      return;
+    }
+
+    setIsCentersLoading(true);
+    try {
+      const response = await apis.SwitchOrganizationcenter({
+        organization_id: orgId,
+        center_id: value,
+      });
+      const switchDetails = response.data.switchAccessDetails;
+
+      // Merge into existing organizationDetails while preserving user identity fields
+      const current = organizationDetails;
+      const updatedDetails = {
+        organization_id: switchDetails.organization_id,
+        organization_name: switchDetails.organization_name,
+        user_id: switchDetails.user_id || current?.user_id || "",
+        name: switchDetails.name || current?.name || "",
+        email: switchDetails.email || current?.email || "",
+        mobile: switchDetails.mobile || current?.mobile || "",
+        user_role: current?.user_role || "",
+        user_type: switchDetails.user_type || current?.user_type || "",
+        central_account_id: switchDetails.central_account_id,
+        time_zone: switchDetails.time_zone || current?.time_zone || "",
+        currency: switchDetails.currency ?? current?.currency ?? null,
+        country: switchDetails.country ?? current?.country ?? null,
+        access: switchDetails.access ?? current?.access ?? null,
+        center_id: switchDetails.center_id ?? current?.center_id ?? null,
+        image: switchDetails.image ?? current?.image ?? null,
+        center_name: switchDetails.center_name ?? current?.center_name ?? "",
+      };
+
+      setOrganizationDetails(updatedDetails);
+
+      // update selected center in dropdown store
+      setSelectedCenter({
+        center_id: switchDetails.center_id ?? value,
+        center_name: switchDetails.center_name ?? "",
+      });
+
+      // persist selected center so reload keeps the selection
+      try {
+        localStorage.setItem(
+          SELECTED_CENTER_KEY,
+          JSON.stringify({
+            center_id: switchDetails.center_id ?? value,
+            center_name: switchDetails.center_name ?? "",
+          })
+        );
+      } catch (e) {
+        console.warn("Could not persist selected center", e);
+      }
+
+      notifications.show({
+        title: "Switched center",
+        message: `Switched to ${switchDetails.center_name || value}`,
+        color: "green",
+      });
+
+      // Optionally refresh page data that depends on center. Easiest is a reload so all components read new auth-storage.
+      // If you prefer not to reload, replace this with targeted refetches.
+      // window.location.reload();
+    } catch (err) {
+      console.error("Failed to switch center:", err);
+      notifications.show({
+        title: "Error",
+        message: "Failed to switch center",
+        color: "red",
+      });
+    } finally {
+      setIsCentersLoading(false);
+    }
+  };
+
   // Logout confirmation modal state
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -125,14 +270,11 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
     <header className="flex items-center justify-between px-6 py-3 bg-white shadow-sm">
       {/* Search Input */}
 
-
       <div className="flex-1 max-w-lg">
         <div className="flex items-center gap-3">
           <Button
             className="!p-0 !bg-transparent !text-black rounded-full flex justify-center items-center w-auto menuBar"
-            leftSection={
-              <IconMenu2 size={24} />
-            }
+            leftSection={<IconMenu2 size={24} />}
             onClick={() => setIsSmall(!isSmall)}
           />
           <TextInput
@@ -148,7 +290,6 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
             leftSectionWidth={36}
           />
         </div>
-
       </div>
 
       {/* ✅ Dropdown when needed */}
@@ -167,21 +308,10 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
               placeholder="Select Center"
               data={centersOptions}
               searchable
-              onChange={(value) => {
-                setOrgValue(value);
-                // Find the selected center and save to store
-                if (value) {
-                  const selected = centersOptions.find(
-                    (opt) => opt.value === value
-                  );
-                  if (selected) {
-                    setSelectedCenter({
-                      center_id: selected.value,
-                      center_name: selected.label,
-                    });
-                  }
-                }
-              }}
+              rightSection={
+                isCentersLoading ? <div className="pr-2">...</div> : null
+              }
+              onChange={handleCenterChange}
             />
           </div>
         )}

@@ -26,6 +26,7 @@ export type OrganizationDetails = {
     access: string | null;
     center_id: string | null;
     image: string | null;
+    center_name: string | null;
 } | null;
 
 type AuthState = {
@@ -43,13 +44,13 @@ const useAuthStore = create<AuthState>()(
             user: null,
             setUser: (user) => set({ user }),
             logout: () => {
-                
+
                 set({ user: null, organizationDetails: null });
-               
+
                 try {
                     localStorage.removeItem("auth-storage");
                 } catch {
-                   console.log("Failed to access localStorage during logout.")
+                    console.log("Failed to access localStorage during logout.")
                 }
             },
 

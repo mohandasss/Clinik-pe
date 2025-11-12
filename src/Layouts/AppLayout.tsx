@@ -15,7 +15,7 @@ export default function AppLayout() {
         <Header isSmall={isSmall} setIsSmall={setIsSmall} />
 
         {/* ✅ Main page content */}
-        <main className="flex-1 bg-blue-50/50 py-4 px-6 overflow-auto">
+        <main className="flex-1 bg-blue-50/50 py-4 px-4 overflow-auto">
           <Outlet />
         </main>
       </div>

@@ -24,6 +24,8 @@ import type {
   DoctorAvailabilityResponse,
   DoctorAvailabilityInput,
   AddDoctorAvailabilityResponse,
+  PaymentSettingsPayload,
+  SyncSettingsResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -321,6 +323,45 @@ class Apis {
       .json(payload)
       .execute();
     return response.data as AddDoctorAvailabilityResponse;
+  }
+
+  // async SavePaymentSettings(payload: {
+  //   central_account_id: string;
+  //   settings: Array<{ key: string; value: boolean | string }>;
+  // }): Promise<{ success: boolean; message: string }> {
+  //   const response = await apiAgent
+  //     .path("/account-settings/payment")
+  //     .method("POST")
+  //     .json(payload)
+  //     .execute();
+  //   return response.data as { success: boolean; message: string };
+  // }
+
+  async AddPaymentSettings(
+    center_id: string,
+    organization_id: string,
+    payload: PaymentSettingsPayload
+  ): Promise<SyncSettingsResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/settings`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as SyncSettingsResponse;
+  }
+
+  async GetPaymentSettings(
+    center_id: string,
+    organization_id: string,
+    forParam: string
+  ): Promise<PaymentSettingsPayload> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/settings`)
+      .method("GET")
+      .query({ for: forParam })
+      .execute();
+
+    return response.data as PaymentSettingsPayload;
   }
 
 

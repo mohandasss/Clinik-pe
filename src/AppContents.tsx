@@ -21,6 +21,9 @@ import AddProvider from "./Pages/Provider/AddProvider";
 import ProviderAvailability from "./Pages/Availability/ProviderAvailability";
 import AddProviderAvailability from "./Pages/Availability/AddProviderAvailability";
 import EprescriptionPage from "./Pages/Doctor/Eprescription/EprescriptionPage";
+import PaymentSettings from "./Pages/PaymentSettings/PaymentSettings";
+import FeeManagement from "./Pages/FeeMangement/FeeManagement";
+import GeneralSettings from "./Pages/GeneralSettings/GeneralSettings";
 
 function AppContents() {
   return (
@@ -62,14 +65,14 @@ function AppContents() {
         <Route path="/organization" element={<OrganizationList />} />
         <Route path="/organization/add" element={<AddOrganization />} />
         <Route path="/centers" element={<ClinicList />} />
+        <Route path="/general-settings" element={<GeneralSettings />} />
         <Route path="/centers/add" element={<AddCenter />} />
         <Route path="/providers" element={<ProviderList />} />
-
+        <Route path="/payments" element={<PaymentSettings />} />
         <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />
         <Route path="/doctor-appointments" element={<AppointmentsPage />} />
+        <Route path="/fee-management" element={<FeeManagement />} />
         <Route path="/e-prescription" element={<EprescriptionPage />} />
-        
-
 
         <Route path="/providers/add" element={<AddProvider />} />
       </Route>
