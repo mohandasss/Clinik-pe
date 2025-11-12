@@ -180,15 +180,8 @@ const PaymentSettings: React.FC = () => {
         payload
       );
 
-      showNotification(
-        response?.success || false,
-        response?.message || "Settings saved successfully"
-      );
+      showNotification(response?.success || false, response?.message);
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Error saving payment settings";
       showNotification(false, message);
       console.error("Error saving payment settings:", error);
     } finally {
@@ -202,16 +195,16 @@ const PaymentSettings: React.FC = () => {
   }, [centerId, organizationId]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-2">
       <Notification
         open={notif.open}
         data={notif.data}
         onClose={() => setNotif((prev) => ({ ...prev, open: false }))}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 max-w-7xl mx-auto">
+      <div className="grid grid-cols-12 gap-6 max-w-screen-2xl mx-auto">
         {/* Payment Mode Sidebar */}
-        <aside className="md:col-span-3">
+        <aside className="col-span-3">
           <PaymentMode
             cashPayment={formData.cashPayment}
             onlinePayment={formData.onlinePayment}
@@ -221,7 +214,7 @@ const PaymentSettings: React.FC = () => {
         </aside>
 
         {/* Bank Details Form */}
-        <main className="md:col-span-9">
+        <main className="col-span-9">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <BankDetails
               accountName={formData.accountName}
