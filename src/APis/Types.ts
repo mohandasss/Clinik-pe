@@ -567,6 +567,233 @@ export interface Pagination {
   totalRecords: number;
 }
 
+export interface DoctorAvailabilityResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    availabilities: DoctorAvailability[];
+    pagination: PaginationInfo;
+  };
+}
+
+export interface DoctorAvailabilityRES {
+  uid: string;
+  centerId: string;
+  doctorId: string;
+  doctorName: string;
+  specializationId: string;
+  organizationId: string;
+  appointmentType: "online" | "in-clinic" | "both";
+  defaultSlotInterval: string;
+  weekDays: string;
+  timeRanges: AvailabilityTimeRange[];
+  status: "active" | "inactive";
+}
+
+// Internal time slots per availability
+export interface AvailabilityTimeRange {
+  startTime: string;      // "10:00 AM"
+  endTime: string;        // "05:00 PM"
+  waitTime: string;       // "0"
+  slotInterval: string;   // "30"
+}
+
+// Pagination block
+export interface PaginationInfo {
+  pageNumber: number;
+  pageSize: number;
+  totalRecords: number;
+  pageCount: number;
+}
+
+export interface CreatePatientPayload {
+  name: string;
+  last_name: string;
+  dob: string;               // format: YYYY-MM-DD
+  email: string;
+  mobile: string;
+  age: number;
+  age_on_date: string;       // format: YYYY-MM-DD
+  address: {
+    address: string;
+    lat: string;
+    lng: string;
+    postalCode: string;
+    line_1: string;
+    line_2: string;
+    country: string;
+    state_or_province: string;
+    district: string;
+    city: string;
+    village: string;
+    town: string;
+    land_mark: string;
+    instruction: string;
+  };
+  gender: string;            // or literal type: "male" | "female" | "other"
+}
+
+
+
+export interface CreatePatientResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    patient_id: string;
+  };
+}
+
+export type PatientListResponse = {
+  success?: boolean;
+  httpStatus?: number;
+  message?: string;
+  data?: {
+    patients?: Patient[];
+    pagination?: Pagination;
+  };
+};
+
+export type Patient = {
+  id?: string;
+  uid?: string;
+  name?: string;
+  email?: string | null;
+  owner_type?: string;
+  owner_id?: string;
+  tagged_as?: string | null;
+  mobile?: string | null;
+  age?: string;
+  age_on_date?: string;
+  dob?: string;
+  gender?: string;
+  more_details?: string;
+  profile_image?: string;
+  status?: string;
+  created_by?: string;
+  updated_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  time_zone?: string | null;
+
+  address?: PatientAddress;
+
+  contact_email?: string;
+  contact_mobile?: string;
+  is_registered?: string;
+};
+
+export type PatientAddress = {
+  address?: string;
+  lat?: string;
+  lng?: string;
+  postalCode?: string;
+
+  line_1?: string;
+  line_2?: string;
+  country?: string;
+  state_or_province?: string;
+  district?: string;
+  city?: string;
+  village?: string;
+  town?: string;
+  land_mark?: string;
+  instruction?: string;
+};
+export type AppointmentListResponse = {
+  success?: boolean;
+  httpStatus?: number;
+  message?: string;
+  data?: {
+    appointments?: Appointment[];
+    pagination?: Pagination;
+  };
+};
+
+export type Appointment = {
+  appointment_uid?: string;
+  doctor_id?: string;
+  patient_id?: string;
+  date?: string;
+  time?: string;
+  duration?: string;
+  status?: string;
+  appointment_type?: string | null;
+  patient_name?: string;
+  doctor_name?: string;
+  symptoms?: string;
+};
+
+// export type Pagination = {
+//   pageNumber?: number;
+//   pageSize?: number;
+//   totalRecords?: number;
+//   pageCount?: number;
+// };
+
+
+// export type Pagination = {
+//   pageNumber?: number;
+//   pageSize?: number;
+//   totalRecords?: number;
+//   pageCount?: number;
+// };
+
+export type AvailableSlotsResponse = {
+  success?: boolean;
+  httpStatus?: number;
+  message?: string;
+  data?: {
+    date?: string;
+    slots?: Slot[];
+  };
+};
+
+export type Slot = {
+  start?: string;
+  end?: string;
+};
+
+
+export type AppointmentSymptomsResponse = {
+  success?: boolean;
+  httpStatus?: number;
+  message?: string;
+  data?: Symptom[];
+};
+
+export type Symptom = {
+  id?: string;
+  name?: string;
+  description?: string;
+  image?: string;
+};
+
+export type CreateAppointmentRequest = {
+  doctor_id: string;
+  patient_id: string;
+  appointment_date: string;
+  appointment_time: string;
+  duration: string;
+  appointmentSymptoms: AppointmentSymptom[];
+};
+
+export type AppointmentSymptom = {
+  symptom_id?: string;
+  symptom_name?: string;
+};
+
+
+export type CreateAppointmentResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    appointment_id: string;
+    symptoms_added: number;
+  };
+};
 
 
 

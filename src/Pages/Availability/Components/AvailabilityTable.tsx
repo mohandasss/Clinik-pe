@@ -5,7 +5,7 @@ import { Button, Select, Popover } from "@mantine/core";
 import type { Provider } from "../../../APis/Types";
 
 type AvailabilityItem = {
-  id: number;
+  id: string;
   day: string;
   start: string;
   end: string;
@@ -24,68 +24,36 @@ type Props = {
   onPageChange?: (page: number) => void;
   pageSize?: number;
   total?: number;
-  providerName?: string | undefined;
-  providerImage?: string | undefined;
+  // providerName / providerImage intentionally omitted; show only API-provided values
   onAdd?: () => void;
   providers?: Provider[];
   selectedProvider?: string | null;
   onProviderChange?: (value: string | null) => void;
+  isLoading?: boolean;
 };
 
+// No mock defaults; UI displays only API-supplied data
+const defaultItems: AvailabilityItem[] = [];
+
 const AvailabilityTable: React.FC<Props> = ({
-  items = [
-    {
-      id: 1,
-      day: "Monday",
-      start: "08:00 AM",
-      end: "06:00 PM",
-      interval: "10 mins",
-      type: "In-clinic",
-      status: "Active",
-      providerName: "Dr. Ananya Patel",
-      providerImage: undefined,
-    },
-    {
-      id: 2,
-      day: "Saturday - Sunday",
-      start: "09:00 AM",
-      end: "04:00 PM",
-      interval: "15 mins",
-      type: "Online",
-      status: "Active",
-      providerName: "Dr. Kapil",
-      providerImage: undefined,
-    },
-    {
-      id: 3,
-      day: "Tue-Wed",
-      start: "09:00 AM",
-      end: "04:00 PM",
-      interval: "15 mins",
-      type: "Online",
-      status: "Inactive",
-      providerName: "Dr. Ajij",
-      providerImage: undefined,
-    },
-  ],
+  items = defaultItems,
   selectedStatus,
   onStatusChange,
   page = 1,
   onPageChange,
   pageSize = 5,
   total = 0,
-  providerName,
-  providerImage,
   onAdd,
   providers = [],
   selectedProvider,
   onProviderChange,
 }) => {
-  const [selected, setSelected] = useState<number[]>([]);
+  // Clean UI: no debug logs.
+  const [selected, setSelected] = useState<string[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement | null>(null);
   const [popoverOpenId, setPopoverOpenId] = useState<string | null>(null);
 
-  const toggleRow = (id: number) => {
+  const toggleRow = (id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
@@ -139,17 +107,14 @@ const AvailabilityTable: React.FC<Props> = ({
       accessor: "provider",
       title: "Provider Name",
       render: (r) => {
-        const showFallback = !!selectedProvider && selectedProvider !== "all";
-        const avatarSrc =
-          r.providerImage ?? (showFallback ? providerImage : undefined);
-        const displayName =
-          r.providerName ?? (showFallback ? providerName : undefined);
+        const avatarSrc = r.providerImage;
+        const displayName = r.providerName;
         return (
           <div className="flex items-center gap-3">
             {avatarSrc ? (
               <img
                 src={avatarSrc}
-                alt={r.providerName ?? providerName}
+                alt={r.providerName ?? ""}
                 className="w-8 h-8 rounded-full object-cover"
               />
             ) : (
@@ -296,8 +261,8 @@ const AvailabilityTable: React.FC<Props> = ({
       <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
         <div>
           Showing {(page - 1) * pageSize + 1} to{" "}
-          {Math.min(page * pageSize, total || items.length)} of{" "}
-          {total || items.length} entries
+          {Math.min(page * pageSize, total ?? items.length)} of{" "}
+          {total ?? items.length} entries
         </div>
 
         <div className="inline-flex items-center gap-2">

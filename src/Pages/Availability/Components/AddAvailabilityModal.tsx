@@ -46,9 +46,17 @@ const AddAvailabilityModal: React.FC<Props> = ({
   const [type, setType] = useState("in-clinic");
   // Using Mantine notifications instead of custom Notification component
 
+  // When modal is opened, we should present a fresh form. Also apply defaultProvider when provided.
   useEffect(() => {
-    setSelectedProvider(defaultProvider ?? null);
-  }, [defaultProvider]);
+    if (opened) {
+      setSelectedDays([]);
+      setStartTime("09:00");
+      setEndTime("17:00");
+      setInterval("15");
+      setType("in-clinic");
+      setSelectedProvider(defaultProvider ?? null);
+    }
+  }, [opened, defaultProvider]);
 
   const showNotification = (success: boolean, message: string) => {
     notifications.show({
@@ -172,7 +180,6 @@ const AddAvailabilityModal: React.FC<Props> = ({
   };
 
   const providerOptions = [
-    { label: "Select Provider", value: "" },
     ...providers.map((p) => ({ label: p.name, value: p.uid })),
   ];
 

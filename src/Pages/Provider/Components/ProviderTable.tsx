@@ -122,7 +122,7 @@ const ProviderTable: React.FC<ProviderTableProps> = ({
       accessor: "name",
       title: "Name",
       render: (r) => (
-        <div className="flex items-center gap-3 cursor-pointer" role="button">
+        <div className="flex items-center gap-3">
           <img
             src={r.image}
             alt={r.name}

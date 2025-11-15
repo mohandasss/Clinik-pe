@@ -38,6 +38,8 @@ import EprescriptionPage from "./Pages/Doctor/Eprescription/EprescriptionPage";
 import PaymentSettings from "./Pages/PaymentSettings/PaymentSettings";
 import FeeManagement from "./Pages/FeeMangement/FeeManagement";
 import GeneralSettings from "./Pages/GeneralSettings/GeneralSettings";
+// import PatientSchedule from "./Pages/PatientShedule/BookingPage";
+import BookingPage from "./Pages/PatientShedule/BookingPage";
 
 function AppContents() {
   return (
@@ -78,10 +80,7 @@ function AppContents() {
         <Route path="/providers/add" element={<AddProvider />} />
 
         {/* 🟪 Availability */}
-        <Route
-          path="/availability"
-          element={<ProviderAvailability />}
-        />
+        <Route path="/availability" element={<ProviderAvailability />} />
         {/* <Route
           path="/availability/add/:providerUid"
           element={<AddProviderAvailability />}
@@ -96,7 +95,10 @@ function AppContents() {
         <Route path="/payments" element={<PaymentSettings />} />
         <Route path="/fee-management" element={<FeeManagement />} />
         <Route path="/general-settings" element={<GeneralSettings />} />
+        <Route path="/booking" element={<BookingPage />} />
       </Route>
+
+      
 
       {/* ===================== 🔵 DOCTOR PUBLIC LOGIN ===================== */}
       <Route path="/doctor-login" element={<DoctorLoginPage />} />

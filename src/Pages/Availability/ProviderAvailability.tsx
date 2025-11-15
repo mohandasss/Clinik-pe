@@ -1,14 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { notifications } from "@mantine/notifications";
 import AvailabilityTable from "./Components/AvailabilityTable";
 import AddAvailabilityModal from "./Components/AddAvailabilityModal";
 import apis from "../../APis/Api";
-import type { DoctorAvailability, Provider } from "../../APis/Types";
 import useAuthStore from "../../GlobalStore/store";
 import useDropdownStore from "../../GlobalStore/useDropdownStore";
+import type {
+  DoctorAvailability,
+  DoctorAvailabilityRES,
+  Provider,
+} from "../../APis/Types";
 
+// ============================================================================
 // Types
+// ============================================================================
+
 type AvailabilityItem = {
-  id: number;
+  id: string;
   day: string;
   start: string;
   end: string;
@@ -17,6 +25,7 @@ type AvailabilityItem = {
   status: "Active" | "Inactive";
   providerName?: string;
   providerImage?: string;
+  providerUid?: string;
 };
 
 type OrganizationContext = {
@@ -24,14 +33,32 @@ type OrganizationContext = {
   centerId: string;
 };
 
+type ApiAvailability = DoctorAvailability | DoctorAvailabilityRES;
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const PAGE_SIZE = 5;
+const ALL_PROVIDERS_ID = "all";
+const DEFAULT_FETCH_LIMIT = 100;
+
+const TIME_RANGE_KEYS = {
+  START: ["start", "start_time", "startTime"] as const,
+  END: ["end", "end_time", "endTime"] as const,
+  INTERVAL: ["time_slot_interval", "timeSlotInterval", "slotInterval"] as const,
+};
+
+// ============================================================================
 // Utility Functions
+// ============================================================================
+
 const getOrganizationContext = (): OrganizationContext | null => {
-  const organizationDetails = useAuthStore.getState().organizationDetails;
-  const selectedCenter = useDropdownStore.getState().selectedCenter;
+  const { organizationDetails } = useAuthStore.getState();
+  const { selectedCenter } = useDropdownStore.getState();
 
   const orgId = organizationDetails?.organization_id ?? "";
-  const centerId =
-    selectedCenter?.center_id ?? organizationDetails?.center_id ?? "";
+  const centerId = selectedCenter?.center_id ?? organizationDetails?.center_id ?? "";
 
   if (!orgId || !centerId) {
     console.warn("Missing organization or center context", { orgId, centerId });
@@ -41,25 +68,151 @@ const getOrganizationContext = (): OrganizationContext | null => {
   return { orgId, centerId };
 };
 
-const mapAvailabilityToItem = (
-  availability: DoctorAvailability,
-  index: number
-): AvailabilityItem => {
-  const status: "Active" | "Inactive" =
-    availability.status?.toLowerCase() === "inactive" ? "Inactive" : "Active";
+const normalizeWeekDays = (weekDays: unknown): string => {
+  if (Array.isArray(weekDays)) {
+    return weekDays.join(", ");
+  }
+  if (typeof weekDays === "string") {
+    return weekDays;
+  }
+  return "";
+};
+
+const extractValueFromObject = (
+  obj: unknown,
+  keys: readonly string[]
+): string => {
+  if (typeof obj !== "object" || obj === null) {
+    return "";
+  }
+
+  const record = obj as Record<string, unknown>;
+  
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string") {
+      return value;
+    }
+  }
+  
+  return "";
+};
+
+const extractStatus = (availability: unknown): "Active" | "Inactive" => {
+  const statusVal = (availability as { status?: string })?.status;
+  return statusVal?.toLowerCase() === "inactive" ? "Inactive" : "Active";
+};
+
+const extractWeekDays = (availability: unknown): string => {
+  const weekDaysData = (availability as {
+    week_days?: unknown;
+    weekDays?: unknown;
+  });
+  
+  return normalizeWeekDays(weekDaysData?.week_days ?? weekDaysData?.weekDays);
+};
+
+const extractTimeRange = (availability: unknown) => {
+  const timeRanges = ((availability as { timeRanges?: unknown[] })?.timeRanges ??
+    (availability as { time_ranges?: unknown[] })?.time_ranges ?? []);
+  
+  return timeRanges.length > 0 ? timeRanges[0] : null;
+};
+
+const extractInterval = (
+  timeRange: unknown,
+  availability: unknown
+): string => {
+  const intervalFromRange = extractValueFromObject(timeRange, TIME_RANGE_KEYS.INTERVAL);
+  
+  if (intervalFromRange) {
+    return intervalFromRange;
+  }
+
+  const availData = availability as {
+    time_slot_interval?: string;
+    defaultSlotInterval?: string;
+  };
+  
+  return availData?.time_slot_interval ?? availData?.defaultSlotInterval ?? "";
+};
+
+const extractAppointmentType = (availability: unknown): string => {
+  const typeData = (availability as {
+    appointment_type?: string;
+    appointmentType?: string;
+  });
+  
+  const type = typeData?.appointment_type ?? typeData?.appointmentType ?? "";
+  
+  if (type === "both") {
+    return "Both";
+  }
+  
+  return type;
+};
+
+const extractProviderInfo = (availability: unknown) => {
+  const providerData = availability as {
+    doctor_name?: string;
+    doctorName?: string;
+    doctor_profile_image?: string;
+    doctor_id?: string;
+    doctorId?: string;
+  };
 
   return {
-    id: index + 1,
-    day: (availability.week_days || []).join(", "),
-    start: availability.start_time,
-    end: availability.end_time,
-    interval: availability.time_slot_interval,
-    type: availability.appointment_type,
-    status,
+    name: providerData?.doctor_name ?? providerData?.doctorName ?? "",
+    image: providerData?.doctor_profile_image,
+    uid: providerData?.doctor_id ?? providerData?.doctorId ?? undefined,
   };
 };
 
+const mapAvailabilityToItem = (
+  availability: ApiAvailability,
+  index: number
+): AvailabilityItem => {
+  const uid = (availability as { uid?: string })?.uid ?? `avail-${index}`;
+  const status = extractStatus(availability);
+  const day = extractWeekDays(availability);
+  const timeRange = extractTimeRange(availability);
+  
+  const start = extractValueFromObject(timeRange, TIME_RANGE_KEYS.START) ||
+    (availability as { start_time?: string })?.start_time || "";
+  
+  const end = extractValueFromObject(timeRange, TIME_RANGE_KEYS.END) ||
+    (availability as { end_time?: string })?.end_time || "";
+  
+  const interval = extractInterval(timeRange, availability);
+  const appointmentType = extractAppointmentType(availability);
+  const provider = extractProviderInfo(availability);
+
+  return {
+    id: String(uid),
+    day,
+    start,
+    end,
+    interval: interval ? `${interval} mins` : "",
+    type: appointmentType,
+    status,
+    providerName: provider.name,
+    providerImage: provider.image,
+    providerUid: provider.uid,
+  };
+};
+
+const showErrorNotification = (message: string) => {
+  notifications.show({
+    title: "Error",
+    message,
+    color: "red",
+  });
+};
+
+// ============================================================================
 // Custom Hooks
+// ============================================================================
+
 const useProviders = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +222,10 @@ const useProviders = () => {
 
     const fetchProviders = async () => {
       const context = getOrganizationContext();
-      if (!context) return;
+      
+      if (!context) {
+        return;
+      }
 
       setIsLoading(true);
 
@@ -80,14 +236,20 @@ const useProviders = () => {
           context.centerId,
           undefined,
           1,
-          100
+          DEFAULT_FETCH_LIMIT
         );
-
+        
+        const payload = response as { data?: { providers?: Provider[] } };
+        
         if (isMounted) {
-          setProviders(response.data?.providers ?? []);
+          setProviders(payload?.data?.providers ?? []);
         }
       } catch (error) {
         console.error("Failed to fetch providers:", error);
+        
+        if (isMounted) {
+          showErrorNotification("Failed to fetch providers");
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -105,51 +267,66 @@ const useProviders = () => {
   return { providers, isLoading };
 };
 
-const useAvailabilities = () => {
+const useAvailabilities = (providerUid: string | null) => {
   const [items, setItems] = useState<AvailabilityItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchAvailabilities = useCallback(async () => {
     const context = getOrganizationContext();
-    if (!context) return;
+    
+    if (!context) {
+      return;
+    }
 
     setIsLoading(true);
 
     try {
+      const providerQuery = providerUid && providerUid !== ALL_PROVIDERS_ID 
+        ? providerUid 
+        : ALL_PROVIDERS_ID;
+
       const response = await apis.GetProviderAvailabilities(
         context.orgId,
         context.centerId,
-        "all"
+        providerQuery
       );
+      
+      const payload = response as {
+        data?: { availabilities?: ApiAvailability[] };
+        availabilities?: ApiAvailability[];
+      };
+      
+      const availabilities = payload?.data?.availabilities ?? payload?.availabilities ?? [];
+      const mappedItems = availabilities.map(mapAvailabilityToItem);
 
-      const availabilities: DoctorAvailability[] =
-        response.data?.availabilities ?? [];
-      const mapped = availabilities.map(mapAvailabilityToItem);
-
-      setItems(mapped);
+      setItems(mappedItems);
     } catch (error) {
       console.error("Failed to fetch availabilities:", error);
+      showErrorNotification("Failed to fetch availabilities");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [providerUid]);
 
   useEffect(() => {
     fetchAvailabilities();
   }, [fetchAvailabilities]);
 
-  return { items, isLoading, refetch: fetchAvailabilities };
+  return { 
+    items, 
+    isLoading, 
+    refetch: fetchAvailabilities 
+  };
 };
 
+// ============================================================================
 // Main Component
+// ============================================================================
+
 const ProviderAvailability = () => {
   const [page, setPage] = useState(1);
-  const [selectedStatus, setSelectedStatus] = useState<string | undefined>(
-    undefined
-  );
-  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(
-    "all"
-  );
+  const [selectedStatus, setSelectedStatus] = useState<string | undefined>(undefined);
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(ALL_PROVIDERS_ID);
   const [addModalOpen, setAddModalOpen] = useState(false);
 
   const { providers, isLoading: providersLoading } = useProviders();
@@ -157,27 +334,42 @@ const ProviderAvailability = () => {
     items,
     isLoading: availabilitiesLoading,
     refetch,
-  } = useAvailabilities();
+  } = useAvailabilities(
+    selectedProviderId !== ALL_PROVIDERS_ID ? selectedProviderId : null
+  );
 
-  const handleAddAvailability = () => {
+  const isLoading = providersLoading || availabilitiesLoading;
+
+  const filteredItems = useMemo(() => {
+    if (!selectedStatus || selectedStatus === "All Status") {
+      return items;
+    }
+    
+    return items.filter((item) => item.status === selectedStatus);
+  }, [items, selectedStatus]);
+
+  const handleAddAvailability = useCallback(() => {
     setAddModalOpen(true);
-  };
+  }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setAddModalOpen(false);
-  };
+  }, []);
 
-  const handleSaveAvailability = async () => {
+  const handleSaveAvailability = useCallback(async () => {
     await refetch();
     setAddModalOpen(false);
-  };
+  }, [refetch]);
 
-  const handleProviderChange = (providerId: string | null) => {
-    setSelectedProviderId(providerId ?? "all");
-  };
+  const handleProviderChange = useCallback((providerId: string | null) => {
+    setSelectedProviderId(providerId ?? ALL_PROVIDERS_ID);
+    setPage(1); // Reset to first page when changing provider
+  }, []);
 
-  const pageSize = 5;
-  const isLoading = providersLoading || availabilitiesLoading;
+  const handleStatusChange = useCallback((status: string | undefined) => {
+    setSelectedStatus(status);
+    setPage(1); // Reset to first page when changing status
+  }, []);
 
   return (
     <div className="space-y-6 p-0">
@@ -185,15 +377,13 @@ const ProviderAvailability = () => {
         providers={providers}
         selectedProvider={selectedProviderId}
         onProviderChange={handleProviderChange}
-        items={items}
+        items={filteredItems}
         selectedStatus={selectedStatus}
-        onStatusChange={setSelectedStatus}
+        onStatusChange={handleStatusChange}
         page={page}
         onPageChange={setPage}
-        pageSize={pageSize}
-        total={items.length}
-        providerName="All Providers"
-        providerImage={undefined}
+        pageSize={PAGE_SIZE}
+        total={filteredItems.length}
         onAdd={handleAddAvailability}
         isLoading={isLoading}
       />
@@ -202,9 +392,7 @@ const ProviderAvailability = () => {
         opened={addModalOpen}
         onClose={handleCloseModal}
         providers={providers}
-        defaultProvider={
-          selectedProviderId === "all" ? null : selectedProviderId
-        }
+        defaultProvider={selectedProviderId === ALL_PROVIDERS_ID ? null : selectedProviderId}
         onSaved={handleSaveAvailability}
       />
     </div>

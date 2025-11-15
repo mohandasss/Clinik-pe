@@ -29,6 +29,15 @@ import type {
   CreateDoctorFeeResponse,
   DoctorCommissionPayload,
   FeeManagementResponse,
+  DoctorAvailabilityRES,
+  CreatePatientPayload,
+  CreatePatientResponse,
+  PatientListResponse,
+  AppointmentListResponse,
+  AvailableSlotsResponse,
+  AppointmentSymptomsResponse,
+  CreateAppointmentRequest,
+  CreateAppointmentResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -316,7 +325,7 @@ class Apis {
     organization_id: string,
     center_id: string,
     provider_idOrUids: string | string[]
-  ): Promise<DoctorAvailabilityResponse> {
+  ): Promise<DoctorAvailabilityRES> {
     // If caller passed an array of uids, join with comma and encode once.
     const providerPath = Array.isArray(provider_idOrUids)
       ? encodeURIComponent(provider_idOrUids.join(","))
@@ -326,7 +335,7 @@ class Apis {
       .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${providerPath}/availabilities`)
       .method("GET")
       .execute();
-    return response.data as DoctorAvailabilityResponse;
+    return response.data as DoctorAvailabilityRES;
   }
 
 
@@ -411,10 +420,118 @@ class Apis {
   }
 
 
+  async AddPatient(
+    organization_id: string,
+    center_id: string,
+    payload: CreatePatientPayload
+  ): Promise<CreatePatientResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/patients`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as CreatePatientResponse;
+  }
+
+  async GetPatients(
+    organization_id: string,
+    center_id: string,
+    search?: string,
+    pageNumber?: number,
+    pageSize?: number,
+    fields?: string[]
+  ): Promise<PatientListResponse> {
+    const fieldsParam = fields && fields.length > 0 ? fields.join(",") : [];
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/patients`)
+      .method("GET")
+      .query({ search, pageNumber, pageSize, fields: fieldsParam })
+      .execute();
+    return response.data as PatientListResponse;
+  }
+
+  //{{clinicPeBaseUrl}}/organizations/dEmpvHK5/centers/Chkf3087/appointments?search &configuration&dates=[2025-10-13]
+
+  async GetCenterAppointmentList(
+    organization_id: string,
+    center_id: string,
+    dates?: string
+  ): Promise<AppointmentListResponse> {
+
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/appointments`)
+      .method("GET")
+      .query({
+
+
+        dates
+      })
+      .execute();
+
+    return response.data as AppointmentListResponse;
+
+
+  }
+
+  //{{clinicPeBaseUrl}}/organizations/dEmpvHK5/centers/Chkf3087/symptoms
+
+  async GetSymptomsList(
+    organization_id: string,
+    center_id: string
+  ): Promise<AppointmentListResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/symptoms`)
+      .method("GET")
+      .execute();
+    return response.data as AppointmentListResponse;
+  }
 
 
 
+  async GetSlots(
+    organization_id: string,
+    center_id: string,
+    provider_id: string,
+    targetDate?: string
+  ): Promise<AvailableSlotsResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${provider_id}/slots`)
+      .method("GET")
+      .query({
+        targetDate
+      })
+      .execute();
 
+    return response.data as AvailableSlotsResponse;
+
+
+  }
+
+
+  async GetSymptomsListNEW(
+    organization_id: string,
+    center_id: string
+  ): Promise<AppointmentSymptomsResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/symptoms`)
+      .method("GET")
+      .execute();
+
+    return response.data as AppointmentSymptomsResponse;
+  }
+
+  async CreateAppointment(
+    organization_id: string,
+    center_id: string,
+    payload: CreateAppointmentRequest
+  ): Promise<CreateAppointmentResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/appointments`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as CreateAppointmentResponse;
+  }
 }
 const apis = new Apis();
 export default apis;
