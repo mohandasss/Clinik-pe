@@ -9,9 +9,10 @@ import type { CreatePatientPayload } from "../../../APis/Types";
 
 interface Props {
   onClose: () => void;
+  onPatientAdded?: () => void | Promise<void>;
 }
 
-const AddPatientScheduling: React.FC<Props> = ({ onClose }) => {
+const AddPatientScheduling: React.FC<Props> = ({ onClose, onPatientAdded }) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dob, setDob] = useState<Date | null>(null);
@@ -135,6 +136,10 @@ const AddPatientScheduling: React.FC<Props> = ({ onClose }) => {
           message: response.message,
           color: "teal",
         });
+        // Call the onPatientAdded callback to refetch patients
+        if (onPatientAdded) {
+          await onPatientAdded();
+        }
         onClose();
       } else {
         notifications.show({

@@ -21,9 +21,9 @@ import type {
   ProviderDetails,
   ProviderListResponse,
   SwitchOrganizationResponse,
-  DoctorAvailabilityResponse,
+  // DoctorAvailabilityResponse, (unused)
   DoctorAvailabilityInput,
-  AddDoctorAvailabilityResponse,
+  DoctorAvailabilityCreateResponse,
   PaymentSettingsPayload,
   SyncSettingsResponse,
   CreateDoctorFeeResponse,
@@ -38,6 +38,19 @@ import type {
   AppointmentSymptomsResponse,
   CreateAppointmentRequest,
   CreateAppointmentResponse,
+  TestPackagePayload,
+  TestPackageResponse,
+  TestPackageListResponse,
+  TestPanelPayload,
+  TestPanelResponse,
+  TestPanelListResponse,
+  ReorderPanelsPayload,
+  ReorderPanelsResponse,
+  TestCategoryPayload,
+  TestCategoryResponse,
+  TestCategoryListResponse,
+  ReorderCategoriesPayload,
+  ReorderCategoriesResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -345,13 +358,13 @@ class Apis {
     center_id: string,
     provider_id: string,
     payload: DoctorAvailabilityInput
-  ): Promise<AddDoctorAvailabilityResponse> {
+  ): Promise<DoctorAvailabilityCreateResponse> {
     const response = await apiAgent
       .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${provider_id}/availabilities`)
       .method("POST")
       .json(payload)
       .execute();
-    return response.data as AddDoctorAvailabilityResponse;
+    return response.data as DoctorAvailabilityCreateResponse;
   }
 
   // async SavePaymentSettings(payload: {
@@ -531,6 +544,127 @@ class Apis {
       .json(payload)
       .execute();
     return response.data as CreateAppointmentResponse;
+  }
+
+  // Test Packages APIs
+  async GetTestPackages(): Promise<TestPackageListResponse> {
+    const response = await apiAgent.path(`/test-packages`)
+      .method("GET")
+      .execute();
+    return response.data as TestPackageListResponse;
+  }
+
+  async AddTestPackage(payload: TestPackagePayload): Promise<TestPackageResponse> {
+    const response = await apiAgent.path(`/test-packages`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as TestPackageResponse;
+  }
+
+  async UpdateTestPackage(id: string, payload: TestPackagePayload): Promise<TestPackageResponse> {
+    const response = await apiAgent
+    .path(`/test-packages/${id}`)
+    .method("PATCH")
+    .json(payload)
+    .execute();
+    return response.data as TestPackageResponse;
+  }
+
+  async DeleteTestPackage(id: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiAgent.path(`/test-packages/${id}`).method("DELETE").execute();
+    return response.data as { success: boolean; message: string };
+  }
+
+  // Test Panels APIs
+  async GetTestPanels(): Promise<TestPanelListResponse> {
+    const response = await apiAgent.path(`/test-panels`).method("GET").execute();
+    return response.data as TestPanelListResponse;
+  }
+
+  async AddTestPanel(payload: TestPanelPayload): Promise<TestPanelResponse> {
+    const response = await apiAgent.path(`/test-panels`).method("POST").json(payload).execute();
+    return response.data as TestPanelResponse;
+  }
+
+  async UpdateTestPanel(id: string, payload: TestPanelPayload): Promise<TestPanelResponse> {
+    const response = await apiAgent.path(`/test-panels/${id}`).method("PUT").json(payload).execute();
+    return response.data as TestPanelResponse;
+  }
+
+  async DeleteTestPanel(id: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiAgent.path(`/test-panels/${id}`).method("DELETE").execute();
+    return response.data as { success: boolean; message: string };
+  }
+
+  async ReorderTestPanels(payload: ReorderPanelsPayload): Promise<ReorderPanelsResponse> {
+    const response = await apiAgent.path(`/test-panels/reorder`).method("POST").json(payload).execute();
+    return response.data as ReorderPanelsResponse;
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Test Categories APIs
+  async GetTestCategories(
+    search?: string,
+    pageNumber?: number,
+    pageSize?: number
+  ): Promise<TestCategoryListResponse> {
+    const response = await apiAgent
+      .path(`diagnostics/categories`)
+      .method("GET")
+      .query({ search, pageNumber, pageSize })
+      .execute();
+    return response.data as TestCategoryListResponse;
+  }
+
+  async AddTestCategory(payload: TestCategoryPayload): Promise<TestCategoryResponse> {
+    const response = await apiAgent
+      .path(`/diagnostics/categories`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as TestCategoryResponse;
+  }
+
+  async UpdateTestCategory(id: string, payload: TestCategoryPayload): Promise<TestCategoryResponse> {
+    const response = await apiAgent
+      .path(`/diagnostics/categories/${id}`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
+    return response.data as TestCategoryResponse;
+  }
+
+  async DeleteTestCategory(id: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiAgent
+      .path(`/test-categories/${id}`)
+      .method("DELETE")
+      .execute();
+    return response.data as { success: boolean; message: string };
+  }
+
+  async ReorderTestCategories(payload: ReorderCategoriesPayload): Promise<ReorderCategoriesResponse> {
+    const response = await apiAgent
+      .path(`/test-categories/reorder`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as ReorderCategoriesResponse;
   }
 }
 const apis = new Apis();

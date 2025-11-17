@@ -113,71 +113,16 @@ const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
           leftSection={
             <>
               <Image
-                src="/images/icons/lab-test-request.svg"
+                src="/images/icons/appointments.svg"
                 height="26px"
                 width="26px"
                 className="h-[26px] w-[26px]"
               />
             </>
           }
-          href="#" // TODO: add route when available
-          label="Lab Test Request"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/patients.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          href="#" // TODO: add route when available
-          label="Patients"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/charting.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          href="#" // TODO: add route when available
-          label="Charting"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/diagnostic.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          href="#" // TODO: add route when available
-          label="Diagnostic"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/reports.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          href="#" // TODO: add route when available
-          label="Reports"
+          component={Link}
+          to="/booking"
+          label="Booking"
         />
         <NavLink
           leftSection={

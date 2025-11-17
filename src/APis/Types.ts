@@ -567,7 +567,7 @@ export interface Pagination {
   totalRecords: number;
 }
 
-export interface DoctorAvailabilityResponse {
+export interface DoctorAvailabilityListResponse {
   success: boolean;
   httpStatus: number;
   message: string;
@@ -794,8 +794,167 @@ export type CreateAppointmentResponse = {
     symptoms_added: number;
   };
 };
+//new today 
+export interface TestPackageRow {
+  id: string;
+  name: string;
+  fee: string;
+  gender: "Male" | "Female" | "Both";
+  included: string;
+  tests?: string[];
+  panels?: string[];
+}
+
+export type TestPackagePayload = {
+  name: string;
+  fee: string;
+  gender: "Male" | "Female" | "Both";
+  included?: string;
+  tests?: string[];
+  panels?: string[];
+};
+
+export type TestPackageResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    package: TestPackageRow;
+  };
+};
+
+export type TestPackageListResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    packages: TestPackageRow[];
+  };
+};
+
+// Test Panels
+export interface TestPanelRow {
+  id: string;
+  order: number;
+  name: string;
+  category: string;
+  tests: string[];
+  ratelistEntries?: string;
+  interpretation?: string;
+  hideInterpretation?: boolean;
+  hideMethod?: boolean;
+}
+
+export type TestPanelPayload = {
+  name: string;
+  category: string;
+  tests: string[];
+  order?: number;
+  interpretation?: string;
+  hideInterpretation?: boolean;
+  hideMethod?: boolean;
+};
+
+export type TestPanelResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    panel: TestPanelRow;
+  };
+};
+
+export type TestPanelListResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    panels: TestPanelRow[];
+  };
+};
+
+export type ReorderPanelsPayload = {
+  panels: Array<{ id: string; order: number }>;
+};
+
+export type ReorderPanelsResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+};
+
+// Test Categories
+export interface TestCategoryRow {
+  id: string;
+  order: number;
+  name: string;
+}
+
+export type TestCategoryPayload = {
+  name: string;
+
+};
+
+export type TestCategoryResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    categoryUid: string;
+  };
+};
+
+// export type TestCategoryListResponse = {
+//   success: boolean;
+//   httpStatus: number;
+//   message: string;
+//   data: {
+//     categories: TestCategoryRow[];
+//   };
+// };
+
+export type ReorderCategoriesPayload = {
+  categories: Array<{ id: string; order: number }>;
+};
+
+export type ReorderCategoriesResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+};
 
 
+export interface TestCategory {
+  id: string;
+  uid: string;
+  name: string;
+  order: string;
+  backup_name: string | null;
+  status: string;
+  created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestCategoryPagination {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+export interface TestCategoryData {
+  categorys: TestCategory[];
+  pagination: TestCategoryPagination;
+}
+
+export interface TestCategoryListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: TestCategoryData;
+}
 
 
 

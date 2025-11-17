@@ -40,6 +40,10 @@ import FeeManagement from "./Pages/FeeMangement/FeeManagement";
 import GeneralSettings from "./Pages/GeneralSettings/GeneralSettings";
 // import PatientSchedule from "./Pages/PatientShedule/BookingPage";
 import BookingPage from "./Pages/PatientShedule/BookingPage";
+import TestPackage from "./Pages/TestPackages/TestPackage";
+import TestPanels from "./Pages/TestPanels/TestPanels";
+import EditPanelPage from "./Pages/TestPanels/EditPanelPage";
+import TestCategories from "./Pages/TestCategories/TestCategories";
 
 function AppContents() {
   return (
@@ -96,9 +100,11 @@ function AppContents() {
         <Route path="/fee-management" element={<FeeManagement />} />
         <Route path="/general-settings" element={<GeneralSettings />} />
         <Route path="/booking" element={<BookingPage />} />
+        <Route path="/test-packages" element={<TestPackage />} />
+        <Route path="/test-panels" element={<TestPanels />} />
+        <Route path="/test-panels/edit" element={<EditPanelPage />} />
+        <Route path="/test-categories" element={<TestCategories />} />
       </Route>
-
-      
 
       {/* ===================== 🔵 DOCTOR PUBLIC LOGIN ===================== */}
       <Route path="/doctor-login" element={<DoctorLoginPage />} />

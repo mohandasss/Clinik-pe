@@ -60,6 +60,33 @@ const TIME_SLOTS = {
   EVENING: { start: 18, end: 24, label: "Evening", color: "indigo" },
 } as const;
 
+type ColorKey = "blue" | "amber" | "indigo";
+const COLOR_CLASS_MAP: Record<
+  ColorKey,
+  { bg50: string; text900: string; selected: string; default: string }
+> = {
+  blue: {
+    bg50: "bg-blue-50",
+    text900: "text-blue-900",
+    selected: "bg-blue-600 text-white border border-blue-600",
+    default: "bg-white text-gray-700 border border-blue-200 hover:bg-blue-100",
+  },
+  amber: {
+    bg50: "bg-amber-50",
+    text900: "text-amber-900",
+    selected: "bg-amber-600 text-white border border-amber-600",
+    default:
+      "bg-white text-gray-700 border border-amber-200 hover:bg-amber-100",
+  },
+  indigo: {
+    bg50: "bg-indigo-50",
+    text900: "text-indigo-900",
+    selected: "bg-indigo-600 text-white border border-indigo-600",
+    default:
+      "bg-white text-gray-700 border border-indigo-200 hover:bg-indigo-100",
+  },
+};
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -442,6 +469,59 @@ const BookingPage: React.FC = () => {
     setOthers("");
   };
 
+  // Refetch patients list
+  const refetchPatients = async () => {
+    if (!canFetchData) return;
+
+    setLoadingPatients(true);
+    try {
+      const resp = await apis.GetPatients(
+        orgId!,
+        centerId!,
+        undefined,
+        1,
+        100,
+        ["uid", "name"]
+      );
+      setPatients(resp?.data?.patients ?? []);
+    } catch (err) {
+      console.error("Failed to refetch patients:", err);
+    } finally {
+      setLoadingPatients(false);
+    }
+  };
+
+  // Refetch appointments list for the schedule view
+  const refetchAppointments = async () => {
+    if (!canFetchData) return;
+    try {
+      const dateStr = formatDate(scheduleSelectedDate || new Date());
+      const resp = await apis.GetCenterAppointmentList(
+        orgId!,
+        centerId!,
+        dateStr
+      );
+      const appointmentList = resp?.data?.appointments ?? [];
+      const transformedAppointments: Appointment[] = appointmentList.map(
+        (apt) => ({
+          appointment_uid: apt.appointment_uid,
+          name: apt.patient_name,
+          patient_name: apt.patient_name,
+          doctor_name: apt.doctor_name,
+          type: apt.appointment_type || "",
+          time: apt.time ? apt.time.substring(0, 5) : "00:00",
+          date: apt.date,
+          provider: apt.doctor_id,
+          clinic: clinicName,
+          symptoms: apt.symptoms,
+        })
+      );
+      setAppointments(transformedAppointments);
+    } catch (err) {
+      console.error("Failed to refetch appointments:", err);
+    }
+  };
+
   const handleAddAppointment = async () => {
     if (!patientName || !selectedTime || !selectedDate || !provider) {
       return;
@@ -472,6 +552,9 @@ const BookingPage: React.FC = () => {
         message: "Appointment created successfully!",
         color: "green",
       });
+
+      // Refetch appointments after creating to refresh the schedule
+      await refetchAppointments();
 
       const selectedSymptomNames = appointmentSymptoms
         .map((s) => s.symptom_name)
@@ -561,7 +644,10 @@ const BookingPage: React.FC = () => {
         size="xl"
         title={<span className="text-xl font-semibold">Add Patient</span>}
       >
-        <AddPatientScheduling onClose={() => setShowSidebar(false)} />
+        <AddPatientScheduling
+          onClose={() => setShowSidebar(false)}
+          onPatientAdded={refetchPatients}
+        />
       </Drawer>
     </div>
   );
@@ -685,7 +771,7 @@ interface AppointmentCardProps {
 }
 
 const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment }) => {
-  console.log("Rendering appointment:", appointment);
+  // console.log("Rendering appointment:", appointment);
   return (
     <div className="px-3 py-2 bg-white rounded shadow min-w-[200px] border-l-4 border-indigo-500">
       <div className="font-semibold text-xs capitalize text-black truncate">
@@ -909,7 +995,7 @@ const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
 interface TimeSlotPeriodProps {
   period: {
     label: string;
-    color: string;
+    color: ColorKey;
     start: number;
     end: number;
   };
@@ -926,10 +1012,11 @@ const TimeSlotPeriod: React.FC<TimeSlotPeriodProps> = ({
 }) => {
   const { label, color } = period;
 
+  const colorClasses = COLOR_CLASS_MAP[color] || COLOR_CLASS_MAP.blue;
   return (
-    <div className={`border rounded-lg p-3 bg-${color}-50`}>
+    <div className={`border rounded-lg p-3 ${colorClasses.bg50}`}>
       <h3
-        className={`font-semibold text-sm text-${color}-900 mb-2 sticky top-0 bg-${color}-50 pt-1 z-10`}
+        className={`font-semibold text-sm ${colorClasses.text900} mb-2 sticky top-0 ${colorClasses.bg50} pt-1 z-10`}
       >
         {label}
       </h3>
@@ -945,9 +1032,7 @@ const TimeSlotPeriod: React.FC<TimeSlotPeriodProps> = ({
               type="button"
               onClick={() => onTimeChange(slotStart)}
               className={`px-3 py-1 rounded text-xs font-medium whitespace-nowrap transition-all ${
-                isSelected
-                  ? `bg-${color}-600 text-white border border-${color}-600`
-                  : `bg-white text-gray-700 border border-${color}-200 hover:bg-${color}-100`
+                isSelected ? colorClasses.selected : colorClasses.default
               }`}
               title={`${slotStart} - ${slotEnd}`}
             >
