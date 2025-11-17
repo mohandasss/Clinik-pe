@@ -20,7 +20,30 @@ import { CSS } from "@dnd-kit/utilities";
 import { notifications } from "@mantine/notifications";
 import apis from "../../APis/Api";
 import type { TestPanelRow } from "../../APis/Types";
-import { IconDots, IconPencil, IconGripVertical } from "@tabler/icons-react";
+import { IconDots, IconPencil } from "@tabler/icons-react";
+// Inline SVG for chevrons up/down (replaces IconGripVertical)
+const ChevronsUpDown: React.FC<
+  React.SVGProps<SVGSVGElement> & { size?: number }
+> = ({ size = 16, className, ...props }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={`${size}px`}
+    height={`${size}px`}
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+    {...props}
+  >
+    <path
+      d="M12.7071 3.29289C12.3166 2.90237 11.6834 2.90237 11.2929 3.29289L6.29289 8.29289C5.90237 8.68342 5.90237 9.31658 6.29289 9.70711C6.68342 10.0976 7.31658 10.0976 7.70711 9.70711L12 5.41421L16.2929 9.70711C16.6834 10.0976 17.3166 10.0976 17.7071 9.70711C18.0976 9.31658 18.0976 8.68342 17.7071 8.29289L12.7071 3.29289Z"
+      fill="currentColor"
+    />
+    <path
+      d="M7.70711 14.2929C7.31658 13.9024 6.68342 13.9024 6.29289 14.2929C5.90237 14.6834 5.90237 15.3166 6.29289 15.7071L11.2929 20.7071C11.6834 21.0976 12.3166 21.0976 12.7071 20.7071L17.7071 15.7071C18.0976 15.3166 18.0976 14.6834 17.7071 14.2929C17.3166 13.9024 16.6834 13.9024 16.2929 14.2929L12 18.5858L7.70711 14.2929Z"
+      fill="currentColor"
+    />
+  </svg>
+);
 import DeleteConfirm from "../TestPackages/Components/DeleteConfirm";
 
 const MOCK_PANELS: TestPanelRow[] = [
@@ -112,7 +135,7 @@ const SortableRow: React.FC<{
             {...listeners}
             className="cursor-grab active:cursor-grabbing"
           >
-            <IconGripVertical size={16} className="text-gray-400" />
+            <ChevronsUpDown size={16} className="text-gray-400" />
           </div>
           <span className="text-sm text-gray-600">{row.order}.</span>
         </div>
@@ -198,7 +221,7 @@ const TestPanels: React.FC = () => {
           p.tests.some((t) => t.toLowerCase().includes(q))
       );
     }
-    return data.sort((a, b) => a.order - b.order);
+    return [...data].sort((a, b) => Number(a.order) - Number(b.order));
   }, [query, panels]);
 
   const total = filtered.length;
@@ -212,7 +235,11 @@ const TestPanels: React.FC = () => {
       try {
         const resp = await apis.GetTestPanels();
         if (mounted && resp?.data?.panels) {
-          setPanels(resp.data.panels.sort((a, b) => a.order - b.order));
+          setPanels(
+            [...resp.data.panels].sort(
+              (a, b) => Number(a.order) - Number(b.order)
+            )
+          );
         }
       } catch (err) {
         console.warn("GetTestPanels failed, using local mocks", err);
@@ -381,7 +408,7 @@ const TestPanels: React.FC = () => {
                   <tr>
                     <td className="px-4 py-3 w-20">
                       <div className="flex items-center gap-2">
-                        <IconGripVertical size={16} className="text-gray-400" />
+                        <ChevronsUpDown size={16} className="text-gray-400" />
                         <span className="text-sm text-gray-600">
                           {activeRow.order}.
                         </span>

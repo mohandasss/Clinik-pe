@@ -51,6 +51,11 @@ import type {
   TestCategoryListResponse,
   ReorderCategoriesPayload,
   ReorderCategoriesResponse,
+  CreateUnitResponse,
+  UnitsListResponse,
+  DeleteUnitResponse,
+  CreateTestPayload,
+  CreateLabTestResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -564,10 +569,10 @@ class Apis {
 
   async UpdateTestPackage(id: string, payload: TestPackagePayload): Promise<TestPackageResponse> {
     const response = await apiAgent
-    .path(`/test-packages/${id}`)
-    .method("PATCH")
-    .json(payload)
-    .execute();
+      .path(`/test-packages/${id}`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
     return response.data as TestPackageResponse;
   }
 
@@ -652,7 +657,7 @@ class Apis {
 
   async DeleteTestCategory(id: string): Promise<{ success: boolean; message: string }> {
     const response = await apiAgent
-      .path(`/test-categories/${id}`)
+      .path(`/diagnostics/categories/${id}`)
       .method("DELETE")
       .execute();
     return response.data as { success: boolean; message: string };
@@ -660,12 +665,73 @@ class Apis {
 
   async ReorderTestCategories(payload: ReorderCategoriesPayload): Promise<ReorderCategoriesResponse> {
     const response = await apiAgent
-      .path(`/test-categories/reorder`)
-      .method("POST")
+      .path(`diagnostics/categories/order-sequencing`)
+      .method("PATCH")
       .json(payload)
       .execute();
     return response.data as ReorderCategoriesResponse;
   }
+
+
+
+
+
+  //units
+
+  async AddTestUnits(name: string): Promise<CreateUnitResponse> {
+    const response = await apiAgent
+      .path(`/diagnostics/units`)
+      .method("POST")
+      .json({ name })
+      .execute();
+    return response.data as CreateUnitResponse;
+
+  }
+
+  async GetTestUnits(search: string): Promise<UnitsListResponse> {
+    const response = await apiAgent
+      .path(`/diagnostics/units`)
+      .method("GET")
+      .query({ search })
+      .execute();
+    return response.data as UnitsListResponse;
+
+  }
+
+  async DeleteTestUnits(id: string): Promise<DeleteUnitResponse> {
+    const response = await apiAgent
+      .path(`/diagnostics/units/${id}`)
+      .method("DELETE")
+      .execute();
+    return response.data as DeleteUnitResponse;
+  }
+  //lab databse
+  async AddTestToLabDatabase(payload: CreateTestPayload): Promise<CreateLabTestResponse> {
+    const response = await apiAgent
+      .path(`/diagnostics/lab/test`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as CreateLabTestResponse;
+  }
+
+  // async GetLabTests(
+  //   search?: string,
+  //   categoryId?: string,
+  //   pageNumber?: number,
+  //   pageSize?: number
+  // ): Promise<> {
+  //   const response = await apiAgent
+  //     .path(`/diagnostics/lab/tests`)
+  //     .method("GET")
+  //     .query({ search, categoryId, pageNumber, pageSize })
+  //     .execute();
+  //   return response.data as ;
+  // }
+
+
+
+
 }
 const apis = new Apis();
 export default apis;

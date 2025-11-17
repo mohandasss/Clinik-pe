@@ -914,7 +914,9 @@ export type TestCategoryResponse = {
 // };
 
 export type ReorderCategoriesPayload = {
-  categories: Array<{ id: string; order: number }>;
+  uid: string;
+  after_uid: string;
+
 };
 
 export type ReorderCategoriesResponse = {
@@ -961,10 +963,121 @@ export interface TestCategoryListResponse {
 
 
 
+export type CreateUnitResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    unit_id: string;
+  };
+};
+
+export type Unit = {
+  id: string;
+  uid: string;
+  name: string;
+  description: string;
+  backup_name: string | null;
+  status: string; // consider union: "active" | "inactive"
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string | null;
+};
 
 
+export type UnitsListResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    units: Unit[];
+    pagination: Pagination;
+  };
+};
 
 
+export type DeleteUnitResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    unit_id: string;
+  };
+};
+
+export type TestChild = {
+  order: string;
+  name: string;
+  unit_id: string;
+  input_type: string;        // you can convert to union if needed
+  default_result: string;
+  group_by?: string;
+  optional: boolean;
+};
+
+export type CreateTestPayload = {
+  type: string;              // e.g. "multiple"
+  name: string;
+  short_name: string;
+  category_id: string;
+  unit_id?: string;
+  input_type?: string;        // e.g. "numeric" (optional for multiple tests)
+  default_result?: string;
+  optional?: boolean;
+  price: string;
+  method: string;
+  instrument: string;
+  interpretation: string;
+  notes: string;
+  comments: string;
+  format_options?: {
+    always_bold?: boolean;
+    print_line_after?: boolean;
+  };
+  children?: TestChild[];
+};
+
+
+export type LabTestParent = {
+  uid: string;
+  name: string;
+  short_name: string;
+  category_id: string;
+  price: string;
+  method: string;
+  instrument: string;
+  interpretation: string;
+  notes: string;
+  comments: string;
+  order: number;
+  type: string;          // e.g. "multiple"
+  created_by: string;
+};
+
+export type LabTestChild = {
+  uid: string;
+  name: string;
+  unit_id: string;
+  input_type: string;    // e.g. "numeric"
+  default_result: string;
+  optional: boolean;
+  parent_id: string;
+  order: number;
+  type: string;
+  created_by: string;
+};
+
+export type CreateLabTestResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    parent_uid: string;
+    parent: LabTestParent;
+    children?: LabTestChild[];
+  };
+};
 
 
 

@@ -20,7 +20,31 @@ import { CSS } from "@dnd-kit/utilities";
 import { notifications } from "@mantine/notifications";
 import apis from "../../APis/Api";
 import type { TestCategory, TestCategoryPagination } from "../../APis/Types";
-import { IconDots, IconPencil, IconGripVertical } from "@tabler/icons-react";
+import { IconDots, IconPencil } from "@tabler/icons-react";
+
+// Inline SVG for chevrons up/down (replaces IconChevronsUpDown)
+const ChevronsUpDown: React.FC<
+  React.SVGProps<SVGSVGElement> & { size?: number }
+> = ({ size = 16, className, ...props }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={`${size}px`}
+    height={`${size}px`}
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+    {...props}
+  >
+    <path
+      d="M12.7071 3.29289C12.3166 2.90237 11.6834 2.90237 11.2929 3.29289L6.29289 8.29289C5.90237 8.68342 5.90237 9.31658 6.29289 9.70711C6.68342 10.0976 7.31658 10.0976 7.70711 9.70711L12 5.41421L16.2929 9.70711C16.6834 10.0976 17.3166 10.0976 17.7071 9.70711C18.0976 9.31658 18.0976 8.68342 17.7071 8.29289L12.7071 3.29289Z"
+      fill="currentColor"
+    />
+    <path
+      d="M7.70711 14.2929C7.31658 13.9024 6.68342 13.9024 6.29289 14.2929C5.90237 14.6834 5.90237 15.3166 6.29289 15.7071L11.2929 20.7071C11.6834 21.0976 12.3166 21.0976 12.7071 20.7071L17.7071 15.7071C18.0976 15.3166 18.0976 14.6834 17.7071 14.2929C17.3166 13.9024 16.6834 13.9024 16.2929 14.2929L12 18.5858L7.70711 14.2929Z"
+      fill="currentColor"
+    />
+  </svg>
+);
 import DeleteConfirm from "../TestPackages/Components/DeleteConfirm";
 
 // ============================================================================
@@ -69,7 +93,7 @@ const SortableRow: React.FC<SortableRowProps> = ({
             {...listeners}
             className="cursor-grab active:cursor-grabbing"
           >
-            <IconGripVertical size={16} className="text-gray-400" />
+            <ChevronsUpDown size={16} className="text-gray-400" />
           </div>
           <span className="text-sm text-gray-600">{category.order}.</span>
         </div>
@@ -79,8 +103,8 @@ const SortableRow: React.FC<SortableRowProps> = ({
         <div className="font-medium text-gray-900">{category.name}</div>
       </td>
 
-      <td className="border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center gap-2">
+      <td className="border-b border-gray-200 px-4 py-3 text-right">
+        <div className="flex items-center justify-end gap-2">
           <button
             className="text-blue-600 text-sm hover:text-blue-800 transition-colors"
             onClick={() => onEdit(category)}
@@ -296,7 +320,7 @@ const TestCategories: React.FC = () => {
         : await apis.AddTestCategory({ name });
 
       if (response?.success) {
-        showSuccessNotification(response.message || "Category saved");
+        showSuccessNotification(response.message);
         await loadCategories();
         closeEditModal();
       } else {
@@ -310,20 +334,15 @@ const TestCategories: React.FC = () => {
     }
   };
 
-  const reorderCategories = async (reorderedCategories: TestCategory[]) => {
+  const reorderCategories = async (draggedUid: string, afterUid: string) => {
     try {
       const response = await apis.ReorderTestCategories({
-        categories: reorderedCategories.map((category, index) => ({
-          id: category.id,
-          order: index + 1,
-        })),
+        uid: draggedUid,
+        after_uid: afterUid,
       });
 
       const notificationType = response.success ? "success" : "error";
-      showNotification(
-        response.message || "Categories reordered",
-        notificationType
-      );
+      showNotification(response.message, notificationType);
 
       if (response.success) {
         await loadCategories();
@@ -348,20 +367,32 @@ const TestCategories: React.FC = () => {
 
     if (!over || active.id === over.id) return;
 
-    const oldIndex = categories.findIndex((cat) => cat.id === active.id);
-    const newIndex = categories.findIndex((cat) => cat.id === over.id);
+    // Use the visible/sorted categories (the order in UI) to compute indices
+    const visible = sortedCategories;
+    const oldVisibleIndex = visible.findIndex((cat) => cat.id === active.id);
+    const newVisibleIndex = visible.findIndex((cat) => cat.id === over.id);
 
-    if (oldIndex === -1 || newIndex === -1) return;
+    if (oldVisibleIndex === -1 || newVisibleIndex === -1) return;
 
-    const reorderedCategories = arrayMove(categories, oldIndex, newIndex).map(
-      (category, index) => ({
-        ...category,
-        order: String(index + 1),
-      })
+    const draggedVisibleCategory = visible[oldVisibleIndex];
+    const reorderedVisible = arrayMove(
+      visible,
+      oldVisibleIndex,
+      newVisibleIndex
     );
 
-    setCategories(reorderedCategories);
-    await reorderCategories(reorderedCategories);
+    // Determine after_uid (based on visible order). If placed at top, after_uid is empty
+    const afterUid =
+      newVisibleIndex === 0 ? "" : reorderedVisible[newVisibleIndex - 1].uid;
+
+    // For immediate UI feedback, compute the full categories reordering using the original indices
+    const oldFullIndex = categories.findIndex((cat) => cat.id === active.id);
+    const newFullIndex = categories.findIndex((cat) => cat.id === over.id);
+    if (oldFullIndex === -1 || newFullIndex === -1) return;
+    const reorderedFull = arrayMove(categories, oldFullIndex, newFullIndex);
+
+    setCategories(reorderedFull);
+    await reorderCategories(draggedVisibleCategory.uid, afterUid);
   };
 
   const handleEditCategory = (category: TestCategory) => {
@@ -501,11 +532,12 @@ const TestCategories: React.FC = () => {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
                   Name
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
                   Action
                 </th>
               </tr>
             </thead>
+
             <tbody>
               <SortableContext
                 items={sortedCategories.map((cat) => cat.id)}
@@ -533,19 +565,26 @@ const TestCategories: React.FC = () => {
                   <tr>
                     <td className="px-4 py-3 w-20">
                       <div className="flex items-center gap-2">
-                        <IconGripVertical size={16} className="text-gray-400" />
+                        <ChevronsUpDown size={16} className="text-gray-400" />
                         <span className="text-sm text-gray-600">
                           {draggedCategory.order}.
                         </span>
                       </div>
                     </td>
+
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">
                         {draggedCategory.name}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
+
+                    {/* FIXED ACTION COLUMN */}
+                    <td className="px-4 py-3 text-right">
+                      {" "}
+                      {/* Added text-right for right alignment */}
+                      <div className="flex items-center justify-end gap-2">
+                        {" "}
+                        {/* Added justify-end to push icons to the right */}
                         <IconPencil size={16} className="text-blue-600" />
                         <IconDots className="rotate-90 text-gray-400" />
                       </div>
@@ -573,7 +612,7 @@ const TestCategories: React.FC = () => {
         opened={isDeleteModalOpen}
         onClose={closeDeleteModal}
         onConfirm={() =>
-          categoryToDelete && deleteCategory(categoryToDelete.id)
+          categoryToDelete && deleteCategory(categoryToDelete.uid)
         }
         itemName={categoryToDelete?.name}
         loading={isDeleting}

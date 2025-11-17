@@ -44,6 +44,11 @@ import TestPackage from "./Pages/TestPackages/TestPackage";
 import TestPanels from "./Pages/TestPanels/TestPanels";
 import EditPanelPage from "./Pages/TestPanels/EditPanelPage";
 import TestCategories from "./Pages/TestCategories/TestCategories";
+import TestDatabase from "./Pages/TestDatabase/TestDatabase";
+import AddTestPage from "./Pages/TestDatabase/AddTestPage";
+import AddMultipleTestPage from "./Pages/TestDatabase/AddMultipleTestPage";
+import Units from "./Pages/Units/Units";
+import AddMultipleNestedTestPage from "./Pages/TestDatabase/AddMultipleNestedTestPage";
 
 function AppContents() {
   return (
@@ -104,6 +109,15 @@ function AppContents() {
         <Route path="/test-panels" element={<TestPanels />} />
         <Route path="/test-panels/edit" element={<EditPanelPage />} />
         <Route path="/test-categories" element={<TestCategories />} />
+        <Route path="/test-database" element={<TestDatabase />} />
+        <Route path="/test-database/add" element={<AddTestPage />} />
+        <Route
+          path="/test-database/add-multiple"
+          element={<AddMultipleTestPage />}
+
+        />
+        <Route path="/test-database/add-nested" element={<AddMultipleNestedTestPage />} />
+        <Route path="/units" element={<Units />} />
       </Route>
 
       {/* ===================== 🔵 DOCTOR PUBLIC LOGIN ===================== */}
