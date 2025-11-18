@@ -184,6 +184,32 @@ const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
           to="/e-prescription"
           label="E-prescription"
         />
+        {/* Diagnostics (Lab) */}
+        <NavLink
+          leftSection={
+            <>
+              <Image
+                src="/images/icons/diagnostic.svg"
+                height="26px"
+                width="26px"
+                className="h-[26px] w-[26px]"
+              />
+            </>
+          }
+          href="#"
+          label="Diagnostics"
+        >
+          <NavLink label="Test Database" component={Link} to="/test-database" />
+          <NavLink
+            label="Test Categories"
+            component={Link}
+            to="/test-categories"
+          />
+          <NavLink label="Test Panels" component={Link} to="/test-panels" />
+          <NavLink label="Test Packages" component={Link} to="/test-packages" />
+          <NavLink label="Units" component={Link} to="/units" />
+          <NavLink label="Diagnostic Bills" component={Link} to="/bills" />
+        </NavLink>
         <NavLink
           leftSection={
             <>

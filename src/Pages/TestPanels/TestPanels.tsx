@@ -163,7 +163,7 @@ const TestPanels: React.FC = () => {
           if (mounted && resp?.data?.panels) {
             const mapped: TestPanelRow[] = resp.data.panels.map((p) => ({
               id: p.panel_id,
-              uid: p.panel_id,
+              uid: p.panel_id,  
               order: Number(p.order_no) || 0,
               name: p.name,
               category: p.category_name || "",

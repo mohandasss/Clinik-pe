@@ -55,14 +55,14 @@ const TestTable: React.FC<TestTableProps> = ({
           <div className="text-sm text-gray-600">{r.shortName}</div>
         ),
       },
-      {
-        accessor: "category",
-        title: "CATEGORY",
-        width: 160,
-        render: (r) => (
-          <div className="text-sm text-gray-600">{r.category}</div>
-        ),
-      },
+      // {
+      //   accessor: "category",
+      //   title: "CATEGORY",
+      //   width: 160,
+      //   render: (r) => (
+      //     <div className="text-sm text-gray-600">{r.category}</div>
+      //   ),
+      // },
       {
         accessor: "action",
         title: <div className="text-right">ACTION</div>,
