@@ -833,11 +833,15 @@ export type TestPackageListResponse = {
 // Test Panels
 export interface TestPanelRow {
   id: string;
+  uid: string;
   order: number;
   name: string;
   category: string;
   tests: string[];
   ratelistEntries?: string;
+  categoryId?: string;
+  price?: string;
+  hide_individual?: Record<string, string>;
   interpretation?: string;
   hideInterpretation?: boolean;
   hideMethod?: boolean;
@@ -872,7 +876,8 @@ export type TestPanelListResponse = {
 };
 
 export type ReorderPanelsPayload = {
-  panels: Array<{ id: string; order: number }>;
+  uid: string;
+  after_uid: string;
 };
 
 export type ReorderPanelsResponse = {
@@ -1096,13 +1101,180 @@ export interface DoctorSpecialitiesResponse {
   data: DoctorSpecialitiesData;
 }
 
+// Single time range inside a slot
+export interface TimeRange {
+  start: string;
+  end: string;
+  wait_time: number;
+  time_slot_interval: number;
+}
+
+// Slot item (one entry in the slots array)
+export interface DoctorSlot {
+  uid: string;
+  time_ranges: TimeRange[];
+  days: string; // Example: "Tuesday, Friday"
+}
+
+// Full API response
+export interface DoctorSlotsResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    slots: DoctorSlot[];
+  };
+}
+
+export interface PanelsListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    data: PanelItem[];
+    pagination: Pagination;
+  };
+}
+
+export interface PanelItem {
+  panel_id: string;
+  name: string;
+  order_no: string;
+  price: string;
+  category_id: string;
+  hide_individual: Record<string, string>; // Because structure is dynamic
+  status: string;
+  created_at: string;
+  category_name: string;
+  tests: {
+    count: number;
+    list: TestItem[];
+  };
+}
+
+export interface TestItem {
+  uid: string;
+  order: string;
+  test_id: string;
+  test_name: string;
+}
+
+export interface Pagination {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
 
 
 
 
+export interface LabTestsListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    data: LabTestItem[];
+    pagination: Pagination | null;
+  };
+}
+
+export interface LabTestItem {
+  name: string;
+  uid: string;
+}
+
+export interface Pagination {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+
+export interface CreatePanelPayload {
+  name: string;
+  category_id: string;
+  price: number;
+  interpretation: string;
+  hide_individual: Record<string, string>; // dynamic keys
+  tests: PanelTestItem[];
+}
+
+export interface UpdatePanelPayload extends CreatePanelPayload {
+  remove_tests?: PanelTestItem[];
+}
+
+export interface PanelTestItem {
+  test_id: string;
+}
 
 
 
+export interface PanelDetailsResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    panel: PanelDetails;
+  };
+}
+
+export interface PanelDetails {
+  panel_id: string;
+  name: string;
+  order_no: string;
+  price: string;
+  category_id: string;
+  hide_individual: Record<string, string>; // dynamic keys
+  interpretation: string;
+  status: string;
+  created_at: string;
+  category_name: string;
+  tests: PanelTestDetails[];
+  tests_count: number;
+}
+
+export interface PanelTestDetails {
+  uid: string;
+  order: string;
+  test_id: string;
+  test_name: string;
+}
+
+
+
+
+export interface LabTest {
+  id: string;
+  uid: string;
+  order: string;
+  name: string;
+  short_name: string;
+  category_id: string;
+  unit_id: string | null;
+  input_type: string;
+  default_result: string;
+  method: string;
+  instrument: string;
+  interpretation: string;
+  notes: string;
+  comments: string;
+  formating: string | null;
+  price: string;
+  optional: "0" | "1";
+  parent_id: string | null;
+  type: string;
+  group_by: string;
+  status: string;
+  created_by: string;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+  organization_id: string;
+  central_account_id: string;
+  center_id: string;
+}
 
 
 

@@ -14,7 +14,14 @@ import {
 import Notification from "../../components/Global/Notification";
 import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../APis/Api";
-import type { TestPanelRow, TestPanelPayload } from "../../APis/Types";
+import useAuthStore from "../../GlobalStore/store";
+import type {
+  TestPanelRow,
+  CreatePanelPayload,
+  UpdatePanelPayload,
+  TestCategory,
+  LabTestItem,
+} from "../../APis/Types";
 
 interface LocationState {
   row?: TestPanelRow;
@@ -36,7 +43,9 @@ const EditPanelPage: React.FC = () => {
 
   interface FormState {
     name: string;
-    category: string;
+    category: string; // display name
+    categoryId: string; // uid for API
+    price: string;
     tests: string[];
     interpretation: string;
     hideInterpretation: boolean;
@@ -46,31 +55,69 @@ const EditPanelPage: React.FC = () => {
   const [form, setForm] = useState<FormState>({
     name: "",
     category: "",
+    categoryId: "",
+    price: "",
     tests: [] as string[],
     interpretation: "",
     hideInterpretation: false,
     hideMethod: false,
   });
 
+  // Keep original tests uids when editing so we can compute remove_tests
+  const [initialTestUids, setInitialTestUids] = useState<string[]>([]);
+
+  // Options for tests dropdown — value is uid, label is name
+  const [availableTests, setAvailableTests] = useState<
+    { value: string; label: string }[]
+  >([]);
+
+  // Categories for dropdown — value is uid, label is name
+  const [availableCategories, setAvailableCategories] = useState<
+    { value: string; label: string }[]
+  >([]);
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (row) {
+      // Parse hide_individual from row's API response structure
+      let hideInterp = row.hideInterpretation ?? false;
+      let hideMethod = row.hideMethod ?? false;
+
+      // If row came from API (has hide_individual object), parse it
+      if (row.hide_individual && typeof row.hide_individual === "object") {
+        const hideIndividualObj = row.hide_individual as Record<string, string>;
+        // Check for keys containing 'interpretation' or 'method'
+        for (const key in hideIndividualObj) {
+          if (key.toLowerCase().includes("interpretation")) {
+            hideInterp = hideIndividualObj[key] === "true";
+          }
+          if (key.toLowerCase().includes("method")) {
+            hideMethod = hideIndividualObj[key] === "true";
+          }
+        }
+      }
+
       setForm({
         name: row.name || "",
         category: row.category || "",
+        categoryId: row.categoryId || "",
+        price: row.ratelistEntries || "",
         tests: row.tests || [],
         interpretation: row.interpretation || "",
-        hideInterpretation: row.hideInterpretation || false,
-        hideMethod: row.hideMethod || false,
+        hideInterpretation: hideInterp,
+        hideMethod: hideMethod,
       });
+      // initialTestUids will be set after we map tests to uids (in the other effect)
     } else {
       // reset if there is no row (i.e., adding new)
       setForm((s) => ({
         ...s,
         name: "",
         category: "",
+        categoryId: "",
+        price: "",
         tests: [],
         interpretation: "",
         hideInterpretation: false,
@@ -78,6 +125,79 @@ const EditPanelPage: React.FC = () => {
       }));
     }
   }, [row]);
+
+  const organizationDetails = useAuthStore((s) => s.organizationDetails);
+
+  // Load categories for dropdown
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const resp = await apis.GetTestCategories(
+          organizationDetails?.organization_id ?? "",
+          organizationDetails?.center_id ?? ""
+        );
+        if (mounted && resp?.data?.categorys) {
+          const options = resp.data.categorys.map((cat: TestCategory) => ({
+            value: cat.uid,
+            label: cat.name,
+          }));
+          setAvailableCategories(options);
+        }
+      } catch (err) {
+        console.warn("GetTestCategories failed:", err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [organizationDetails?.organization_id, organizationDetails?.center_id]);
+
+  // Load tests for MultiSelect dropdown
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const resp = await apis.GetAllTests(
+          ["uid", "name"],
+          organizationDetails?.organization_id ?? "",
+          organizationDetails?.center_id ?? ""
+        );
+
+        if (mounted && resp?.data?.tests) {
+          const options = resp.data.tests.map((t: any) => ({
+            value: t.uid,
+            label: t.name,
+          }));
+          setAvailableTests(options);
+        }
+      } catch (err) {
+        console.warn("GetAllTests failed:", err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [organizationDetails?.organization_id, organizationDetails?.center_id]);
+
+  // When editing, map existing test names to available uid values when possible
+  useEffect(() => {
+    if (!row) return;
+    if (!availableTests || availableTests.length === 0) return;
+
+    const mappedUids = row.tests.map((tName) => {
+      const match = availableTests.find((opt) => opt.label === tName);
+      return match ? match.value : tName; // fallback to original value
+    });
+    setForm((s) => ({ ...s, tests: mappedUids }));
+    // store original list of test uids so we can compute 'remove_tests' later
+    setInitialTestUids(mappedUids);
+    // if categoryId not available in row, try to match by label
+    if (!form.categoryId && row.category) {
+      const found = availableCategories.find((c) => c.label === row.category);
+      if (found) setForm((s) => ({ ...s, categoryId: found.value }));
+    }
+  }, [row, availableTests, availableCategories, form.categoryId]);
 
   const handleChange = (k: string, v: string | string[] | boolean) =>
     setForm((s) => ({ ...s, [k]: v }));
@@ -87,7 +207,8 @@ const EditPanelPage: React.FC = () => {
 
     const newErrors: Record<string, string> = {};
     if (!form.name.trim()) newErrors.name = "Panel name is required";
-    if (!form.category.trim()) newErrors.category = "Category is required";
+    if (!form.categoryId.trim()) newErrors.category = "Category is required";
+    if (!form.price.trim()) newErrors.price = "Price is required";
     if (form.tests.length === 0)
       newErrors.tests = "At least one test is required";
 
@@ -102,39 +223,83 @@ const EditPanelPage: React.FC = () => {
 
     setSaving(true);
     try {
-      const payload: TestPanelPayload = {
-        name: form.name.trim(),
-        category: form.category.trim(),
-        tests: form.tests,
-        order: row?.order || 0,
-        interpretation: form.interpretation.trim(),
-        hideInterpretation: Boolean(form.hideInterpretation),
-        hideMethod: Boolean(form.hideMethod),
-      };
-
       if (row) {
-        await apis.UpdateTestPanel(row.id, payload);
-        setNotif({
-          open: true,
-          data: {
-            success: true,
-            message: "Test panel updated successfully",
+        // Edit mode: use UpdateTestPanels (new API signature) & compute remove_tests
+        const payload: UpdatePanelPayload = {
+          name: form.name.trim(),
+          category_id: form.categoryId,
+          price: Number(form.price),
+          interpretation: form.interpretation.trim(),
+          hide_individual: {
+            individual_test_interpretation: form.hideInterpretation
+              ? "true"
+              : "false",
+            individual_test_method: form.hideMethod ? "true" : "false",
           },
-        });
-      } else {
-        await apis.AddTestPanel(payload);
-        setNotif({
-          open: true,
-          data: {
-            success: true,
-            message: "Test panel added successfully",
-          },
-        });
-      }
+          tests: form.tests.map((testId) => ({ test_id: testId })),
+        };
 
-      setTimeout(() => {
-        navigate("/test-panels", { state: { refresh: true } });
-      }, 1500);
+        // compute remove_tests: tests that were in initialTestUids but not in current form.tests
+        const removed = initialTestUids.filter(
+          (id) => !form.tests.includes(id)
+        );
+        if (removed.length > 0)
+          payload.remove_tests = removed.map((testId) => ({ test_id: testId }));
+
+        const response = await apis.UpdateTestPanels(
+          payload,
+          organizationDetails?.organization_id ?? "",
+          organizationDetails?.center_id ?? "",
+          row.id
+        );
+
+        if (response.success) {
+          setNotif({
+            open: true,
+            data: {
+              success: response.success,
+              message: response.message,
+            },
+          });
+
+          setTimeout(() => {
+            navigate("/test-panels", { state: { refresh: true } });
+          }, 1500);
+        }
+      } else {
+        // Add mode: use AddTestPanels with new payload structure
+        const payload: CreatePanelPayload = {
+          name: form.name.trim(),
+          category_id: form.categoryId,
+          price: Number(form.price),
+          interpretation: form.interpretation.trim(),
+          hide_individual: {
+            "individual_test interpretation": form.hideInterpretation
+              ? "true"
+              : "",
+            "individual_test method": form.hideMethod ? "true" : "",
+          },
+          tests: form.tests.map((testId) => ({ test_id: testId })),
+        };
+        const response = await apis.AddTestPanels(
+          payload,
+          organizationDetails?.organization_id ?? "",
+          organizationDetails?.center_id ?? ""
+        );
+
+        if (response.success) {
+          setNotif({
+            open: true,
+            data: {
+              success: response.success,
+              message: response.message,
+            },
+          });
+          setTimeout(() => {
+            navigate("/test-panels", { state: { refresh: true } });
+          }, 1500);
+        }
+      }
     } catch (err) {
       console.error(err);
       setNotif({
@@ -206,16 +371,31 @@ const EditPanelPage: React.FC = () => {
                 </Text>
                 <Select
                   placeholder="Select category"
-                  data={[
-                    "Haematology",
-                    "Biochemistry",
-                    "Microbiology",
-                    "Immunology",
-                    "Endocrinology",
-                  ]}
-                  value={form.category}
-                  onChange={(v) => handleChange("category", v ?? "")}
+                  data={availableCategories}
+                  value={form.categoryId}
+                  onChange={(v) => {
+                    const selected = availableCategories.find(
+                      (opt) => opt.value === v
+                    );
+                    handleChange("categoryId", v ?? "");
+                    if (selected) handleChange("category", selected.label);
+                  }}
                   error={formErrors.category}
+                  searchable
+                />
+              </div>
+
+              <div>
+                <Text size="xs" className="text-gray-600 mb-2">
+                  Price
+                </Text>
+                <TextInput
+                  placeholder="e.g., 500"
+                  type="number"
+                  value={form.price}
+                  onChange={(e) => handleChange("price", e.currentTarget.value)}
+                  error={formErrors.price}
+                  required
                 />
               </div>
 
@@ -225,29 +405,7 @@ const EditPanelPage: React.FC = () => {
                 </Text>
                 <MultiSelect
                   placeholder="Select tests"
-                  data={[
-                    { value: "Hemoglobin", label: "Hemoglobin" },
-                    {
-                      value: "Total Leukocyte Count",
-                      label: "Total Leukocyte Count",
-                    },
-                    {
-                      value: "Differential Leucocyte Count",
-                      label: "Differential Leucocyte Count",
-                    },
-                    { value: "Platelet Count", label: "Platelet Count" },
-                    { value: "Total RBC Count", label: "Total RBC Count" },
-                    { value: "Hematocrit Value", label: "Hematocrit Value" },
-                    { value: "Bleeding Time", label: "Bleeding Time" },
-                    { value: "Clotting Time", label: "Clotting Time" },
-                    {
-                      value: "Mean Corpuscular Volume",
-                      label: "Mean Corpuscular Volume",
-                    },
-                    { value: "MCH", label: "MCH" },
-                    { value: "MCHC", label: "MCHC" },
-                    { value: "R.D.W. - SD", label: "R.D.W. - SD" },
-                  ]}
+                  data={availableTests}
                   value={form.tests}
                   onChange={(val) => handleChange("tests", val)}
                   searchable
@@ -292,7 +450,7 @@ const EditPanelPage: React.FC = () => {
               style={{ backgroundColor: "#0b5ed7" }}
               loading={saving}
             >
-              {row ? "Update Test" : "Add Test"}
+              {row ? "Update Panel" : "Add Test"}
             </Button>
           </div>
         </form>

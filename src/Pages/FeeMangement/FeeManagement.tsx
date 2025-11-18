@@ -18,7 +18,7 @@ const APPOINTMENT_TYPES = [
 
 const COMMISSION_TYPES = ["Flat", "%"] as const;
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 interface FormState {
   providerUid: string;
@@ -162,6 +162,28 @@ const FeeManagement: React.FC = () => {
     [hasRequiredOrgDetails, orgId, centerId]
   );
 
+  //will conncet later
+  const fetchDoctorAvailabilities = useCallback(
+    async (providerUid: string) => {
+      if (!hasRequiredOrgDetails || !providerUid) return;
+      try {
+        const resp = await apis.GetDoctorAvailabilities(
+          orgId,
+          centerId,
+          providerUid
+        );
+        console.log(
+          "Doctor availabilities for provider",
+          providerUid,
+          "=>",
+          resp
+        );
+      } catch (err) {
+        console.error("Failed to fetch doctor availabilities:", err);
+      }
+    },
+    [hasRequiredOrgDetails, orgId, centerId]
+  );
   useEffect(() => {
     fetchFees(currentPage);
   }, [fetchFees, currentPage]);
@@ -170,9 +192,18 @@ const FeeManagement: React.FC = () => {
     if (isDrawerOpen) {
       fetchProviders();
       // If a provider was already selected, ensure we load the specialities
-      if (formState.providerUid) fetchSpecialities(formState.providerUid);
+      if (formState.providerUid) {
+        fetchSpecialities(formState.providerUid);
+        fetchDoctorAvailabilities(formState.providerUid);
+      }
     }
-  }, [isDrawerOpen, fetchProviders, fetchSpecialities, formState.providerUid]);
+  }, [
+    isDrawerOpen,
+    fetchProviders,
+    fetchSpecialities,
+    fetchDoctorAvailabilities,
+    formState.providerUid,
+  ]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -199,6 +230,7 @@ const FeeManagement: React.FC = () => {
       setSpecialities([]);
       if (uid) {
         fetchSpecialities(uid);
+        fetchDoctorAvailabilities(uid);
       }
     }
   };

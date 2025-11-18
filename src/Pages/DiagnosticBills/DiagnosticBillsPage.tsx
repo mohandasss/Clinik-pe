@@ -74,13 +74,25 @@ const DiagnosticBillsPage: React.FC = () => {
     navigate("/bills/add");
   };
 
+  const [referredByOptions] = useState([
+    { value: "ref-1", label: "Dr. John Doe" },
+    { value: "ref-2", label: "Dr. M. Smith" },
+  ]);
+  const [collectionCentreOptions] = useState([
+    { value: "main", label: "Main" },
+    { value: "east", label: "East Centre" },
+  ]);
+  const [sampleAgentOptions] = useState([
+    { value: "agent-1", label: "Agent One" },
+    { value: "agent-2", label: "Agent Two" },
+  ]);
+
   return (
     <div className="space-y-6 p-0">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-800">All bills</h1>
       </div>
-
       {/* Filters Section */}
       <div className="bg-white rounded-lg shadow-sm p-6 ring-1 ring-gray-100">
         {/*
@@ -161,7 +173,7 @@ const DiagnosticBillsPage: React.FC = () => {
               Referred by
             </label>
             <Select
-              data={[]}
+              data={referredByOptions}
               value={filters.referredBy}
               onChange={(value) =>
                 handleFilterChange("referredBy", value || "")
@@ -175,11 +187,11 @@ const DiagnosticBillsPage: React.FC = () => {
         </div>
 
         {/* Second row: compact checkboxes + action buttons */}
-        <div className="grid grid-cols-6 gap-2 mb-2 items-center">
+        <div className="grid grid-cols-4 gap-2 mb-2 items-center">
           {/* Collection centre */}
           <div className="col-span-1">
             <Select
-              data={[]}
+              data={collectionCentreOptions}
               value={filters.collectionCentre}
               onChange={(value) =>
                 handleFilterChange("collectionCentre", value || "")
@@ -191,7 +203,7 @@ const DiagnosticBillsPage: React.FC = () => {
           {/* Sample collection agent */}
           <div className="col-span-1">
             <Select
-              data={[]}
+              data={sampleAgentOptions}
               value={filters.sampleCollectionAgent}
               onChange={(value) =>
                 handleFilterChange("sampleCollectionAgent", value || "")
@@ -214,28 +226,25 @@ const DiagnosticBillsPage: React.FC = () => {
                   handleFilterChange("cancelled", e.target.checked)
                 }
               />
+              <Button
+                leftSection={<IconSearch size={16} />}
+                onClick={handleSearch}
+                variant="filled"
+                color="blue"
+              >
+                Search
+              </Button>
+              <Button
+                leftSection={<IconX size={16} />}
+                onClick={handleClear}
+                variant="default"
+              >
+                Clear
+              </Button>
             </div>
-          </div>
-          <div className="col-span-4 flex items-center justify-end gap-2">
-            <Button
-              leftSection={<IconSearch size={16} />}
-              onClick={handleSearch}
-              variant="filled"
-              color="blue"
-            >
-              Search
-            </Button>
-            <Button
-              leftSection={<IconX size={16} />}
-              onClick={handleClear}
-              variant="default"
-            >
-              Clear
-            </Button>
           </div>
         </div>
       </div>
-
       {/* Bills Table */}
       <BillsTable
         page={page}

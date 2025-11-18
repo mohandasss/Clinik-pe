@@ -4,11 +4,10 @@ import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "mantine-datatable/styles.layer.css";
 import "./App.css";
+import "@mantine/dates/styles.css";
 import AppContents from "./AppContents";
 import { Notifications } from "@mantine/notifications";
 import theme from "./Theme/Theme";
-
-
 
 function App() {
   return (

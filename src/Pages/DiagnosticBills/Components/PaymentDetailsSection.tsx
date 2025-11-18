@@ -87,44 +87,7 @@ const PaymentDetailsSection: React.FC<PaymentDetailsProps> = ({
           onChange={(e) => onChange({ remarks: e.currentTarget.value })}
         />
       </div>
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="text-xs text-gray-600 mb-1 block">
-            Center discount
-          </label>
-          <TextInput
-            value={String(centerDiscount)}
-            onChange={(e) =>
-              onChange({ centerDiscount: Number(e.currentTarget.value) || 0 })
-            }
-            type="number"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-gray-600 mb-1 block">
-            Referrer discount
-          </label>
-          <TextInput
-            value={String(referrerDiscount)}
-            onChange={(e) =>
-              onChange({ referrerDiscount: Number(e.currentTarget.value) || 0 })
-            }
-            type="number"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-gray-600 mb-1 block">
-            Total discount
-          </label>
-          <TextInput value={`Rs. ${totalDiscount}`} disabled />
-        </div>
-      </div>
-      <div className="mt-2">
-        <div className="text-xs text-gray-600 mb-1">Discount type</div>
-        <div className="text-sm font-medium">
-          {data.discountType ?? "rupee"}
-        </div>
-      </div>
+      
     </div>
   );
 };

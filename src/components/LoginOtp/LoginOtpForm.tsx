@@ -143,7 +143,7 @@ const LoginOtpForm: React.FC = () => {
           } else if (organization_id && center_id) {
             navigate("/providers");
           }
-        }, 1500);
+        }, 0);
       }
     } catch (err: unknown) {
       console.error("OTP verification error:", err);
@@ -276,7 +276,7 @@ const LoginOtpForm: React.FC = () => {
           className="w-full bg-blue-600 text-white py-2 rounded-md shadow-sm hover:bg-blue-700 transition-colors"
         >
           Verify Now
-        </LoadingButton>  
+        </LoadingButton>
 
         <button
           onClick={handleResend}

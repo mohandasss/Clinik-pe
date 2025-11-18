@@ -1,7 +1,6 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { DataTable, type DataTableColumn } from "mantine-datatable";
-import { Button, Popover, TextInput, Select } from "@mantine/core";
+import { Button, TextInput, Loader } from "@mantine/core";
 import {
   DndContext,
   closestCenter,
@@ -10,6 +9,7 @@ import {
   useSensors,
   DragOverlay,
 } from "@dnd-kit/core";
+import type { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -19,8 +19,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { notifications } from "@mantine/notifications";
 import apis from "../../APis/Api";
-import type { TestPanelRow } from "../../APis/Types";
-import { IconDots, IconPencil } from "@tabler/icons-react";
+import useAuthStore from "../../GlobalStore/store";
+import type { TestPanelRow, TestItem } from "../../APis/Types";
+import { IconPencil, IconEye } from "@tabler/icons-react";
 // Inline SVG for chevrons up/down (replaces IconGripVertical)
 const ChevronsUpDown: React.FC<
   React.SVGProps<SVGSVGElement> & { size?: number }
@@ -50,8 +51,8 @@ import DeleteConfirm from "../TestPackages/Components/DeleteConfirm";
 const SortableRow: React.FC<{
   row: TestPanelRow;
   onEdit: (row: TestPanelRow) => void;
-  onDelete: (row: TestPanelRow) => void;
-}> = ({ row, onEdit, onDelete }) => {
+  onView: (panelId: string) => void;
+}> = ({ row, onEdit, onView }) => {
   const {
     attributes,
     listeners,
@@ -106,25 +107,12 @@ const SortableRow: React.FC<{
           >
             <IconPencil size={16} />
           </button>
-          <Popover position="bottom" withArrow shadow="md">
-            <Popover.Target>
-              <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                <IconDots className="rotate-90" />
-              </button>
-            </Popover.Target>
-            <Popover.Dropdown>
-              <div className="flex flex-col gap-2 min-w-max">
-                <Button
-                  variant="subtle"
-                  color="red"
-                  size="xs"
-                  onClick={() => onDelete(row)}
-                >
-                  Remove
-                </Button>
-              </div>
-            </Popover.Dropdown>
-          </Popover>
+          <button
+            className="text-green-600 text-sm hover:text-green-800 transition-colors"
+            onClick={() => onView(row.id)}
+          >
+            <IconEye size={16} />
+          </button>
         </div>
       </td>
     </tr>
@@ -134,9 +122,10 @@ const SortableRow: React.FC<{
 const TestPanels: React.FC = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(5);
   const [query, setQuery] = useState("");
   const [panels, setPanels] = useState<TestPanelRow[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [deletingRow, setDeletingRow] = useState<TestPanelRow | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [loadingPanels, setLoadingPanels] = useState(false);
@@ -151,58 +140,98 @@ const TestPanels: React.FC = () => {
     })
   );
 
-  const filtered = useMemo(() => {
-    let data = panels;
-    if (query) {
-      const q = query.toLowerCase();
-      data = data.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.tests.some((t) => t.toLowerCase().includes(q))
-      );
-    }
-    return [...data].sort((a, b) => Number(a.order) - Number(b.order));
-  }, [query, panels]);
+  // Server-side pagination is used. 'panels' will contain the page returned by server.
+  const rows = panels;
+  const total = totalRecords;
 
-  const total = filtered.length;
-  const rows = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const organizationDetails = useAuthStore((s) => s.organizationDetails);
 
-  // Load panels from API
+  // Load panels from API (debounced on query)
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      setLoadingPanels(true);
-      try {
-        const resp = await apis.GetTestPanels();
-        if (mounted && resp?.data?.panels) {
-          setPanels(
-            [...resp.data.panels].sort(
-              (a, b) => Number(a.order) - Number(b.order)
-            )
+    const timer = setTimeout(() => {
+      (async () => {
+        setLoadingPanels(true);
+        try {
+          const resp = await apis.GetTestPanels(
+            page,
+            pageSize,
+            organizationDetails?.organization_id ?? "",
+            organizationDetails?.center_id ?? "",
+            query
           );
+          if (mounted && resp?.data?.panels) {
+            const mapped: TestPanelRow[] = resp.data.panels.map((p) => ({
+              id: p.panel_id,
+              uid: p.panel_id,
+              order: Number(p.order_no) || 0,
+              name: p.name,
+              category: p.category_name || "",
+              categoryId: p.category_id || "",
+              tests: (p.tests?.list || []).map((t: TestItem) => t.test_name),
+              ratelistEntries: p.price,
+              price: p.price,
+              hide_individual: p.hide_individual,
+              hideInterpretation: Boolean(
+                p.hide_individual &&
+                  Object.keys(p.hide_individual).some(
+                    (k) =>
+                      k.toLowerCase().includes("interpretation") &&
+                      p.hide_individual[k] === "true"
+                  )
+              ),
+              hideMethod: Boolean(
+                p.hide_individual &&
+                  Object.keys(p.hide_individual).some(
+                    (k) =>
+                      k.toLowerCase().includes("method") &&
+                      p.hide_individual[k] === "true"
+                  )
+              ),
+            }));
+            setPanels(
+              [...mapped].sort((a, b) => Number(a.order) - Number(b.order))
+            );
+            const totalRec =
+              resp.data.pagination?.totalRecords ?? mapped.length;
+            setTotalRecords(totalRec);
+            const pagesCount = Math.max(1, Math.ceil(totalRec / pageSize));
+            if (page > pagesCount) setPage(pagesCount);
+          }
+        } catch (err) {
+          console.warn("GetTestPanels failed:", err);
+          notifications.show({
+            title: "Error",
+            message: "Failed to load test panels",
+            color: "red",
+          });
+        } finally {
+          setLoadingPanels(false);
         }
-      } catch (err) {
-        console.warn("GetTestPanels failed:", err);
-        notifications.show({
-          title: "Error",
-          message: "Failed to load test panels",
-          color: "red",
-        });
-      } finally {
-        setLoadingPanels(false);
-      }
-    })();
+      })();
+    }, 300);
+
     return () => {
       mounted = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [
+    organizationDetails?.organization_id,
+    organizationDetails?.center_id,
+    query,
+    page,
+    pageSize,
+  ]);
 
-  const handleDeleteConfirm = async (id: string) => {
+  const handleDeleteConfirm = async (panel_id: string) => {
     setDeleting(true);
     try {
-      await apis.DeleteTestPanel(id);
-      setPanels((prev) => prev.filter((p) => p.id !== id));
+      await apis.DeleteTestPanel(
+        organizationDetails?.organization_id ?? "",
+        organizationDetails?.center_id ?? "",
+        panel_id
+      );
+      setPanels((prev) => prev.filter((p) => p.id !== panel_id));
       setDeletingRow(null);
       setDeleteModalOpen(false);
       notifications.show({
@@ -212,7 +241,7 @@ const TestPanels: React.FC = () => {
       });
     } catch (err) {
       console.error(err);
-      setPanels((prev) => prev.filter((p) => p.id !== id));
+      setPanels((prev) => prev.filter((p) => p.id !== panel_id));
       setDeletingRow(null);
       setDeleteModalOpen(false);
       notifications.show({
@@ -225,45 +254,62 @@ const TestPanels: React.FC = () => {
     }
   };
 
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
   };
 
-  const handleDragEnd = async (event: any) => {
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = panels.findIndex((p) => p.id === active.id);
-    const newIndex = panels.findIndex((p) => p.id === over.id);
-
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(panels, oldIndex, newIndex).map((p, i) => ({
-      ...p,
-      order: i + 1,
-    }));
-
-    setPanels(reordered);
-
+  const reorderPanels = async (draggedUid: string, afterUid: string) => {
     try {
-      await apis.ReorderTestPanels({
-        panels: reordered.map((p) => ({ id: p.id, order: p.order })),
-      });
+      const response = await apis.ReorderTestPanels(
+        organizationDetails?.organization_id ?? "",
+        organizationDetails?.center_id ?? "",
+        {
+          uid: draggedUid,
+          after_uid: afterUid,
+        }
+      );
+
+      const notificationType = response.success ? "blue" : "red";
       notifications.show({
-        title: "Reordered",
-        message: "Panel order updated",
-        color: "blue",
+        title: response.success,
+        message: response.message,
+        color: notificationType,
       });
-    } catch (err) {
-      console.error(err);
+
+      if (response.success) {
+        // Reload panels to sync with server
+        // You can also just reload the page data if needed
+      }
+    } catch (error) {
+      console.error("Failed to reorder panels:", error);
       notifications.show({
         title: "Error",
         message: "Failed to sync order",
         color: "red",
       });
     }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over || active.id === over.id) return;
+
+    // Use the full panels array to compute indices
+    const oldIndex = panels.findIndex((p) => p.id === active.id);
+    const newIndex = panels.findIndex((p) => p.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const draggedPanel = panels[oldIndex];
+    const reordered = arrayMove(panels, oldIndex, newIndex);
+
+    // Determine after_uid. If placed at top, after_uid is empty
+    const afterUid = newIndex === 0 ? "" : reordered[newIndex - 1].uid;
+
+    setPanels(reordered);
+    await reorderPanels(draggedPanel.uid, afterUid);
   };
 
   const activeRow = activeId ? panels.find((p) => p.id === activeId) : null;
@@ -278,6 +324,8 @@ const TestPanels: React.FC = () => {
               placeholder="Search in page"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              rightSection={loadingPanels ? <Loader size="xs" /> : null}
+              rightSectionWidth={30}
             />
           </div>
         </div>
@@ -335,10 +383,7 @@ const TestPanels: React.FC = () => {
                     onEdit={(r) =>
                       navigate("/test-panels/edit", { state: { row: r } })
                     }
-                    onDelete={(r) => {
-                      setDeletingRow(r);
-                      setDeleteModalOpen(true);
-                    }}
+                    onView={(panelId) => navigate(`/test-panels/${panelId}`)}
                   />
                 ))}
               </SortableContext>
@@ -385,7 +430,7 @@ const TestPanels: React.FC = () => {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <IconPencil size={16} className="text-blue-600" />
-                        <IconDots className="rotate-90 text-gray-400" />
+                        <IconEye size={16} className="text-green-600" />
                       </div>
                     </td>
                   </tr>
@@ -406,8 +451,14 @@ const TestPanels: React.FC = () => {
 
       <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
         <div>
-          Showing {(page - 1) * pageSize + 1} to{" "}
-          {Math.min(page * pageSize, total)} of {total} entries
+          {total === 0 ? (
+            "No entries"
+          ) : (
+            <>
+              Showing {(page - 1) * pageSize + 1} to{" "}
+              {Math.min(page * pageSize, total)} of {total} entries
+            </>
+          )}
         </div>
         <div className="inline-flex items-center gap-2">
           <button

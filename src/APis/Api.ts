@@ -57,6 +57,13 @@ import type {
   CreateTestPayload,
   CreateLabTestResponse,
   DoctorSpecialitiesResponse,
+  DoctorSlotsResponse,
+  PanelsListResponse,
+  LabTestsListResponse,
+  CreatePanelPayload,
+  UpdatePanelPayload,
+  PanelDetailsResponse,
+  LabTest,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -453,6 +460,19 @@ class Apis {
     return response.data as DoctorSpecialitiesResponse;
   }
 
+  async GetDoctorAvailabilities(
+    organization_id: string,
+    center_id: string,
+    provider_id: string
+  ): Promise<DoctorSlotsResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${provider_id}/slots-list`)
+      .method("GET")
+      .execute();
+
+    return response.data as DoctorSlotsResponse;
+  }
+
 
 
   async AddPatient(
@@ -598,11 +618,111 @@ class Apis {
     return response.data as { success: boolean; message: string };
   }
 
+
+
+
+
+
+
+
+
+
+
+
+
   // Test Panels APIs
-  async GetTestPanels(): Promise<TestPanelListResponse> {
-    const response = await apiAgent.path(`/test-panels`).method("GET").execute();
-    return response.data as TestPanelListResponse;
+  async GetTestPanels(pageNumber: number, pageSize: number, organization_id: string, center_id: string, search: string): Promise<PanelsListResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/panels`)
+      .method("GET")
+      .query({ search, pageNumber, pageSize })
+      .execute();
+    return response.data as PanelsListResponse;
   }
+  async AddTestPanels(
+    payload: CreatePanelPayload,
+    organization_id: string, center_id: string): Promise<PanelsListResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/panels`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as PanelsListResponse;
+  }
+
+  async UpdateTestPanels(
+    payload: UpdatePanelPayload,
+    organization_id: string, center_id: string, panel_id: string): Promise<PanelsListResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/panels/${panel_id}`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
+    return response.data as PanelsListResponse;
+  }
+
+
+  async GetAllTests(
+    required_fields: string[],
+    organization_id: string,
+    center_id: string
+  ): Promise<LabTestsListResponse> {
+
+    const requiredFieldsParam =
+      required_fields?.length ? required_fields.join(",") : "";
+
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/lab/test`)
+      .method("GET")
+      .query({
+        required_fields: requiredFieldsParam // <-- correct param key
+      })
+      .execute();
+
+    return response.data as LabTestsListResponse;
+  }
+
+
+  async GetTestpanelById(
+    organization_id: string,
+    center_id: string,
+    panel_id: string
+  ): Promise<PanelDetailsResponse> {
+
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/panels/${panel_id}`)
+      .method("GET")
+      .execute();
+    return response.data as PanelDetailsResponse;
+  }
+
+
+  async DeleteTestPanel(
+    organization_id: string,
+    center_id: string,
+    id: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiAgent.path(`/test-panels/${id}`).method("DELETE").execute();
+    return response.data as { success: boolean; message: string };
+  }
+
+
+  async ReorderTestPanelsDetails(
+    organization_id: string,
+    center_id: string,
+    panel_id: string,
+    payload: ReorderPanelsPayload): Promise<ReorderPanelsResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/panels/${panel_id}/tests/order-sequencing`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
+    return response.data as ReorderPanelsResponse;
+  }
+
+
+
+
+
 
   async AddTestPanel(payload: TestPanelPayload): Promise<TestPanelResponse> {
     const response = await apiAgent.path(`/test-panels`).method("POST").json(payload).execute();
@@ -614,15 +734,23 @@ class Apis {
     return response.data as TestPanelResponse;
   }
 
-  async DeleteTestPanel(id: string): Promise<{ success: boolean; message: string }> {
-    const response = await apiAgent.path(`/test-panels/${id}`).method("DELETE").execute();
-    return response.data as { success: boolean; message: string };
-  }
 
-  async ReorderTestPanels(payload: ReorderPanelsPayload): Promise<ReorderPanelsResponse> {
-    const response = await apiAgent.path(`/test-panels/reorder`).method("POST").json(payload).execute();
+
+  async ReorderTestPanels(
+    organization_id: string,
+    center_id: string,
+    payload: ReorderPanelsPayload): Promise<ReorderPanelsResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/panels/order-sequencing`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
     return response.data as ReorderPanelsResponse;
   }
+
+
+
+
 
 
 
@@ -747,7 +875,26 @@ class Apis {
   //     .execute();
   //   return response.data as ;
   // }
+  async GetAllTestsList(
+    search?: string,
+    pageNumber?: number,
+    pageSize?: number,
+    organization_id?: string,
+    center_id?: string
+  ): Promise<LabTest> {
 
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/lab/test`)
+      .method("GET")
+      .query({
+        search,
+        pageNumber,
+        pageSize,
+      })
+      .execute();
+
+    return response.data as LabTest;
+  }
 
 
 

@@ -7,12 +7,13 @@ import { notifications } from "@mantine/notifications";
 import useAuthStore from "../../GlobalStore/store";
 import AddTestTypeModal from "./Components/AddTestTypeModal";
 import { useNavigate } from "react-router-dom";
+import type { LabTest } from "../../APis/Types";
 
 const TestDatabase: React.FC = () => {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     []
   );
-  const [tests] = useState<TestRow[]>([]);
+  const [tests, setTests] = useState<TestRow[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [query, setQuery] = useState("");
@@ -24,6 +25,7 @@ const TestDatabase: React.FC = () => {
   );
   const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
 
+  // Load categories
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -61,12 +63,53 @@ const TestDatabase: React.FC = () => {
     };
   }, [organizationId, centerId]);
 
+  // Load tests
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const resp = await apis.GetAllTestsList(
+          query,
+          page,
+          pageSize,
+          organizationId,
+          centerId
+        );
+        console.log("GetAllTestsList response:", resp);
+        if (mounted && resp.data.tests && Array.isArray(resp.data.tests)) {
+          const testRows: TestRow[] = (resp.data.tests as LabTest[]).map(
+            (test) => ({
+              id: test.uid,
+              order: Number(test.order) || 0,
+              name: test.name,
+              shortName: test.short_name,
+              category: test.category_id,
+            })
+          );
+          setTests(testRows);
+        }
+      } catch (err) {
+        console.warn("GetAllTestsList failed:", err);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load tests",
+          color: "red",
+        });
+        setTests([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [organizationId, centerId, query, page, pageSize]);
+
   const filtered = useMemo(() => {
     let data = tests;
-    if (category)
-      data = data.filter(
-        (t) => t.category === categories.find((c) => c.id === category)?.name
-      );
+    if (category) data = data.filter((t) => t.category === category);
     if (query) {
       const q = query.toLowerCase();
       data = data.filter(
@@ -76,7 +119,7 @@ const TestDatabase: React.FC = () => {
       );
     }
     return data;
-  }, [tests, category, query, categories]);
+  }, [tests, category, query]);
 
   const total = filtered.length;
   const rows = filtered.slice((page - 1) * pageSize, page * pageSize);

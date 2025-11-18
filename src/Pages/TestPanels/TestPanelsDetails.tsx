@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect, useCallback } from "react";
-import { Button, Popover, TextInput } from "@mantine/core";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Loader } from "@mantine/core";
 import {
   DndContext,
   closestCenter,
@@ -17,9 +18,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { notifications } from "@mantine/notifications";
+import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../APis/Api";
-import type { TestPanelRow } from "../../APis/Types";
-import { IconDots, IconPencil } from "@tabler/icons-react";
+import useAuthStore from "../../GlobalStore/store";
+import type { PanelTestDetails } from "../../APis/Types";
 
 // Inline SVG for chevrons up/down
 const ChevronsUpDown: React.FC<
@@ -45,22 +47,11 @@ const ChevronsUpDown: React.FC<
   </svg>
 );
 
-import DeleteConfirm from "../TestPackages/Components/DeleteConfirm";
-
-const DEFAULT_PAGE_SIZE = 5;
-const DRAG_ACTIVATION_DISTANCE = 8;
-
-interface SortablePanelRowProps {
-  panel: TestPanelRow;
-  onEdit: (panel: TestPanelRow) => void;
-  onDelete: (panel: TestPanelRow) => void;
+interface SortableTestRowProps {
+  test: PanelTestDetails;
 }
 
-const SortablePanelRow: React.FC<SortablePanelRowProps> = ({
-  panel,
-  onEdit,
-  onDelete,
-}) => {
+const SortableTestRow: React.FC<SortableTestRowProps> = ({ test }) => {
   const {
     attributes,
     listeners,
@@ -68,7 +59,7 @@ const SortablePanelRow: React.FC<SortablePanelRowProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: panel.id });
+  } = useSortable({ id: test.uid });
 
   const rowStyle: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -87,479 +78,260 @@ const SortablePanelRow: React.FC<SortablePanelRowProps> = ({
           >
             <ChevronsUpDown size={16} className="text-gray-400" />
           </div>
-          <span className="text-sm text-gray-600">{panel.order}.</span>
+          <span className="text-sm text-gray-600">{test.order}.</span>
         </div>
       </td>
-
       <td className="border-b border-gray-200 px-4 py-3">
-        <div className="font-medium text-gray-900">{panel.name}</div>
+        <div className="font-medium text-gray-900">{test.test_name}</div>
       </td>
-
       <td className="border-b border-gray-200 px-4 py-3">
-        <div className="text-sm text-gray-600">{panel.category}</div>
-      </td>
-
-      <td className="border-b border-gray-200 px-4 py-3">
-        <div className="text-sm text-gray-600">
-          {panel.tests.slice(0, 2).join(", ")}
-          {panel.tests.length > 2 && ` (${panel.tests.length} tests)`}
-        </div>
-      </td>
-
-      <td className="border-b border-gray-200 px-4 py-3 text-right">
-        <div className="flex items-center justify-end gap-2">
-          <button
-            className="text-blue-600 text-sm hover:text-blue-800 transition-colors"
-            onClick={() => onEdit(panel)}
-            aria-label="Edit panel"
-          >
-            <IconPencil size={16} />
-          </button>
-
-          <Popover position="bottom" withArrow shadow="md">
-            <Popover.Target>
-              <button
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                aria-label="More options"
-              >
-                <IconDots className="rotate-90" />
-              </button>
-            </Popover.Target>
-            <Popover.Dropdown>
-              <div className="flex flex-col gap-2 min-w-max">
-                <Button
-                  variant="subtle"
-                  color="red"
-                  size="xs"
-                  onClick={() => onDelete(panel)}
-                >
-                  Remove
-                </Button>
-              </div>
-            </Popover.Dropdown>
-          </Popover>
-        </div>
+        <div className="text-sm text-gray-600">{test.test_id}</div>
       </td>
     </tr>
   );
 };
 
 const TestPanelsDetails: React.FC = () => {
-  // State: Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState("");
+  const { id: panelId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const organizationDetails = useAuthStore((s) => s.organizationDetails);
 
   // State: Data
-  const [panels, setPanels] = useState<TestPanelRow[]>([]);
+  const [panelName, setPanelName] = useState<string>("");
+  const [tests, setTests] = useState<PanelTestDetails[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // State: UI
-  const [draggedPanelId, setDraggedPanelId] = useState<string | null>(null);
-
-  // State: Delete Modal
-  const [panelToDelete, setPanelToDelete] = useState<TestPanelRow | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  // ============================================================================
-  // Computed Values
-  // ============================================================================
-
-  const filteredPanels = useMemo(() => {
-    if (!searchQuery) return panels;
-
-    const normalizedQuery = searchQuery.toLowerCase();
-    return panels.filter(
-      (panel) =>
-        panel.name.toLowerCase().includes(normalizedQuery) ||
-        panel.category.toLowerCase().includes(normalizedQuery) ||
-        panel.tests.some((t) => t.toLowerCase().includes(normalizedQuery))
-    );
-  }, [searchQuery, panels]);
-
-  const sortedPanels = useMemo(() => {
-    return [...filteredPanels].sort(
-      (a, b) => Number(a.order) - Number(b.order)
-    );
-  }, [filteredPanels]);
-
-  const draggedPanel = draggedPanelId
-    ? panels.find((p) => p.id === draggedPanelId)
-    : null;
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(sortedPanels.length / DEFAULT_PAGE_SIZE)
-  );
-
-  const paginatedPanels = sortedPanels.slice(
-    (currentPage - 1) * DEFAULT_PAGE_SIZE,
-    currentPage * DEFAULT_PAGE_SIZE
-  );
-
-  // ============================================================================
-  // Drag and Drop Configuration
-  // ============================================================================
+  // State: Drag and Drop
+  const [draggedTestId, setDraggedTestId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: DRAG_ACTIVATION_DISTANCE,
+        distance: 8,
       },
     })
   );
 
-  // ============================================================================
-  // Notification Helpers
-  // ============================================================================
+  const draggedTest = draggedTestId
+    ? tests.find((t) => t.uid === draggedTestId)
+    : null;
 
-  const showNotification = useCallback(
-    (message: string, type: "success" | "error" | "warning") => {
-      const colorMap = {
-        success: "blue",
-        error: "red",
-        warning: "yellow",
-      };
+  // Load panel details
+  useEffect(() => {
+    if (!panelId) return;
 
-      notifications.show({
-        title: message,
-        message,
-        color: colorMap[type],
-      });
-    },
-    []
-  );
+    const loadPanelDetails = async () => {
+      setLoading(true);
+      try {
+        const response = await apis.GetTestpanelById(
+          organizationDetails?.organization_id ?? "",
+          organizationDetails?.center_id ?? "",
+          panelId
+        );
 
-  const showSuccessNotification = useCallback(
-    (message: string) => showNotification(message, "success"),
-    [showNotification]
-  );
-
-  const showErrorNotification = useCallback(
-    (message: string) => showNotification(message, "error"),
-    [showNotification]
-  );
-
-  // ============================================================================
-  // API Calls
-  // ============================================================================
-
-  const loadPanels = useCallback(async () => {
-    try {
-      const response = await apis.GetTestPanels();
-
-      if (response.success && response.data?.panels) {
-        setPanels(response.data.panels);
-      } else {
-        showErrorNotification(response.message || "Failed to fetch panels");
+        if (response.success && response.data?.panel) {
+          const panel = response.data.panel;
+          setPanelName(panel.name);
+          const sortedTests = [...panel.tests].sort(
+            (a, b) => Number(a.order) - Number(b.order)
+          );
+          setTests(sortedTests);
+        } else {
+          notifications.show({
+            title: "Error",
+            message: "Failed to load panel details",
+            color: "red",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load panel details:", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to fetch panel details",
+          color: "red",
+        });
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to load panels:", error);
-      showErrorNotification("Failed to fetch panels");
-    }
-  }, [showErrorNotification]);
+    };
 
-  const deletePanel = async (panelId: string) => {
-    setIsDeleting(true);
-
-    try {
-      const response = await apis.DeleteTestPanel(panelId);
-
-      if (response.success) {
-        showSuccessNotification(response.message || "Panel deleted");
-        await loadPanels();
-      } else {
-        showErrorNotification(response.message || "Failed to delete panel");
-        removePanelLocally(panelId);
-      }
-
-      closeDeleteModal();
-    } catch (error) {
-      console.error("Failed to delete panel:", error);
-      showErrorNotification("Panel removed locally");
-      removePanelLocally(panelId);
-      closeDeleteModal();
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const reorderPanels = async (reorderedPanels: TestPanelRow[]) => {
-    try {
-      const response = await apis.ReorderTestPanels({
-        panels: reorderedPanels.map((p, i) => ({
-          id: p.id,
-          order: i + 1,
-        })),
-      });
-
-      const notificationType = response.success ? "success" : "error";
-      showNotification(response.message, notificationType);
-
-      if (response.success) {
-        await loadPanels();
-      }
-    } catch (error) {
-      console.error("Failed to reorder panels:", error);
-      showErrorNotification("Failed to sync order");
-    }
-  };
-
-  // ============================================================================
-  // Event Handlers
-  // ============================================================================
+    loadPanelDetails();
+  }, [
+    panelId,
+    organizationDetails?.organization_id,
+    organizationDetails?.center_id,
+  ]);
 
   const handleDragStart = (event: DragStartEvent) => {
-    setDraggedPanelId(String(event.active.id));
+    setDraggedTestId(String(event.active.id));
+  };
+
+  const reorderTests = async (draggedUid: string, afterUid: string) => {
+    try {
+      const response = await apis.ReorderTestPanelsDetails(
+        organizationDetails?.organization_id ?? "",
+        organizationDetails?.center_id ?? "",
+        panelId ?? "",
+        {
+          uid: draggedUid,
+          after_uid: afterUid,
+        }
+      );
+
+      const notificationType = response.success ? "blue" : "red";
+      notifications.show({
+        title: response.success ? "Success" : "Error",
+        message: response.message,
+        color: notificationType,
+      });
+    } catch (error) {
+      console.error("Failed to reorder tests:", error);
+      notifications.show({
+        title: "Error",
+        message: "Failed to sync order",
+        color: "red",
+      });
+    }
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    setDraggedPanelId(null);
+    setDraggedTestId(null);
 
     if (!over || active.id === over.id) return;
 
-    const oldIndex = panels.findIndex((p) => p.id === active.id);
-    const newIndex = panels.findIndex((p) => p.id === over.id);
+    const oldIndex = tests.findIndex((t) => t.uid === active.id);
+    const newIndex = tests.findIndex((t) => t.uid === over.id);
 
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const reordered = arrayMove(panels, oldIndex, newIndex);
+    const draggedTest = tests[oldIndex];
+    const reordered = arrayMove(tests, oldIndex, newIndex);
 
-    setPanels(reordered);
-    await reorderPanels(reordered);
+    const afterUid = newIndex === 0 ? "" : reordered[newIndex - 1].uid;
+
+    setTests(reordered);
+    await reorderTests(draggedTest.uid, afterUid);
   };
-
-  const handleDeletePanel = (panel: TestPanelRow) => {
-    setPanelToDelete(panel);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handlePageChange = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-  };
-
-  // ============================================================================
-  // Helper Functions
-  // ============================================================================
-
-  const removePanelLocally = (panelId: string) => {
-    setPanels((prevPanels) => prevPanels.filter((p) => p.id !== panelId));
-  };
-
-  const closeDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setPanelToDelete(null);
-  };
-
-  // ============================================================================
-  // Effects
-  // ============================================================================
-
-  useEffect(() => {
-    loadPanels();
-  }, [loadPanels]);
-
-  // ============================================================================
-  // Render Helpers
-  // ============================================================================
-
-  const renderPaginationInfo = () => {
-    const startIndex = (currentPage - 1) * DEFAULT_PAGE_SIZE + 1;
-    const endIndex = Math.min(
-      currentPage * DEFAULT_PAGE_SIZE,
-      sortedPanels.length
-    );
-
-    return (
-      <div className="text-sm text-gray-500">
-        Showing {startIndex} to {endIndex} of {sortedPanels.length} entries
-      </div>
-    );
-  };
-
-  const renderPageButton = (pageNumber: number) => {
-    const isCurrentPage = currentPage === pageNumber;
-    const buttonClass = isCurrentPage
-      ? "bg-blue-600 text-white"
-      : "border text-gray-600 hover:bg-gray-50";
-
-    return (
-      <button
-        key={pageNumber}
-        onClick={() => handlePageChange(pageNumber)}
-        className={`w-8 h-8 rounded transition-colors ${buttonClass}`}
-        aria-label={`Go to page ${pageNumber}`}
-        aria-current={isCurrentPage ? "page" : undefined}
-      >
-        {pageNumber}
-      </button>
-    );
-  };
-
-  const renderPaginationButtons = () => {
-    return Array.from({ length: totalPages }, (_, i) => i + 1).map(
-      renderPageButton
-    );
-  };
-
-  // ============================================================================
-  // Main Render
-  // ============================================================================
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 ring-1 ring-gray-100">
-      {/* Header Section */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-4 items-center flex-1">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Test panel details
-          </h2>
-          <div className="w-64">
-            <TextInput
-              placeholder="Search in page"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search panels"
-            />
+    <div className="flex gap-4 h-full">
+      {/* Left Side - Tests Table */}
+      <div className="flex-1 bg-white rounded-lg shadow-sm p-6 ring-1 ring-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/test-panels")}
+              className="text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              <IconArrowLeft size={20} />
+            </button>
+            <h2 className="text-lg font-semibold text-gray-800">
+              {loading ? "Loading..." : panelName || "Panel Details"}
+            </h2>
           </div>
         </div>
-      </div>
 
-      {/* Table with Drag and Drop */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Order
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Name
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Category
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Tests
-                </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Action
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <SortableContext
-                items={paginatedPanels.map((p) => p.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                {paginatedPanels.map((panel) => (
-                  <SortablePanelRow
-                    key={panel.id}
-                    panel={panel}
-                    onEdit={() => {
-                      // Handle edit - navigate or open modal
-                      console.log("Edit panel:", panel);
-                    }}
-                    onDelete={handleDeletePanel}
-                  />
-                ))}
-              </SortableContext>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Drag Overlay */}
-        <DragOverlay>
-          {draggedPanel && (
-            <div className="bg-white shadow-lg rounded border-2 border-blue-400 opacity-90">
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader size="lg" />
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <tbody>
-                  <tr>
-                    <td className="px-4 py-3 w-20">
-                      <div className="flex items-center gap-2">
-                        <ChevronsUpDown size={16} className="text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                          {draggedPanel.order}.
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">
-                        {draggedPanel.name}
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-600">
-                        {draggedPanel.category}
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-600">
-                        {draggedPanel.tests.slice(0, 2).join(", ")}
-                        {draggedPanel.tests.length > 2 &&
-                          ` (${draggedPanel.tests.length} tests)`}
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <IconPencil size={16} className="text-blue-600" />
-                        <IconDots className="rotate-90 text-gray-400" />
-                      </div>
-                    </td>
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Order
+                    </th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Test Name
+                    </th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Test ID
+                    </th>
                   </tr>
+                </thead>
+                <tbody>
+                  <SortableContext
+                    items={tests.map((t) => t.uid)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {tests.map((test) => (
+                      <SortableTestRow key={test.uid} test={test} />
+                    ))}
+                  </SortableContext>
                 </tbody>
               </table>
             </div>
-          )}
-        </DragOverlay>
-      </DndContext>
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirm
-        opened={isDeleteModalOpen}
-        onClose={closeDeleteModal}
-        onConfirm={() => panelToDelete && deletePanel(panelToDelete.id)}
-        itemName={panelToDelete?.name}
-        loading={isDeleting}
-      />
+            <DragOverlay>
+              {draggedTest ? (
+                <div className="bg-white shadow-lg rounded border-2 border-blue-400 opacity-90">
+                  <table className="w-full text-sm">
+                    <tbody>
+                      <tr>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <ChevronsUpDown
+                              size={16}
+                              className="text-gray-400"
+                            />
+                            <span className="text-sm text-gray-600">
+                              {draggedTest.order}.
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-gray-900">
+                            {draggedTest.test_name}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-sm text-gray-600">
+                            {draggedTest.test_id}
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        )}
+      </div>
 
-      {/* Pagination Section */}
-      <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
-        {renderPaginationInfo()}
-
-        <div className="inline-flex items-center gap-2">
-          <button
-            className="px-3 py-1 border rounded text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-            disabled={currentPage === 1}
-            onClick={() => handlePageChange(currentPage - 1)}
-            aria-label="Previous page"
-          >
-            Previous
-          </button>
-
-          <div className="inline-flex items-center gap-1">
-            {renderPaginationButtons()}
+      {/* Right Side - Static Panel */}
+      <div className="w-80 bg-white rounded-lg shadow-sm p-6 ring-1 ring-gray-100">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          Panel Information
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm text-gray-500">Panel Name</p>
+            <p className="text-base font-medium text-gray-900">
+              {panelName || "—"}
+            </p>
           </div>
-
-          <button
-            className="px-3 py-1 border rounded text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-            disabled={currentPage >= totalPages}
-            onClick={() => handlePageChange(currentPage + 1)}
-            aria-label="Next page"
-          >
-            Next
-          </button>
+          <div>
+            <p className="text-sm text-gray-500">Total Tests</p>
+            <p className="text-base font-medium text-gray-900">
+              {tests.length}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Panel ID</p>
+            <p className="text-base font-medium text-gray-900 break-all">
+              {panelId || "—"}
+            </p>
+          </div>
         </div>
       </div>
     </div>

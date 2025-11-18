@@ -1,5 +1,6 @@
-import React from "react";
-import { Button, Select, TextInput, Textarea } from "@mantine/core";
+import React, { useState } from "react";
+import { Button, Select, TextInput, Textarea, Collapse } from "@mantine/core";
+import AddNewModal from "./AddNewModal";
 import PaymentDetailsSection from "./PaymentDetailsSection";
 import type { PaymentDetails } from "./PaymentDetailsSection";
 import { IconPlus } from "@tabler/icons-react";
@@ -52,6 +53,12 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
   data,
   onChange,
 }) => {
+  const [referrerOptions, setReferrerOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [collectionAgentOptions, setCollectionAgentOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
   const handleInvestigationClick = (typeId: string) => {
     const exists = data.selectedInvestigations.includes(typeId);
     if (exists) {
@@ -83,6 +90,11 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
     }
   };
 
+  const [addNewModalOpen, setAddNewModalOpen] = useState(false);
+  const [addNewModalContext, setAddNewModalContext] = useState<
+    "referredBy" | "collectionAgent" | "ratelist" | null
+  >(null);
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 ring-1 ring-gray-100">
       <div className="flex items-center justify-between mb-4">
@@ -103,7 +115,7 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
             </label>
             <div className="flex gap-2">
               <Select
-                data={[]}
+                data={referrerOptions}
                 value={data.referredBy}
                 onChange={(value) => onChange({ referredBy: value || "" })}
                 placeholder="Select referrer"
@@ -114,6 +126,10 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
                 variant="subtle"
                 leftSection={<IconPlus size={16} />}
                 className="shrink-0"
+                onClick={() => {
+                  setAddNewModalContext("referredBy");
+                  setAddNewModalOpen(true);
+                }}
               >
                 Add New
               </Button>
@@ -140,7 +156,7 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
           </label>
           <div className="flex gap-2">
             <Select
-              data={[]}
+              data={collectionAgentOptions}
               value={data.sampleCollectionAgent}
               onChange={(value) =>
                 onChange({ sampleCollectionAgent: value || "" })
@@ -153,6 +169,10 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
               variant="subtle"
               leftSection={<IconPlus size={16} />}
               className="shrink-0"
+              onClick={() => {
+                setAddNewModalContext("collectionAgent");
+                setAddNewModalOpen(true);
+              }}
             >
               Add new
             </Button>
@@ -161,6 +181,89 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
             </Button>
           </div>
         </div>
+        <AddNewModal
+          open={addNewModalOpen}
+          title={
+            addNewModalContext === "referredBy"
+              ? "Add new referrer entry"
+              : addNewModalContext === "collectionAgent"
+              ? "Add new collection agent"
+              : "Add new entry to lab ratelist"
+          }
+          items={
+            addNewModalContext === "referredBy"
+              ? [
+                  {
+                    id: "referrer",
+                    title: "Referrers",
+                    description:
+                      "Manage and add referring doctors or organizations that refer patients to the clinic.",
+                    href: "/settings/referrers",
+                  },
+                ]
+              : addNewModalContext === "collectionAgent"
+              ? [
+                  {
+                    id: "collection-agent",
+                    title: "Collection Agents",
+                    description:
+                      "Manage and add sample collection agents who handle home sample pickups or other duties.",
+                    href: "/settings/collection-agents",
+                  },
+                ]
+              : [
+                  {
+                    id: "packages",
+                    title: "Packages",
+                    description:
+                      "Packages are a group of tests across the categories. Tests within packages cannot be ordered separately.",
+                    href: "/ratelist/packages",
+                  },
+                  {
+                    id: "panels",
+                    title: "Panels",
+                    description:
+                      "Panels are groups of tests belonging to the same category. Panels within panels can be ordered separately and panels are printed in report with a separate title.",
+                    href: "/ratelist/panels",
+                  },
+                  {
+                    id: "tests",
+                    title: "Tests",
+                    description:
+                      "Tests are individual lab tests which can be reported separately or can appear in a panel or a package.",
+                    href: "/ratelist/test-database",
+                  },
+                ]
+          }
+          onClose={() => setAddNewModalOpen(false)}
+          onAdd={(payload) => {
+            // If AddNewModal added a referrer, add to local options and select it
+            if (payload && typeof payload === "object") {
+              const p = payload as {
+                type?: string;
+                data?: Record<string, unknown>;
+              };
+              if (p.type === "referrer" && p.data) {
+                const dataObj = p.data;
+                const id = `referrer-${Date.now()}`;
+                const label = `${(dataObj.title as string) || ""} ${
+                  (dataObj.firstName as string) || ""
+                } ${(dataObj.lastName as string) || ""}`.trim();
+                setReferrerOptions((opts) => [...opts, { value: id, label }]);
+                onChange({ referredBy: id });
+              } else if (p.type === "collection-agent" && p.data) {
+                const dataObj = p.data;
+                const id = `collection-agent-${Date.now()}`;
+                const label = `${(dataObj.name as string) || ""}`.trim();
+                setCollectionAgentOptions((opts) => [
+                  ...opts,
+                  { value: id, label },
+                ]);
+                onChange({ sampleCollectionAgent: id });
+              }
+            }
+          }}
+        />
 
         {/* Payment Details (always visible) */}
 
@@ -213,6 +316,10 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
                 perInvestigationData: newPer,
               });
             }}
+            onOpenAddNewModal={() => {
+              setAddNewModalContext("ratelist");
+              setAddNewModalOpen(true);
+            }}
           />
         ))}
         <div>
@@ -232,6 +339,7 @@ interface InvestigationFormProps {
   data: PerInvestigationData;
   onChange: (d: Partial<PerInvestigationData>) => void;
   onClose: () => void;
+  onOpenAddNewModal?: () => void;
 }
 
 const InvestigationForm: React.FC<InvestigationFormProps> = ({
@@ -239,8 +347,25 @@ const InvestigationForm: React.FC<InvestigationFormProps> = ({
   data,
   onChange,
   onClose,
+  onOpenAddNewModal,
 }) => {
   const formData = data;
+  const isSampleCollected = Boolean(formData.sampleCollectedAt);
+  const [showSampleInput, setShowSampleInput] = useState(
+    Boolean(formData.sampleCollectedAt)
+  );
+
+  const formatDate = (iso?: string) => {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+    } catch {
+      return iso;
+    }
+  };
+
+  // removed isoToDateTimeLocal since we use a simple text input for sample collected at
 
   const getInvestigationTitle = () => {
     const type = investigationTypes.find((t) => t.id === investigationType);
@@ -276,7 +401,11 @@ const InvestigationForm: React.FC<InvestigationFormProps> = ({
             minRows={3}
           />
           <div className="flex gap-2 mt-2">
-            <Button size="xs" leftSection={<IconPlus size={14} />}>
+            <Button
+              size="xs"
+              leftSection={<IconPlus size={14} />}
+              onClick={() => onOpenAddNewModal && onOpenAddNewModal()}
+            >
               Add New
             </Button>
             <Button size="xs" variant="subtle">
@@ -317,18 +446,57 @@ const InvestigationForm: React.FC<InvestigationFormProps> = ({
 
         {/* Sample Collected At */}
         <div>
-          <label className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
-            <span className="text-red-500">*</span> Sample collected at
-          </label>
-          <Button
-            variant="subtle"
-            size="xs"
-            onClick={() =>
-              onChange({ sampleCollectedAt: new Date().toISOString() })
-            }
-          >
-            Select date & time
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="subtle"
+              size="xs"
+              onClick={() => setShowSampleInput((s) => !s)}
+              aria-pressed={showSampleInput || isSampleCollected}
+              title={
+                isSampleCollected
+                  ? `Collected: ${formatDate(formData.sampleCollectedAt)}`
+                  : "Toggle sample collected input"
+              }
+            >
+              Sample Collected At
+            </Button>
+            {(isSampleCollected || showSampleInput) && (
+              <span className="text-xs text-gray-600"></span>
+            )}
+          </div>
+
+          <Collapse in={showSampleInput}>
+            <div className="pt-2">
+              <div className="flex items-center gap-2">
+                <TextInput
+                  placeholder="Enter Sample Collected At"
+                  type="text"
+                  value={formData.sampleCollectedAt || ""}
+                  onChange={(e) =>
+                    onChange({ sampleCollectedAt: e.currentTarget.value })
+                  }
+                />
+                {/* <Button
+                  size="xs"
+                  variant="subtle"
+                  onClick={() =>
+                    onChange({
+                      sampleCollectedAt: formatDate(new Date().toISOString()),
+                    })
+                  }
+                >
+                  Set now
+                </Button> */}
+                <Button
+                  size="xs"
+                  variant="subtle"
+                  onClick={() => onChange({ sampleCollectedAt: "" })}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </Collapse>
         </div>
       </div>
     </div>

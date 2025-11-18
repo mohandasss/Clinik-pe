@@ -72,13 +72,7 @@ const PatientDetailsSection: React.FC<PatientDetailsSectionProps> = ({
               placeholder="+91"
               className="flex-1"
             />
-            <Button
-              variant="subtle"
-              leftSection={<IconSearch size={16} />}
-              className="shrink-0"
-            >
-              Search
-            </Button>
+            
           </div>
         </div>
 
