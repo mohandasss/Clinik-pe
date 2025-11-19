@@ -209,6 +209,11 @@ const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
           <NavLink label="Test Packages" component={Link} to="/test-packages" />
           <NavLink label="Units" component={Link} to="/units" />
           <NavLink label="Diagnostic Bills" component={Link} to="/bills" />
+          <NavLink
+            label="Interpretations"
+            component={Link}
+            to="/interpretation"
+          />
         </NavLink>
         <NavLink
           leftSection={
