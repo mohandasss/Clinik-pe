@@ -202,7 +202,7 @@ const PaymentSettings: React.FC = () => {
         onClose={() => setNotif((prev) => ({ ...prev, open: false }))}
       />
 
-      <div className="grid grid-cols-12 gap-6 max-w-screen-2xl mx-auto">
+      <div className="grid grid-cols-12 gap-6 max-w-screen-4xl ">
         {/* Payment Mode Sidebar */}
         <aside className="col-span-3">
           <PaymentMode
