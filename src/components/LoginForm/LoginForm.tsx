@@ -17,6 +17,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const [identifier, setIdentifier] = useState("");
   const [isMobileInput, setIsMobileInput] = useState(false);
   const [countryCode, setCountryCode] = useState("+91");
+  // New UI-only fields: user id and password (not used in API)
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
   const deviceId = useDeviceId();
   const deviceType = useDeviceType();
   const numberInputRef = useRef<HTMLInputElement | null>(null);
@@ -218,6 +221,30 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
               size="md"
             />
           )}
+
+          {/* OR separator between identifier and alternate fields */}
+          <div className="flex items-center justify-center py-1">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="px-3 text-xs text-gray-500">OR</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          {/* Additional UI-only fields: User ID and Password - not sent to API */}
+          <div className="grid grid-cols-1 gap-3">
+            <TextInput
+              placeholder="User ID (optional)"
+              value={userId}
+              onChange={(e) => setUserId(e.currentTarget.value)}
+              size="md"
+            />
+            <TextInput
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.currentTarget.value)}
+              type="password"
+              size="md"
+            />
+          </div>
 
           <LoadingButton
             type="submit"

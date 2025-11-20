@@ -5,6 +5,7 @@ import { Button, Select, Popover } from "@mantine/core";
 import { useNavigate } from "react-router-dom";
 import type { Organization } from "../../../APis/Types";
 import useAuthStore from "../../../GlobalStore/store";
+import useSidebarStore from "../../../GlobalStore/sidebarStore";
 import apis from "../../../APis/Api";
 import { notifications } from "@mantine/notifications";
 
@@ -86,6 +87,7 @@ const OrganizationTable: React.FC<{
         currentDetails ?? {
           organization_id: switchDetails.organization_id || "",
           organization_name: switchDetails.organization_name || "",
+          center_name: switchDetails.center_name ?? null,
           user_id: "",
           name: "",
           email: "",
@@ -116,6 +118,20 @@ const OrganizationTable: React.FC<{
         };
 
       setOrganizationDetails(updatedDetails);
+
+      // Refetch sidebar menu after organization switch
+      try {
+        const sidebarResp = await apis.GetSidebarData();
+        if (sidebarResp?.data) {
+          useSidebarStore.getState().setSidebar(sidebarResp.data);
+          console.log(
+            "Sidebar updated after organization switch:",
+            sidebarResp.data
+          );
+        }
+      } catch (e) {
+        console.error("Failed to fetch sidebar after organization switch:", e);
+      }
 
       notifications.show({
         title: "Success",

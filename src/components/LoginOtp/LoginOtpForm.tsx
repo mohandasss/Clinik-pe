@@ -4,6 +4,8 @@ import apis from "../../APis/Api";
 import type { VerifyOtpPayload, ResendOtpPayload } from "../../APis/Types";
 import Notification from "../Global/Notification";
 import useAuthStore from "../../GlobalStore/store";
+import useSidebarStore from "../../GlobalStore/sidebarStore";
+import type { OrganizationDetails } from "../../GlobalStore/store";
 import { LoadingButton } from "../Global/LoadingButton";
 const OTP_LENGTH = 4;
 
@@ -110,14 +112,14 @@ const LoginOtpForm: React.FC = () => {
     try {
       const response = await apis.OrganizationLoginOtpVerification(payload);
       console.log("OTP Verification response:", response);
-
-      setNotif({
-        open: true,
-        data: {
-          success: !!response?.success,
-          message: response?.message,
-        },
-      });
+      if (response.success)
+        setNotif({
+          open: true,
+          data: {
+            success: !!response?.success,
+            message: response?.message,
+          },
+        });
 
       if (response?.data?.loggedUserDetails) {
         const { organization_id, center_id } = response.data.loggedUserDetails;
@@ -126,20 +128,36 @@ const LoginOtpForm: React.FC = () => {
         const setOrganizationDetails =
           useAuthStore.getState().setOrganizationDetails;
         try {
-          setOrganizationDetails(response.data.loggedUserDetails);
+          // `loggedUserDetails` doesn't always include all fields of OrganizationDetails
+          // cast to any to satisfy TS until types are aligned with the backend response
+          setOrganizationDetails(
+            response.data.loggedUserDetails as OrganizationDetails
+          );
         } catch (e) {
           console.warn("Could not set organization details in store:", e);
+        }
+        try {
+          const sidebarResp = await apis.GetSidebarData();
+          console.log("Sidebar menu response:", sidebarResp.data);
+          // store sidebar in global zustand store for app use
+          try {
+            useSidebarStore.getState().setSidebar(sidebarResp.data);
+          } catch (storeErr) {
+            console.warn("Could not set sidebar in store:", storeErr);
+          }
+        } catch (e) {
+          console.error("Failed to fetch sidebar data:", e);
         }
         console.log("Organization ID:", organization_id);
         console.log("centers", center_id);
 
         setTimeout(() => {
           if (!organization_id && !center_id) {
-            navigate("/organization");
+            navigate("/organizations");
           } else if (organization_id && !center_id) {
             navigate("/centers");
           } else if (!organization_id && center_id) {
-            navigate("/organization");
+            navigate("/organizations");
           } else if (organization_id && center_id) {
             navigate("/providers");
           }

@@ -21,6 +21,7 @@ import {
   IconMenu2,
 } from "@tabler/icons-react";
 import useAuthStore from "../../GlobalStore/store";
+import useSidebarStore from "../../GlobalStore/sidebarStore";
 import useDropdownStore from "../../GlobalStore/useDropdownStore";
 import apis from "../../APis/Api";
 // import useOrgStore from "../../GlobalStore/orgStore";
@@ -37,6 +38,7 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
   const centersRefreshCounter = useDropdownStore(
     (s) => s.centersRefreshCounter
   );
+  const setSidebar = useSidebarStore((s) => s.setSidebar);
 
   const name = organizationDetails?.name ?? "";
   const image = organizationDetails?.image ?? undefined;
@@ -230,6 +232,22 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
         color: "green",
       });
 
+      // Refetch sidebar menu after center switch to ensure menu is updated
+      try {
+        const sidebarResp = await apis.GetSidebarData();
+        if (sidebarResp?.data) {
+          setSidebar(sidebarResp.data);
+          console.log("Sidebar updated after center switch:", sidebarResp.data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch sidebar after center switch:", e);
+        notifications.show({
+          title: "Warning",
+          message: "Failed to refresh sidebar menu",
+          color: "yellow",
+        });
+      }
+
       // Optionally refresh page data that depends on center. Easiest is a reload so all components read new auth-storage.
       // If you prefer not to reload, replace this with targeted refetches.
       // window.location.reload();
@@ -256,8 +274,9 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
   const handleConfirmLogout = async () => {
     setIsLoggingOut(true);
     try {
-      // Clear Zustand store first
+      // Clear Zustand stores first
       logout();
+      setSidebar(null); // Clear sidebar store
 
       // Call API with isLocalStorageClear: true
       await apis.Logout({ isLocalStorageClear: true });

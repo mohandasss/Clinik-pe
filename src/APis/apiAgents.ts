@@ -52,6 +52,7 @@ class ApiAgent {
                             localStorage.removeItem("extendedvaluekey");
                             localStorage.removeItem("selected-center");
                             localStorage.removeItem("auth-storage");
+                            localStorage.removeItem("clinik-sidebar");
                         } catch {
                             // ignore local storage issues
                         }

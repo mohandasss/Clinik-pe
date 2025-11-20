@@ -14,7 +14,7 @@ export default function PublicRoute({ children }: Props) {
 
   // if user is already authenticated, redirect to default protected page
   if (user || organizationDetails) {
-    return <Navigate to="/organization" replace />; // or default dashboard
+    return <Navigate to="/organizations" replace />; // or default dashboard
   }
 
   // otherwise show wrapped component

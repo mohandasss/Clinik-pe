@@ -104,7 +104,7 @@ const AddOrganization: React.FC = () => {
       });
       setTimeout(() => {
         // navigate back to list and request a refresh
-        navigate("/organization", { state: { refresh: true } });
+        navigate("/organizations", { state: { refresh: true } });
       }, 1500);
     } else {
       setNotif({

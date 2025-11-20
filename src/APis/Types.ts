@@ -523,6 +523,7 @@ export type DoctorCommissionPayload = {
   commission_type: string;
   commission: string;
   speciality_id?: string;
+  schedule_id?: string;
 };
 
 
@@ -1371,6 +1372,14 @@ export type InvoicePayload = {
   referrer_details: string | null;
   payable_amount: number;
   items: InvoiceItem[];
+  payment: {
+    amount: number;
+    as: "full" | "advance";
+    purpose: string;
+    source: string;
+    mode: string;
+    note: string;
+  };
 };
 
 export type BookingResponse = {
@@ -1447,5 +1456,20 @@ export interface FeeManagementResponse {
   data: {
     fees: Fee[];
   };
+}
+
+export interface SidebarMenuResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: SidebarMenuItem[];
+}
+
+export interface SidebarMenuItem {
+  id: string;
+  title: string;
+  path: string;
+  icon: string;
+  children: SidebarMenuItem[];
 }
 

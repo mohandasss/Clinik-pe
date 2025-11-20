@@ -2,17 +2,77 @@ import { Button, Image, NavLink, Modal, Text, Group } from "@mantine/core";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../../GlobalStore/store";
+import useSidebarStore from "../../GlobalStore/sidebarStore";
 import apis from "../../APis/Api";
+import type { SidebarMenuItem } from "../../APis/Types";
 
 type SideBarProps = {
   isSmall: boolean;
   setIsSmall: React.Dispatch<React.SetStateAction<boolean>>;
 };
+
+// Recursive component to render sidebar menu items and their children
+const MenuItemRenderer: React.FC<{
+  item: SidebarMenuItem;
+  isSmall: boolean;
+}> = ({ item, isSmall }) => {
+  const hasChildren = item.children && item.children.length > 0;
+
+  if (hasChildren) {
+    return (
+      <NavLink
+        key={item.id}
+        leftSection={
+          item.icon ? (
+            <Image
+              src={item.icon}
+              height="26px"
+              width="26px"
+              className="h-[26px] w-[26px] sidebar-icon"
+              alt={item.title}
+              // force icon color to white using CSS filter for raster images
+              style={{ filter: "brightness(0) invert(1)" }}
+            />
+          ) : undefined
+        }
+        href="#"
+        label={item.title}
+      >
+        {item.children.map((child) => (
+          <MenuItemRenderer key={child.id} item={child} isSmall={isSmall} />
+        ))}
+      </NavLink>
+    );
+  }
+
+  return (
+    <NavLink
+      key={item.id}
+      leftSection={
+        item.icon ? (
+          <Image
+            src={item.icon}
+            height="26px"
+            width="26px"
+            className="h-[26px] w-[26px] sidebar-icon"
+            alt={item.title}
+            // force icon color to white so it matches sidebar theme
+            style={{ filter: "brightness(0) invert(1)" }}
+          />
+        ) : undefined
+      }
+      component={Link}
+      to={item.path}
+      label={item.title}
+    />
+  );
+};
+
 const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
-  // const [isSmall, setIsSmall] = useState(false);
   // logout modal state
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
+  const sidebar = useSidebarStore((s) => s.sidebar);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -49,205 +109,20 @@ const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
           }
         }}
       >
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/dashboard.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          component={Link}
-          to="/organization"
-          label="Organizations"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/locations.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          component={Link}
-          to="/centers"
-          label="Centers"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/appointments.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          component={Link}
-          to="/doctor-appointments"
-          label="Appointments"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/availability.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          component={Link}
-          to="/availability"
-          label="Availability"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/appointments.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          component={Link}
-          to="/booking"
-          label="Booking"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/payments.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          component={Link}
-          to="/payments"
-          label="Payments"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/provider-payout.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          component={Link}
-          to="/providers"
-          label="Providers"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/doctor-dashboard.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          component={Link}
-          to="/doctor-dashboard"
-          label="Doctor Dashboard"
-        />
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/eprescription.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          component={Link}
-          to="/e-prescription"
-          label="E-prescription"
-        />
-        {/* Diagnostics (Lab) */}
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/diagnostic.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          href="#"
-          label="Diagnostics"
-        >
-          <NavLink label="Test Database" component={Link} to="/test-database" />
-          <NavLink
-            label="Test Categories"
-            component={Link}
-            to="/test-categories"
-          />
-          <NavLink label="Test Panels" component={Link} to="/test-panels" />
-          <NavLink label="Test Packages" component={Link} to="/test-packages" />
-          <NavLink label="Units" component={Link} to="/units" />
-          <NavLink label="Diagnostic Bills" component={Link} to="/bills" />
-          <NavLink
-            label="Interpretations"
-            component={Link}
-            to="/interpretation"
-          />
-        </NavLink>
-        <NavLink
-          leftSection={
-            <>
-              <Image
-                src="/images/icons/settings.svg"
-                height="26px"
-                width="26px"
-                className="h-[26px] w-[26px]"
-              />
-            </>
-          }
-          href="#" // Parent has children; using children links instead
-          label="Settings"
-        >
-          <NavLink label="Center" component={Link} to="/centers" />
-          <NavLink label="Provider" component={Link} to="/providers" />
-          <NavLink label="Users" component={Link} to="/organization" />
-          <NavLink label="Payments" component={Link} to="/payments" />
-          <NavLink
-            label="Fee Management"
-            component={Link}
-            to="/fee-management"
-          />
-          <NavLink
-            label="General Setting"
-            component={Link}
-            to="/general-settings"
-          />
-        </NavLink>
+        {/* Render sidebar items from store, or show placeholder if not yet loaded */}
+        {sidebar && sidebar.length > 0 ? (
+          sidebar.map((item) => (
+            <MenuItemRenderer key={item.id} item={item} isSmall={isSmall} />
+          ))
+        ) : (
+          <div className="text-center text-gray-400 py-4">
+            <p className="text-sm">Loading menu...</p>
+          </div>
+        )}
       </nav>
       <div className="sidebarFooter mt-auto p-4">
         <Button
-          className="!bg-transparent !text-[#CECECE] !border-0"
+          className="!bg-transparent !text-white !border-0"
           leftSection={
             <svg
               width="26"
@@ -294,7 +169,10 @@ const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
               onClick={async () => {
                 setIsLoggingOut(true);
                 try {
+                  // Clear Zustand stores
                   logout();
+                  const setSidebar = useSidebarStore.getState().setSidebar;
+                  setSidebar(null); // Clear sidebar store
 
                   await apis.Logout({ isLocalStorageClear: true });
 

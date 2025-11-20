@@ -68,6 +68,7 @@ import type {
   InvoicePayload,
   BookingResponse,
   BookingsListResponse,
+  SidebarMenuResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -1056,6 +1057,16 @@ class Apis {
       .query({ center_id, doctor_id: provider_id, speciality_id, appointment_type })
       .execute();
     return response.data as FeeManagementResponse;
+  }
+
+
+  async GetSidebarData(
+  ): Promise<SidebarMenuResponse> {
+    const response = await apiAgent
+      .path(`organizations/sidebar-menu`)
+      .method("GET")
+      .execute();
+    return response.data as SidebarMenuResponse;
   }
 
 

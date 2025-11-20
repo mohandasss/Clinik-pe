@@ -5,6 +5,7 @@ import { Button, Select, Popover } from "@mantine/core";
 import { useNavigate } from "react-router-dom";
 import type { Center } from "../../../APis/Types";
 import useAuthStore from "../../../GlobalStore/store";
+import useSidebarStore from "../../../GlobalStore/sidebarStore";
 import apis from "../../../APis/Api";
 import { notifications } from "@mantine/notifications";
 
@@ -70,6 +71,7 @@ const ClinicTable: React.FC<ClinicTableProps> = ({
         currentDetails ?? {
           organization_id: switchDetails.organization_id || "",
           organization_name: switchDetails.organization_name || "",
+          center_name: switchDetails.center_name ?? null,
           user_id: "",
           name: "",
           email: "",
@@ -92,6 +94,17 @@ const ClinicTable: React.FC<ClinicTableProps> = ({
         };
 
       setOrganizationDetails(updatedDetails);
+
+      // Refetch sidebar menu after center switch
+      try {
+        const sidebarResp = await apis.GetSidebarData();
+        if (sidebarResp?.data) {
+          useSidebarStore.getState().setSidebar(sidebarResp.data);
+          console.log("Sidebar updated after center switch:", sidebarResp.data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch sidebar after center switch:", e);
+      }
 
       notifications.show({
         title: "Success",

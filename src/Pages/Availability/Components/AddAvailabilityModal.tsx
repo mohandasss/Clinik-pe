@@ -151,6 +151,8 @@ const AddAvailabilityModal: React.FC<Props> = ({
 
     return {
       availabilities: [availabilityItem],
+      // include selected speciality at the top-level as well (optional)
+      speciality_id: selectedSpeciality ?? undefined,
       // not sending center_id here as it is present in the URL path
     };
   };

@@ -7,6 +7,7 @@ import type {
   Provider,
   DoctorCommissionPayload,
   ProviderFee,
+  DoctorSlot,
 } from "../../APis/Types";
 import useAuthStore from "../../GlobalStore/store";
 
@@ -27,6 +28,7 @@ interface FormState {
   commissionType: string;
   commission: number | null;
   specialityUid?: string;
+  slotUid?: string;
 }
 
 const INITIAL_FORM_STATE: FormState = {
@@ -36,6 +38,7 @@ const INITIAL_FORM_STATE: FormState = {
   commissionType: "Flat",
   commission: null,
   specialityUid: "",
+  slotUid: "",
 };
 
 const FeeManagement: React.FC = () => {
@@ -51,6 +54,8 @@ const FeeManagement: React.FC = () => {
   const [specialities, setSpecialities] = useState<
     { speciality_id: string; speciality_name: string }[]
   >([]);
+  const [slots, setSlots] = useState<DoctorSlot[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isLoadingSpecialities, setIsLoadingSpecialities] = useState(false);
   const [isLoadingProviders, setIsLoadingProviders] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,20 +172,28 @@ const FeeManagement: React.FC = () => {
     async (providerUid: string, specialityUid?: string) => {
       if (!hasRequiredOrgDetails || !providerUid) return;
       try {
+        setIsLoadingSlots(true);
         const resp = await apis.GetDoctorAvailabilities(
           orgId,
           centerId,
           providerUid,
           specialityUid
         );
-        console.log(
-          "Doctor availabilities for provider",
-          providerUid,
-          "=>",
-          resp
-        );
+        if (resp?.success && resp?.data?.slots) {
+          setSlots(resp.data.slots);
+          setFormState((prev) => ({
+            ...prev,
+            slotUid: resp.data.slots[0]?.uid ?? "",
+          }));
+        } else {
+          setSlots([]);
+          setFormState((prev) => ({ ...prev, slotUid: "" }));
+        }
       } catch (err) {
         console.error("Failed to fetch doctor availabilities:", err);
+        setSlots([]);
+      } finally {
+        setIsLoadingSlots(false);
       }
     },
     [hasRequiredOrgDetails, orgId, centerId]
@@ -232,12 +245,16 @@ const FeeManagement: React.FC = () => {
     // if provider changed, fetch specialities and reset selected speciality
     if (field === "providerUid") {
       const uid = value as string;
-      setFormState((prev) => ({ ...prev, specialityUid: "" }));
+      setFormState((prev) => ({ ...prev, specialityUid: "", slotUid: "" }));
       setSpecialities([]);
+      setSlots([]);
       if (uid) {
         fetchSpecialities(uid);
         fetchDoctorAvailabilities(uid);
       }
+    }
+    if (field === "slotUid") {
+      // user selected a slot; nothing else required right now
     }
     // if speciality changed, fetch availabilities for current provider + speciality
     if (field === "specialityUid") {
@@ -277,6 +294,7 @@ const FeeManagement: React.FC = () => {
       commission_type: formState.commissionType,
       commission: String(formState.commission ?? 0),
       speciality_id: formState.specialityUid || undefined,
+      schedule_id: formState.slotUid || undefined,
     };
 
     setIsSubmitting(true);
@@ -371,6 +389,25 @@ const FeeManagement: React.FC = () => {
                   updateFormField("specialityUid", value || "")
                 }
                 disabled={isLoadingSpecialities || specialities.length === 0}
+              />
+            </Grid.Col>
+
+            <Grid.Col span={12}>
+              <Select
+                label="Availability"
+                data={slots.map((s) => ({
+                  value: s.uid,
+                  label: `${s.days} - ${s.time_ranges?.[0]?.start ?? ""} to ${
+                    s.time_ranges?.[0]?.end ?? ""
+                  }`,
+                }))}
+                placeholder={
+                  isLoadingSlots ? "Loading..." : "Select availability"
+                }
+                searchable
+                value={formState.slotUid}
+                onChange={(value) => updateFormField("slotUid", value || "")}
+                disabled={isLoadingSlots || slots.length === 0}
               />
             </Grid.Col>
 

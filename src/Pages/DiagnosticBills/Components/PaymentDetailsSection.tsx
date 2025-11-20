@@ -3,14 +3,12 @@ import { TextInput, Select, Button, Group } from "@mantine/core";
 import { IconPercentage, IconCurrencyRupee } from "@tabler/icons-react";
 
 export type PaymentDetails = {
-  total: number; // computed
-  discount: number; // total discount amount or percent per UI rule
-  centerDiscount?: number; // additional discount from center
-  referrerDiscount?: number; // additional discount for referrer
-  discountType?: "rupee" | "percent";
-  amountReceived: number;
-  balance: number; // total - amountReceived - discount
-  mode: string; // 'cash' / 'card' / 'upi' etc
+  total: number; // computed from all investigations
+  discount_unit: "flat" | "percent"; // renamed from discountType
+  discount_value: number; // discount amount or percentage
+  payable_amount: number; // computed: total - discount (considering unit)
+  amount_received: number; // actual amount received from patient
+  mode: string; // 'cash' / 'upi'
   remarks?: string;
 };
 
@@ -23,6 +21,16 @@ const PaymentDetailsSection: React.FC<PaymentDetailsProps> = ({
   data,
   onChange,
 }) => {
+  // Calculate payable amount based on discount
+  const calculatePayableAmount = () => {
+    if (data.discount_unit === "percent") {
+      return data.total - (data.total * data.discount_value) / 100;
+    }
+    return data.total - data.discount_value;
+  };
+
+  const payableAmount = calculatePayableAmount();
+
   return (
     <div className="p-4 border rounded-lg bg-white">
       <div className="flex gap-6 items-center justify-between mb-2">
@@ -33,19 +41,19 @@ const PaymentDetailsSection: React.FC<PaymentDetailsProps> = ({
           <Group gap="xs">
             <Button
               size="xs"
-              variant={data.discountType === "rupee" ? "filled" : "light"}
+              variant={data.discount_unit === "flat" ? "filled" : "light"}
               color="blue"
               leftSection={<IconCurrencyRupee size={14} />}
-              onClick={() => onChange({ discountType: "rupee" })}
+              onClick={() => onChange({ discount_unit: "flat" })}
             >
               Flat
             </Button>
             <Button
               size="xs"
-              variant={data.discountType === "percent" ? "filled" : "light"}
+              variant={data.discount_unit === "percent" ? "filled" : "light"}
               color="blue"
               leftSection={<IconPercentage size={14} />}
-              onClick={() => onChange({ discountType: "percent" })}
+              onClick={() => onChange({ discount_unit: "percent" })}
             >
               %
             </Button>
@@ -58,13 +66,16 @@ const PaymentDetailsSection: React.FC<PaymentDetailsProps> = ({
         <div>
           <label className="text-xs text-gray-600 mb-1 block">Discount</label>
           <TextInput
-            value={String(data.discount ?? 0)}
-            onChange={(e) =>
-              onChange({ discount: Number(e.currentTarget.value) || 0 })
-            }
+            value={String(data.discount_value ?? 0)}
+            onChange={(e) => {
+              const value = Number(e.currentTarget.value) || 0;
+              onChange({ discount_value: value });
+            }}
+            type="number"
+            min="0"
             rightSection={
               <span className="text-xs">
-                {data.discountType === "percent" ? "%" : "Rs"}
+                {data.discount_unit === "percent" ? "%" : "Rs"}
               </span>
             }
           />
@@ -72,20 +83,23 @@ const PaymentDetailsSection: React.FC<PaymentDetailsProps> = ({
 
         <div>
           <label className="text-xs text-gray-600 mb-1 block">
-            Amount received
+            Payable amount
           </label>
-          <TextInput
-            value={String(data.amountReceived ?? 0)}
-            onChange={(e) =>
-              onChange({ amountReceived: Number(e.currentTarget.value) || 0 })
-            }
-            type="number"
-          />
+          <TextInput value={`Rs. ${payableAmount.toFixed(2)}`} disabled />
         </div>
 
         <div>
-          <label className="text-xs text-gray-600 mb-1 block">Balance</label>
-          <TextInput value={`Rs. ${data.balance ?? 0}`} disabled />
+          <label className="text-xs text-gray-600 mb-1 block">
+            Amount received
+          </label>
+          <TextInput
+            value={String(data.amount_received ?? 0)}
+            onChange={(e) =>
+              onChange({ amount_received: Number(e.currentTarget.value) || 0 })
+            }
+            type="number"
+            min="0"
+          />
         </div>
 
         <div>
@@ -93,7 +107,6 @@ const PaymentDetailsSection: React.FC<PaymentDetailsProps> = ({
           <Select
             data={[
               { value: "cash", label: "Cash" },
-              { value: "card", label: "Card" },
               { value: "upi", label: "UPI" },
             ]}
             value={data.mode}

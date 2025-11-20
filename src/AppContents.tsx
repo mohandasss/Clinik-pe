@@ -54,6 +54,7 @@ import TestPanelsDetails from "./Pages/TestPanels/TestPanelsDetails";
 import DiagnosticBillsPage from "./Pages/DiagnosticBills/DiagnosticBillsPage";
 import AddDiagnosticBillsPage from "./Pages/DiagnosticBills/AddDiagnosticBillsPage";
 import InterpretationPage from "./Pages/interpretation/InterpretationPage";
+import QrCodePage from "./Pages/QrCode/QrCodePage";
 
 function AppContents() {
   return (
@@ -84,7 +85,7 @@ function AppContents() {
         }
       >
         {/* 🟧 Organization & Centers */}
-        <Route path="/organization" element={<OrganizationList />} />
+        <Route path="/organizations" element={<OrganizationList />} />
         <Route path="/organization/add" element={<AddOrganization />} />
         <Route path="/centers" element={<ClinicList />} />
         <Route path="/centers/add" element={<AddCenter />} />
@@ -120,6 +121,7 @@ function AppContents() {
         <Route path="/bills" element={<DiagnosticBillsPage />} />
         <Route path="/bills/add" element={<AddDiagnosticBillsPage />} />
         <Route path="/interpretation" element={<InterpretationPage />} />
+        <Route path="/qr-code" element={<QrCodePage />} />
         <Route
           path="/test-database/add-multiple"
           element={<AddMultipleTestPage />}

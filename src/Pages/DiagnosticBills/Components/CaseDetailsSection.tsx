@@ -25,10 +25,7 @@ interface InvestigationType {
 interface PerInvestigationData {
   selectedItems: LabInvestigationItem[]; // Array of selected lab investigation objects
   amount: string; // Total bill amount (calculated from selectedItems)
-  paid: string; // Amount actually paid
-  discount: string; // Per-investigation discount
   sampleCollectedAt: string;
-  total?: number;
 }
 
 interface CaseDetails {
@@ -84,10 +81,7 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
         newPer[typeId] = {
           selectedItems: [],
           amount: "0",
-          paid: "0",
-          discount: "0",
           sampleCollectedAt: "",
-          total: 0,
         };
       }
       onChange({
@@ -319,7 +313,6 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
             key={typeId}
             investigationType={typeId}
             data={data.perInvestigationData[typeId]}
-            discountType={data.payment?.discountType}
             onChange={(d) => {
               const newPer = {
                 ...data.perInvestigationData,
@@ -359,7 +352,6 @@ const CaseDetailsSection: React.FC<CaseDetailsSectionProps> = ({
 interface InvestigationFormProps {
   investigationType: string;
   data: PerInvestigationData;
-  discountType?: "rupee" | "percent";
   onChange: (d: Partial<PerInvestigationData>) => void;
   onClose: () => void;
   onOpenAddNewModal?: () => void;
@@ -368,7 +360,6 @@ interface InvestigationFormProps {
 const InvestigationForm: React.FC<InvestigationFormProps> = ({
   investigationType,
   data,
-  discountType,
   onChange,
   onClose,
   onOpenAddNewModal,
@@ -474,11 +465,10 @@ const InvestigationForm: React.FC<InvestigationFormProps> = ({
                 0
               );
 
-              // Auto-populate amount and paid with total of ALL selected investigations
+              // Auto-populate amount with total of ALL selected investigations
               onChange({
                 selectedItems: selectedInvestigations,
                 amount: String(totalAmount),
-                paid: String(totalAmount),
               });
             }}
             placeholder="Select investigations"
@@ -488,62 +478,7 @@ const InvestigationForm: React.FC<InvestigationFormProps> = ({
           />
 
           <div className="text-xs text-gray-500 mt-2">
-            Amount: Rs. {Number(formData.amount ?? 0)} , Paid: Rs.{" "}
-            {Number(formData.paid ?? 0)} , Discount:{" "}
-            {discountType === "percent"
-              ? `${Number(formData.discount ?? 0)} %`
-              : `Rs. ${Number(formData.discount ?? 0)}`}
-          </div>
-        </div>
-
-        {/* Amount, Paid and Discount */}
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
-              <span className="text-red-500">*</span> Amount
-            </label>
-            <TextInput
-              value={formData.amount}
-              onChange={(e) => {
-                const newAmount = e.currentTarget.value;
-                // When amount changes, also update paid to match
-                onChange({ amount: newAmount, paid: newAmount });
-              }}
-              type="number"
-              min="0"
-              placeholder="100"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
-              <span className="text-red-500">*</span> Paid
-            </label>
-            <TextInput
-              value={formData.paid}
-              onChange={(e) => onChange({ paid: e.currentTarget.value })}
-              type="number"
-              min="0"
-              placeholder="100"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
-              <span className="text-red-500">*</span> Discount
-            </label>
-            <TextInput
-              value={formData.discount}
-              onChange={(e) => onChange({ discount: e.currentTarget.value })}
-              type="number"
-              min="0"
-              placeholder="0"
-              rightSection={
-                <span className="text-xs">
-                  {discountType === "percent" ? "%" : "Rs"}
-                </span>
-              }
-            />
+            Total Amount: Rs. {Number(formData.amount ?? 0)}
           </div>
         </div>
 
