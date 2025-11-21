@@ -87,12 +87,25 @@ const Roles: React.FC = () => {
     setSaving(true);
     try {
       // Call the API to add/update role
+      // Ensure all permissions are normalized to lower-case strings
+      const normalizePermissionsString = (p?: string[] | string) => {
+        if (!p) return "";
+        if (typeof p === "string") {
+          return p
+            .split(";")
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean)
+            .join(";");
+        }
+        return (p || [])
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+          .join(";");
+      };
+
       const apiPayload = {
         name: payload.name,
-        permissions:
-          typeof payload.permissions === "string"
-            ? payload.permissions
-            : payload.permissions?.join(";"),
+        permissions: normalizePermissionsString(payload.permissions),
         status: payload.status,
       };
       console.log("API Payload:", apiPayload);
@@ -109,10 +122,10 @@ const Roles: React.FC = () => {
         const newRole: Role = {
           uid: `role_${Date.now()}`, // In real app, this would come from API response
           name: payload.name,
-          permissions:
-            typeof payload.permissions === "string"
-              ? payload.permissions.split(";")
-              : payload.permissions || [],
+          permissions: (typeof payload.permissions === "string"
+            ? payload.permissions.split(";")
+            : payload.permissions || []
+          ).map((s) => s.trim().toLowerCase()),
           status: payload.status || "active",
           access: payload.access || [],
         };
