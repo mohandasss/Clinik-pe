@@ -56,6 +56,8 @@ import DiagnosticBillsPage from "./Pages/DiagnosticBills/DiagnosticBillsPage";
 import AddDiagnosticBillsPage from "./Pages/DiagnosticBills/AddDiagnosticBillsPage";
 import InterpretationPage from "./Pages/interpretation/InterpretationPage";
 import QrCodePage from "./Pages/QrCode/QrCodePage";
+import AccessManagement from "./Pages/AccessManagement/AccessManagement";
+import Roles from "./Pages/Roles/Roles";
 
 function AppContents() {
   return (
@@ -123,6 +125,9 @@ function AppContents() {
         <Route path="/bills/add" element={<AddDiagnosticBillsPage />} />
         <Route path="/interpretation" element={<InterpretationPage />} />
         <Route path="/qr-code" element={<QrCodePage />} />
+        <Route path="/access-management" element={<AccessManagement />} />
+        <Route path="/roles" element={<Roles />} />
+        
         <Route
           path="/test-database/add-multiple"
           element={<AddMultipleTestPage />}

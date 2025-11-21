@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Tabs, TextInput, Textarea, Select } from "@mantine/core";
 import Notification from "../../components/Global/Notification";
+import ImageUpload from "../../components/ImageUpload/ImageUpload";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 
@@ -23,7 +24,6 @@ const GeneralSettings: React.FC = () => {
   const [billingAddress, setBillingAddress] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [notif, setNotif] = useState<{
     open: boolean;
     data: { success: boolean; message: string };
@@ -32,8 +32,7 @@ const GeneralSettings: React.FC = () => {
     data: { success: true, message: "" },
   });
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [photo, setPhoto] = useState<File | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -63,7 +62,6 @@ const GeneralSettings: React.FC = () => {
 
         const logoUrl = map.get("information.center_logo") ?? "";
         setCenterLogo(logoUrl);
-        setPreviewUrl(logoUrl); // Set preview to match the fetched logo
 
         setPracticeName(map.get("information.practice_name") ?? "");
         setBio(map.get("information.bio") ?? "");
@@ -91,69 +89,6 @@ const GeneralSettings: React.FC = () => {
 
     fetchSettings();
   }, [organizationDetails]);
-
-  const handleLogoUpload = async (file: File) => {
-    // Create immediate local preview
-    const localPreview = URL.createObjectURL(file);
-    setPreviewUrl(localPreview);
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await apis.ImageUpload(formData);
-
-      if (response?.success && response?.data?.uploadPath) {
-        const serverUrl = response.data.uploadPath;
-
-        // Update both centerLogo and previewUrl with server URL
-        setCenterLogo(serverUrl);
-        setPreviewUrl(serverUrl);
-
-        // Clean up local preview
-        URL.revokeObjectURL(localPreview);
-
-        setNotif({
-          open: true,
-          data: {
-            success: true,
-            message: response.message || "Logo uploaded successfully",
-          },
-        });
-      } else {
-        // If upload failed, revert to previous logo
-        URL.revokeObjectURL(localPreview);
-        setPreviewUrl(centerLogo);
-
-        setNotif({
-          open: true,
-          data: {
-            success: false,
-            message: response?.message || "Upload failed",
-          },
-        });
-      }
-    } catch (err) {
-      console.error("Error uploading logo:", err);
-
-      // Revert to previous logo on error
-      URL.revokeObjectURL(localPreview);
-      setPreviewUrl(centerLogo);
-
-      setNotif({
-        open: true,
-        data: { success: false, message: "Failed to upload logo" },
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleRemoveLogo = () => {
-    setCenterLogo("");
-    setPreviewUrl("");
-  };
 
   const handleSave = async () => {
     const centerId = organizationDetails?.center_id;
@@ -215,9 +150,6 @@ const GeneralSettings: React.FC = () => {
     }
   };
 
-  // Display the preview URL if available, otherwise show placeholder
-  const displayImage = previewUrl || centerLogo;
-
   return (
     <div className="p-2 min-h-screen">
       <Notification
@@ -228,75 +160,16 @@ const GeneralSettings: React.FC = () => {
 
       {/* Center Logo Card */}
       <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-1">
-          Center Logo
-        </h2>
-        <p className="text-sm text-gray-500 mb-6">
-          This logo will appear on your clinic booking site
-        </p>
-
-        <div className="mb-6">
-          {displayImage ? (
-            <img
-              src={displayImage}
-              alt="Center Logo"
-              className="h-20 object-contain"
-              onError={(e) => {
-                // If image fails to load, show placeholder
-                e.currentTarget.style.display = "none";
-                e.currentTarget.nextElementSibling?.classList.remove("hidden");
-              }}
-            />
-          ) : null}
-
-          {!displayImage && (
-            <div className="w-24 h-20 bg-gray-100 flex items-center justify-center rounded border border-gray-200">
-              <span className="text-gray-400 text-xs">No logo</span>
-            </div>
-          )}
-
-          {displayImage && (
-            <div className="hidden w-24 h-20 bg-gray-100 items-center justify-center rounded border border-gray-200">
-              <span className="text-gray-400 text-xs">Failed to load</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            color="blue"
-            loading={uploading}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {displayImage ? "Change Logo" : "Upload Logo"}
-          </Button>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                handleLogoUpload(file);
-                e.currentTarget.value = "";
-              }
-            }}
-          />
-
-          {displayImage && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRemoveLogo}
-              disabled={uploading}
-            >
-              Remove Logo
-            </Button>
-          )}
-        </div>
+        <ImageUpload
+          photo={photo}
+          onPhotoChange={setPhoto}
+          onUploadPathChange={(path) => setCenterLogo(path)}
+          title="Center Logo"
+          description="This logo will appear on your clinic booking site"
+          subtitle="JPG, PNG up to 5MB"
+          initialImage={centerLogo}
+        />
+        
       </div>
 
       {/* Center Information Card */}

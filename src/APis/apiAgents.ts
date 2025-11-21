@@ -15,7 +15,7 @@ type ApiResponse<T> = {
 class ApiAgent {
     private readonly apiAgent: AxiosInstance;
     private readonly baseConfig = {
-        baseURL: "https://devs.v-xplore.com/clinicpe/",
+        baseURL: "https://www.api.clinikpe.com/",
         method: "get",
         withCredentials: true,
         headers: {

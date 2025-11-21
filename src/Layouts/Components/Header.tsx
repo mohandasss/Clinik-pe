@@ -154,6 +154,51 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
     } catch {
       // ignore
     }
+    // If nothing selected from store/localStorage, set default to first option
+    const selectedNow = useDropdownStore.getState().selectedCenter;
+    if (!selectedNow || !selectedNow.center_id) {
+      const first = centersOptions[0];
+      if (first) {
+        try {
+          setOrgValue(first.value);
+          setSelectedCenter({
+            center_id: first.value,
+            center_name: first.label,
+          });
+
+          // Update auth store center info if available
+          if (organizationDetails) {
+            try {
+              setOrganizationDetails({
+                ...organizationDetails,
+                center_id: first.value,
+                center_name: first.label,
+              });
+            } catch (e) {
+              console.warn(
+                "Failed to update organizationDetails with default center",
+                e
+              );
+            }
+          }
+
+          // Persist first selection so reload keeps it
+          try {
+            localStorage.setItem(
+              SELECTED_CENTER_KEY,
+              JSON.stringify({
+                center_id: first.value,
+                center_name: first.label,
+              })
+            );
+          } catch (e) {
+            console.warn("Failed to persist default center in localStorage", e);
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
   }, [
     centersOptions,
     setSelectedCenter,

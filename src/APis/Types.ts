@@ -206,7 +206,7 @@ export interface Center {
   central_account_id: string;
   organization_id: string | null;
   name: string;
-  address: string | null;
+  address: PatientAddress | null;
   email: string;
   primary_contact: string;
   secondary_contact: string;
@@ -469,14 +469,14 @@ export type DoctorAvailabilityCreateResponse = {
 
 export type PaymentSetting = {
   key:
-    | "payment.cash"
-    | "payment.online"
-    | "payment.bank_account_name"
-    | "payment.bank_account_type"
-    | "payment.bank_account_number"
-    | "payment.ifsc_code"
-    | "payment.bank_name"
-    | "payment.branch_name";
+  | "payment.cash"
+  | "payment.online"
+  | "payment.bank_account_name"
+  | "payment.bank_account_type"
+  | "payment.bank_account_number"
+  | "payment.ifsc_code"
+  | "payment.bank_name"
+  | "payment.branch_name";
   value: string | boolean;
 };
 
@@ -996,6 +996,28 @@ export type DeleteUnitResponse = {
   message: string;
   data: {
     unit_id: string;
+  };
+};
+
+// Roles
+export interface Role {
+  uid: string;
+  name: string;
+  permissions?: string[];
+  status?: string; // active | inactive
+  access?: {
+    read: "none" | "allow" | "deny" | "mixed";
+    write: "none" | "allow" | "deny" | "mixed";
+  }[];
+}
+
+export type RolesListResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    roles: Role[];
+    pagination?: Pagination;
   };
 };
 

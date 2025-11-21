@@ -256,6 +256,9 @@ class Apis {
     return response.data as CenterListResponse;
   }
 
+  // Roles
+
+
   async GetExperience(): Promise<ExperienceResponse> {
 
     const response = await apiAgent
@@ -1067,6 +1070,62 @@ class Apis {
       .method("GET")
       .execute();
     return response.data as SidebarMenuResponse;
+  }
+
+
+
+
+
+  async AddRole(
+    payload: { name: string; permissions?: string[]; status?: string }
+  ): Promise<{ success: boolean; message: string } & { httpStatus?: number }> {
+    const response = await apiAgent
+      .path(`organizations/users/roles`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as any;
+  }
+  //role based
+  async GetRoles(
+    organization_id: string,
+    center_id: string,
+    search?: string
+  ): Promise<import("./Types").RolesListResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/roles`)
+      .method("GET")
+      .query({ search })
+      .execute();
+    return response.data as import("./Types").RolesListResponse;
+  }
+
+
+
+  async UpdateRole(
+    organization_id: string,
+    center_id: string,
+    uid: string,
+    payload: { name?: string; permissions?: string[]; status?: string }
+  ): Promise<{ success: boolean; message: string } & { httpStatus?: number }> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/roles/${uid}`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
+    return response.data as any;
+  }
+
+  async DeleteRole(
+    organization_id: string,
+    center_id: string,
+    uid: string
+  ): Promise<{ success: boolean; message: string } & { httpStatus?: number }> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/roles/${uid}`)
+      .method("DELETE")
+      .execute();
+    return response.data as any;
   }
 
 

@@ -145,7 +145,7 @@ const ClinicTable: React.FC<ClinicTableProps> = ({
       c.type ||
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ((c.is_clinic as any) === "1" ? "Clinic" : "Diagnostic"),
-    location: c.address || "",
+    location: c.address?.address || "",
     contactPerson: c.primary_contact || "",
     providers: 0,
     status:

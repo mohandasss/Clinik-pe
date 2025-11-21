@@ -5,7 +5,7 @@ import logoPng from "../../assets/logo.png";
 
 const OnboardingPage = () => {
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen  bg-blue-50">
       <div>
         <div className="flex flex-row min-h-screen">
           <div className="flex-1 bg-transparent p-6  flex flex-col justify-center">

@@ -10,6 +10,7 @@ interface ImageUploadProps {
   description?: string;
   subtitle?: string;
   accept?: string;
+  initialImage?: string;
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -20,6 +21,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   description = "Upload a professional headshot",
   subtitle = "JPG, PNG up to 5MB",
   accept = "image/png, image/jpeg",
+  initialImage,
 }) => {
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -67,6 +69,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                   src={URL.createObjectURL(photo)}
                   className="w-full h-full rounded-full object-cover"
                   alt="Uploaded"
+                />
+              ) : initialImage ? (
+                <img
+                  src={initialImage}
+                  className="w-full h-full rounded-full object-cover"
+                  alt="Initial"
                 />
               ) : (
                 <IconCamera size={28} className="text-gray-400" />
