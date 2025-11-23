@@ -888,11 +888,13 @@ class Apis {
 
   }
 
-  async GetTestUnits(organization_id: string, center_id: string, search: string): Promise<UnitsListResponse> {
+  async GetTestUnits(
+    pageNumber: number, pageSize: number,
+    organization_id: string, center_id: string, search: string): Promise<UnitsListResponse> {
     const response = await apiAgent
       .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/units`)
       .method("GET")
-      .query({ search })
+      .query({ search ,pageNumber, pageSize })
       .execute();
     return response.data as UnitsListResponse;
 

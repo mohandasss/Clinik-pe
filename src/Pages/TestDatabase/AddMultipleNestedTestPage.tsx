@@ -107,8 +107,8 @@ const AddMultipleNestedTestPage: React.FC = () => {
           setCategories([]);
         }
 
-        // Fetch units
-        const unitResp = await apis.GetTestUnits(organizationId, centerId, "");
+        // Fetch units (page 1, large page to get most units for select)
+        const unitResp = await apis.GetTestUnits(1, 100, organizationId, centerId, "");
         if (unitResp?.success && unitResp?.data?.units) {
           const unitList = unitResp.data.units.map((u) => ({
             id: u.uid,

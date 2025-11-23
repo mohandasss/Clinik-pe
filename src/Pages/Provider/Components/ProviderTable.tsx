@@ -12,6 +12,7 @@ type Row = {
   avatar?: string; // optional avatar url
   name: string;
   specialty: string;
+  qualifications: string;
   centersLinked: number;
   fee: number;
   availability?: string;
@@ -50,7 +51,12 @@ const ProviderTable: React.FC<ProviderTableProps> = ({
     providerUid: p.uid,
     avatar: (p.profile_pic as string) || undefined,
     name: p.name || p.uid,
-    specialty: (p.specialities && p.specialities[0]?.name) || "",
+    specialty: p.specialities
+      ? p.specialities.map((s) => s.name).join(", ")
+      : "",
+    qualifications: p.qualifications
+      ? p.qualifications.map((q) => q.name).join(", ")
+      : "",
     centersLinked: 0,
     fee: 0,
     availability: "",
@@ -124,7 +130,10 @@ const ProviderTable: React.FC<ProviderTableProps> = ({
       render: (r) => (
         <div className="flex items-center gap-3">
           <img
-            src={r.image}
+            src={
+              r.image ||
+              "https://media.healthecareers.com/wp-content/uploads/2022/02/11204020/placeholderdoctor.jpg"
+            }
             alt={r.name}
             className="w-8 h-8 rounded-full object-cover"
           />
@@ -135,21 +144,12 @@ const ProviderTable: React.FC<ProviderTableProps> = ({
     {
       accessor: "specialty",
       title: "Specialty",
-      render: (r) => {
-        const palette: Record<string, string> = {
-          Verified: "bg-blue-700 text-white",
-          Active: "bg-green-100 text-green-700",
-          Inactive: "bg-gray-100 text-gray-700",
-        };
-        const cls = palette[r.status] ?? "bg-gray-100 text-gray-700";
-        return (
-          <span
-            className={`inline-flex items-center px-3 py-1 rounded-full text-xs ${cls}`}
-          >
-            {r.specialty}
-          </span>
-        );
-      },
+      render: (r) => <div className="text-gray-600">{r.specialty}</div>,
+    },
+    {
+      accessor: "qualifications",
+      title: "Qualifications",
+      render: (r) => <div className="text-gray-600">{r.qualifications}</div>,
     },
     {
       accessor: "centersLinked",
@@ -163,15 +163,15 @@ const ProviderTable: React.FC<ProviderTableProps> = ({
       title: "Fee",
       render: (r) => <div className="text-gray-600">₹{r.fee}</div>,
     },
-    {
-      accessor: "availability",
-      title: "Availability",
-      render: (r) => (
-        <button className="bg-blue-600 text-white px-3 py-1 rounded-md text-sm focus:outline-none focus:ring-0">
-          {r.availability}
-        </button>
-      ),
-    },
+    // {
+    //   accessor: "availability",
+    //   title: "Availability",
+    //   render: (r) => (
+    //     <button className="bg-blue-600 text-white px-3 py-1 rounded-md text-sm focus:outline-none focus:ring-0">
+    //       {r.availability}
+    //     </button>
+    //   ),
+    // },
     {
       accessor: "status",
       title: "Status",

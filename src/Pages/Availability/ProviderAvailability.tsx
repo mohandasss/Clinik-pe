@@ -20,7 +20,8 @@ type AvailabilityItem = {
   day: string;
   start: string;
   end: string;
-  interval: string;
+  duration: string;
+  waitTime: string;
   type: string;
   status: "Active" | "Inactive";
   providerName?: string;
@@ -119,22 +120,41 @@ const extractTimeRange = (availability: unknown) => {
   return timeRanges.length > 0 ? timeRanges[0] : null;
 };
 
-const extractInterval = (
+const extractDuration = (
   timeRange: unknown,
   availability: unknown
 ): string => {
-  const intervalFromRange = extractValueFromObject(timeRange, TIME_RANGE_KEYS.INTERVAL);
+  const durationFromRange = extractValueFromObject(timeRange, ["duration"]);
   
-  if (intervalFromRange) {
-    return intervalFromRange;
+  if (durationFromRange) {
+    return durationFromRange;
   }
 
   const availData = availability as {
+    duration?: string;
     time_slot_interval?: string;
     defaultSlotInterval?: string;
   };
   
-  return availData?.time_slot_interval ?? availData?.defaultSlotInterval ?? "";
+  return availData?.duration ?? availData?.time_slot_interval ?? availData?.defaultSlotInterval ?? "";
+};
+
+const extractWaitTime = (
+  timeRange: unknown,
+  availability: unknown
+): string => {
+  const waitTimeFromRange = extractValueFromObject(timeRange, ["wait_time", "waitTime"]);
+  
+  if (waitTimeFromRange) {
+    return waitTimeFromRange;
+  }
+
+  const availData = availability as {
+    wait_time?: string;
+    waitTime?: string;
+  };
+  
+  return availData?.wait_time ?? availData?.waitTime ?? "0";
 };
 
 const extractAppointmentType = (availability: unknown): string => {
@@ -183,7 +203,8 @@ const mapAvailabilityToItem = (
   const end = extractValueFromObject(timeRange, TIME_RANGE_KEYS.END) ||
     (availability as { end_time?: string })?.end_time || "";
   
-  const interval = extractInterval(timeRange, availability);
+  const duration = extractDuration(timeRange, availability);
+  const waitTime = extractWaitTime(timeRange, availability);
   const appointmentType = extractAppointmentType(availability);
   const provider = extractProviderInfo(availability);
 
@@ -192,7 +213,8 @@ const mapAvailabilityToItem = (
     day,
     start,
     end,
-    interval: interval ? `${interval} mins` : "",
+    duration: duration ? `${duration} mins` : "",
+    waitTime: waitTime ? `${waitTime} mins` : "",
     type: appointmentType,
     status,
     providerName: provider.name,

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Button, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import apis from "../../APis/Api";
@@ -15,6 +15,7 @@ const Units: React.FC = () => {
   const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
 
   const [units, setUnits] = useState<Unit[]>([]);
+  const [totalRecords, setTotalRecords] = useState<number>(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [query, setQuery] = useState("");
@@ -30,6 +31,8 @@ const Units: React.FC = () => {
     setLoading(true);
     try {
       const response = await apis.GetTestUnits(
+        page,
+        pageSize,
         organizationId,
         centerId,
         query || ""
@@ -37,6 +40,14 @@ const Units: React.FC = () => {
 
       if (response.success && response.data) {
         setUnits(response.data.units);
+        setTotalRecords(response.data.pagination?.totalRecords || 0);
+        // Keep component page state in sync with server response
+        if (response.data.pagination?.pageNumber) {
+          setPage(response.data.pagination.pageNumber);
+        }
+        if (response.data.pagination?.pageSize) {
+          setPageSize(response.data.pagination.pageSize);
+        }
       } else {
         notifications.show({
           title: "Error",
@@ -54,25 +65,15 @@ const Units: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [query, organizationId, centerId]);
+  }, [query, organizationId, centerId, page, pageSize]);
 
   useEffect(() => {
     loadUnits();
   }, [loadUnits]);
 
-  // Filter units locally based on search query
-  const filtered = useMemo(() => {
-    if (!query) return units;
-    const q = query.toLowerCase();
-    return units.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.description.toLowerCase().includes(q)
-    );
-  }, [units, query]);
-
-  const total = filtered.length;
-  const rows = filtered.slice((page - 1) * pageSize, page * pageSize);
+  // With server-side pagination, we use API-provided units array and pagination
+  const rows = units;
+  const total = totalRecords;
 
   // Add new unit
   const handleAddUnit = async (name: string, description?: string) => {

@@ -9,7 +9,8 @@ type AvailabilityItem = {
   day: string;
   start: string;
   end: string;
-  interval: string;
+  duration: string;
+  waitTime: string;
   type: string;
   status: "Active" | "Inactive";
   providerName?: string;
@@ -113,7 +114,10 @@ const AvailabilityTable: React.FC<Props> = ({
           <div className="flex items-center gap-3">
             {avatarSrc ? (
               <img
-                src={avatarSrc}
+                src={
+                  avatarSrc ||
+                  "https://media.healthecareers.com/wp-content/uploads/2022/02/11204020/placeholderdoctor.jpg"
+                }
                 alt={r.providerName ?? ""}
                 className="w-8 h-8 rounded-full object-cover"
               />
@@ -141,9 +145,14 @@ const AvailabilityTable: React.FC<Props> = ({
       render: (r) => <div className="text-gray-600">{r.end}</div>,
     },
     {
-      accessor: "interval",
-      title: "Time Slot Interval",
-      render: (r) => <div className="text-gray-600">{r.interval}</div>,
+      accessor: "duration",
+      title: "Duration",
+      render: (r) => <div className="text-gray-600">{r.duration}</div>,
+    },
+    {
+      accessor: "waitTime",
+      title: "Wait Time",
+      render: (r) => <div className="text-gray-600">{r.waitTime}</div>,
     },
     {
       accessor: "type",

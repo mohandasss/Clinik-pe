@@ -141,8 +141,8 @@ const FeeTable: React.FC<FeeTableProps> = ({
             </ActionIcon>
           </Menu.Target>
           <Menu.Dropdown>
-            <Menu.Item>Edit</Menu.Item>
-            <Menu.Item>Delete</Menu.Item>
+            {/* <Menu.Item>Edit</Menu.Item>
+            <Menu.Item>Delete</Menu.Item> */}
           </Menu.Dropdown>
         </Menu>
       ),

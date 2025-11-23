@@ -347,6 +347,7 @@ export interface Provider {
   status: string;
   registration: string;
   specialities: Speciality[];
+  qualifications: QualificationItem[];
 }
 
 export interface Speciality {
@@ -442,7 +443,7 @@ export type TimeRangeInput = {
   start: string;
   end: string;
   wait_time?: string; // optional wait time in minutes as string
-  time_slot_interval: string; // minutes as string
+  duration: string; // minutes as string
 };
 
 export type AvailabilityInputItem = {

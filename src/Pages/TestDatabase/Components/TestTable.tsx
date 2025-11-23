@@ -9,6 +9,9 @@ export interface TestRow {
   name: string;
   shortName?: string;
   category?: string;
+  price?: string;
+  type?: string;
+  optional?: boolean | string;
 }
 
 interface TestTableProps {
@@ -50,9 +53,35 @@ const TestTable: React.FC<TestTableProps> = ({
       {
         accessor: "shortName",
         title: "SHORT NAME",
-        width: 180,
+        width: 160,
         render: (r) => (
           <div className="text-sm text-gray-600">{r.shortName}</div>
+        ),
+      },
+      {
+        accessor: "category",
+        title: "CATEGORY",
+        width: 140,
+        render: (r) => <div className="text-sm text-gray-600">{r.category}</div>,
+      },
+      {
+        accessor: "price",
+        title: "PRICE",
+        width: 100,
+        render: (r) => <div className="text-sm text-gray-600">{r.price}</div>,
+      },
+      {
+        accessor: "type",
+        title: "TYPE",
+        width: 120,
+        render: (r) => <div className="text-sm text-gray-600">{r.type}</div>,
+      },
+      {
+        accessor: "optional",
+        title: "OPTIONAL",
+        width: 100,
+        render: (r) => (
+          <div className="text-sm text-gray-600">{r.optional ? "Yes" : "No"}</div>
         ),
       },
       // {

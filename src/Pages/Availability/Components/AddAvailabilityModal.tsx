@@ -30,7 +30,6 @@ const DAYS = [
   "Saturday",
   "Sunday",
 ];
-const INTERVALS = ["10", "15", "20", "30", "45", "60"];
 const TYPES = ["in-clinic", "online", "both"];
 
 const AddAvailabilityModal: React.FC<Props> = ({
@@ -51,7 +50,8 @@ const AddAvailabilityModal: React.FC<Props> = ({
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
-  const [interval, setInterval] = useState("15");
+  const [duration, setDuration] = useState("15");
+  const [waitTime, setWaitTime] = useState("0");
   const [type, setType] = useState("in-clinic");
   // Using Mantine notifications instead of custom Notification component
 
@@ -61,7 +61,8 @@ const AddAvailabilityModal: React.FC<Props> = ({
       setSelectedDays([]);
       setStartTime("09:00");
       setEndTime("17:00");
-      setInterval("15");
+      setDuration("15");
+      setWaitTime("0");
       setType("in-clinic");
       setSelectedProvider(defaultProvider ?? null);
       setSelectedSpeciality(null);
@@ -98,6 +99,16 @@ const AddAvailabilityModal: React.FC<Props> = ({
     }
     if (startTime >= endTime) {
       showNotification(false, "Start time must be before end time");
+      return false;
+    }
+    const durationNum = parseInt(duration);
+    if (isNaN(durationNum) || durationNum <= 0) {
+      showNotification(false, "Please enter a valid duration greater than 0");
+      return false;
+    }
+    const waitTimeNum = parseInt(waitTime);
+    if (isNaN(waitTimeNum) || waitTimeNum < 0) {
+      showNotification(false, "Please enter a valid wait time (0 or greater)");
       return false;
     }
     return true;
@@ -141,8 +152,8 @@ const AddAvailabilityModal: React.FC<Props> = ({
         {
           start: formatTime(startTime),
           end: formatTime(endTime),
-          wait_time: "0",
-          time_slot_interval: interval,
+          wait_time: waitTime,
+          duration: duration,
         },
       ],
       appointment_type: type.toLowerCase().replace(/\s+/g, "-"),
@@ -348,12 +359,28 @@ const AddAvailabilityModal: React.FC<Props> = ({
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Interval (minutes)
+                    Duration (minutes)
                   </label>
-                  <Select
-                    data={INTERVALS}
-                    value={interval}
-                    onChange={(v) => setInterval(v || "15")}
+                  <input
+                    type="number"
+                    min="1"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    className="w-full px-2 py-1 border rounded"
+                    placeholder="15"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Wait Time (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={waitTime}
+                    onChange={(e) => setWaitTime(e.target.value)}
+                    className="w-full px-2 py-1 border rounded"
+                    placeholder="0"
                   />
                 </div>
                 <div>

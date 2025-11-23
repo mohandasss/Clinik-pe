@@ -30,7 +30,6 @@ const AddTestPage: React.FC = () => {
     shortName: "",
     category: "",
     unit: "",
-    resultType: "Single parameter",
     inputType: "numeric",
     defaultResult: "",
     optional: false,
@@ -55,7 +54,7 @@ const AddTestPage: React.FC = () => {
       try {
         const [catResp, unitResp] = await Promise.all([
           apis.GetTestCategories(organizationId, centerId, undefined, 1, 100),
-          apis.GetTestUnits(organizationId, centerId, ""),
+          apis.GetTestUnits(1, 100, organizationId, centerId, ""),
         ]);
 
         if (catResp?.success && catResp?.data?.categorys) {
@@ -101,14 +100,8 @@ const AddTestPage: React.FC = () => {
       // For now, just show success message
       // Build payload for console logging (map to expected API keys)
       const payload = {
-        type:
-          form.resultType === "Single parameter"
-            ? "single"
-            : form.resultType === "Multiple parameters"
-            ? "multiple"
-            : form.resultType === "Multiple nested parameters"
-            ? "nested"
-            : "document",
+        // Result type is not required now; default to single parameter
+        type: "single",
         name: form.name,
         short_name: form.shortName,
         category_id: form.category,
@@ -171,15 +164,7 @@ const AddTestPage: React.FC = () => {
     label: u.name,
   }));
 
-  const resultTypeOptions = [
-    { value: "Single parameter", label: "Single parameter" },
-    { value: "Multiple parameters", label: "Multiple parameters" },
-    {
-      value: "Multiple nested parameters",
-      label: "Multiple nested parameters",
-    },
-    { value: "Document", label: "Document" },
-  ];
+  // Result type options removed: field no longer shown in the form
 
   return (
     <div className="p-0">
@@ -282,19 +267,7 @@ const AddTestPage: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Result type
-                </Text>
-                <Select
-                  placeholder="Select result type"
-                  data={resultTypeOptions}
-                  value={form.resultType}
-                  onChange={(v) =>
-                    handleChange("resultType", v || "Single Lab")
-                  }
-                />
-              </div>
+              {/* Result type removed — default 'single' used */}
               <div>
                 <Text size="xs" className="text-gray-600 mb-2">
                   Input type
@@ -304,7 +277,7 @@ const AddTestPage: React.FC = () => {
                   data={[
                     { value: "single-line", label: "Single Line" },
                     { value: "numeric", label: "Numeric" },
-                    { value: "multi-line", label: "Multi Line" },
+                    { value: "paragraph", label: "Paragraph" },
                   ]}
                   value={form.inputType}
                   onChange={(v) => handleChange("inputType", v || "numeric")}

@@ -213,13 +213,15 @@ const BookingPage: React.FC = () => {
   // Payment-related states
   const [actualFee, setActualFee] = useState<number>(0);
   const [discountType, setDiscountType] = useState<"percentage" | "flat" | "">(
-    ""
+    "percentage"
   );
   const [discountValue, setDiscountValue] = useState<string>("");
   const [payableAmount, setPayableAmount] = useState<number>(0);
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [isPaymentReceived, setIsPaymentReceived] = useState<boolean>(false);
-  const [paymentMode, setPaymentMode] = useState<"cash" | "upi" | "">("");
+  const [paymentMode, setPaymentMode] = useState<
+    "cash" | "online" | "card" | ""
+  >("");
   const [paymentNote, setPaymentNote] = useState<string>("");
   const [selectedSpeciality, setSelectedSpeciality] = useState<string>("");
 
@@ -598,7 +600,7 @@ const BookingPage: React.FC = () => {
     setPayableAmount(0);
     setAmountPaid("");
     setIsPaymentReceived(false);
-    setDiscountType("");
+    setDiscountType("percentage");
     setPaymentMode("");
 
     // Clear dropdowns & selections
@@ -606,6 +608,11 @@ const BookingPage: React.FC = () => {
     setProvider("");
     setScheduleProvider("");
     setSelectedSpeciality("");
+    
+    // Clear slots
+    setAvailableSlots([]);
+    setScheduleSlots([]);
+    
     // Reset date to today or null depending on desired behavior. Use null to 'empty' as requested
     setSelectedDate(null);
     setScheduleSelectedDate(null);
@@ -693,7 +700,7 @@ const BookingPage: React.FC = () => {
         as: "advance" | "paid";
         purpose: "appointment";
         source: "manual";
-        mode: "cash" | "upi";
+        mode: "cash" | "online" | "card";
         note?: string;
       } | null;
     }
@@ -743,7 +750,7 @@ const BookingPage: React.FC = () => {
           as: paidAmount >= payableAmount ? "paid" : "advance",
           purpose: "appointment" as const,
           source: "manual" as const,
-          mode: paymentMode as "cash" | "upi",
+          mode: paymentMode as "cash" | "online" | "card",
         };
         if (paymentNote) paymentObj.note = paymentNote;
 
@@ -760,19 +767,19 @@ const BookingPage: React.FC = () => {
         centerId!,
         payload as unknown as CreateAppointmentRequest
       );
-      if (resp.message) {
+      if (resp.success) {
         notifications.show({
           title: "Success",
           message: resp.message,
           color: "green",
         });
+
+        // Refetch appointments to reflect the new appointment in the schedule
+        await refetchAppointments();
+
+        // Reset form after successful creation
         resetForm();
-      } else {
-        notifications.show({
-          title: "Error",
-          message: resp.message,
-          color: "red",
-        });
+        return;
       }
 
       await refetchAppointments();
@@ -1067,8 +1074,8 @@ interface AppointmentFormProps {
   onAmountPaidChange: (value: string) => void;
   isPaymentReceived: boolean;
   onPaymentReceivedChange: (value: boolean) => void;
-  paymentMode: "cash" | "upi" | "";
-  onPaymentModeChange: (mode: "cash" | "upi" | "") => void;
+  paymentMode: "cash" | "online" | "card" | "";
+  onPaymentModeChange: (mode: "cash" | "online" | "card" | "") => void;
   paymentNote: string;
   onPaymentNoteChange: (note: string) => void;
   loadingFee: boolean;
@@ -1381,8 +1388,8 @@ interface PaymentSectionProps {
   onAmountPaidChange: (value: string) => void;
   isPaymentReceived: boolean;
   onPaymentReceivedChange: (value: boolean) => void;
-  paymentMode: "cash" | "upi" | "";
-  onPaymentModeChange: (mode: "cash" | "upi" | "") => void;
+  paymentMode: "cash" | "online" | "card" | "";
+  onPaymentModeChange: (mode: "cash" | "online" | "card" | "") => void;
   paymentNote: string;
   onPaymentNoteChange: (note: string) => void;
   loadingFee: boolean;
@@ -1517,7 +1524,8 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
             {amountPaid && parseFloat(amountPaid) < payableAmount && (
               <p className="text-xs text-amber-600 mt-1">
                 Partial payment (Advance): ₹{parseFloat(amountPaid).toFixed(2)}{" "}
-                / ₹{payableAmount.toFixed(2)}
+                paid, ₹{(payableAmount - parseFloat(amountPaid)).toFixed(2)}{" "}
+                remaining
               </p>
             )}
             {amountPaid && parseFloat(amountPaid) === payableAmount && (
@@ -1535,11 +1543,14 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
             <Select
               data={[
                 { value: "cash", label: "Cash" },
-                { value: "upi", label: "UPI" },
+                { value: "online", label: "Online" },
+                { value: "card", label: "Card" },
               ]}
               value={paymentMode}
               onChange={(val) =>
-                onPaymentModeChange((val as "cash" | "upi" | "") || "")
+                onPaymentModeChange(
+                  (val as "cash" | "online" | "card" | "") || ""
+                )
               }
               placeholder="Select payment mode"
             />

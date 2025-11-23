@@ -25,7 +25,6 @@ interface ChildParameter {
   unit_id: string;
   input_type: string;
   default_result: string;
-  optional: boolean;
 }
 
 interface AddMultipleTestPageState {
@@ -67,7 +66,6 @@ const AddMultipleTestPage: React.FC = () => {
         unit_id: "",
         input_type: "numeric",
         default_result: "",
-        optional: false,
       },
     ],
   });
@@ -106,7 +104,7 @@ const AddMultipleTestPage: React.FC = () => {
         }
 
         // Fetch units
-        const unitResp = await apis.GetTestUnits(organizationId, centerId, "");
+        const unitResp = await apis.GetTestUnits(1, 100, organizationId, centerId, "");
         if (unitResp?.success && unitResp?.data?.units) {
           const unitList = unitResp.data.units.map((u) => ({
             id: u.uid,
@@ -157,7 +155,6 @@ const AddMultipleTestPage: React.FC = () => {
       unit_id: "",
       input_type: "numeric",
       default_result: "",
-      optional: false,
     };
     setForm((prev) => ({
       ...prev,
@@ -184,7 +181,7 @@ const AddMultipleTestPage: React.FC = () => {
   const handleChildChange = (
     childId: string,
     field: keyof ChildParameter,
-    value: string | boolean
+    value: string
   ) => {
     setForm((prev) => ({
       ...prev,
@@ -235,7 +232,7 @@ const AddMultipleTestPage: React.FC = () => {
         unit_id: child.unit_id,
         input_type: child.input_type,
         default_result: child.default_result,
-        optional: child.optional,
+        optional: false,
       })),
       format_options: {
         always_bold: form.formatOptions.alwaysBold,
@@ -460,19 +457,7 @@ const AddMultipleTestPage: React.FC = () => {
                         )
                       }
                     />
-                    <div className="flex items-end pb-2">
-                      <Checkbox
-                        label="Optional"
-                        checked={child.optional}
-                        onChange={(e) =>
-                          handleChildChange(
-                            child.id,
-                            "optional",
-                            e.currentTarget.checked
-                          )
-                        }
-                      />
-                    </div>
+                    {/* Optional flag removed */}
                   </div>
                 </Card>
               ))}

@@ -86,7 +86,12 @@ const TestDatabase: React.FC = () => {
               order: Number(test.order) || 0,
               name: test.name,
               shortName: test.short_name,
-              category: test.category_id,
+              category:
+                categories.find((c) => c.id === test.category_id)?.name ||
+                test.category_id,
+              price: test.price || "",
+              type: test.type || "",
+              optional: test.optional === "1",
             })
           );
           setTests(testRows);
@@ -107,7 +112,7 @@ const TestDatabase: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [organizationId, centerId, query, page, pageSize]);
+  }, [organizationId, centerId, query, page, pageSize, categories]);
 
   const filtered = useMemo(() => {
     let data = tests;
