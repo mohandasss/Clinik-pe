@@ -12,7 +12,9 @@ import LoginOtpForm from "./components/LoginOtp/LoginOtpForm";
 // ===================== 🟦 Layouts & Route Guards =====================
 import PrivateRoute from "./Layouts/PrivateRoute";
 import PublicRoute from "./Layouts/PublicRoute";
+import DoctorPrivateRoute from "./Layouts/DoctorPrivateRoute";
 import AppLayout from "./Layouts/AppLayout";
+import DoctorAppLayout from "./Layouts/DoctorAppLayout";
 
 // ===================== 🟧 Organization & Center Pages =====================
 import OrganizationList from "./Pages/Organization/OrganizationList";
@@ -74,7 +76,6 @@ import TestDepartment from "./Pages/Radiology/TestDepartment/TestDepartment";
 function AppContents() {
   return (
     <Routes>
-
       {/* =========================================================
                        🟩 PUBLIC ROUTES
       ========================================================== */}
@@ -119,9 +120,6 @@ function AppContents() {
         {/* <Route path="/availability/add/:providerUid" element={<AddProviderAvailability />} /> */}
 
         {/* ---------------- 🟥 Doctor (Inside Admin Layout) ---------------- */}
-        <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />
-        <Route path="/doctor-appointments" element={<AppointmentsPage />} />
-        <Route path="/e-prescription" element={<EprescriptionPage />} />
 
         {/* ---------------- ⚪ Settings, Billing, Tests ---------------- */}
         <Route path="/payments" element={<PaymentSettings />} />
@@ -140,9 +138,18 @@ function AppContents() {
         <Route path="/test-categories" element={<TestCategories />} />
         <Route path="/test-database" element={<TestDatabase />} />
         <Route path="/test-database/add" element={<AddTestPage />} />
-        <Route path="/test-database/add-multiple" element={<AddMultipleTestPage />} />
-        <Route path="/test-database/add-nested" element={<AddMultipleNestedTestPage />} />
-        <Route path="/test-database/add-document" element={<AddDocumentTestPage />} />
+        <Route
+          path="/test-database/add-multiple"
+          element={<AddMultipleTestPage />}
+        />
+        <Route
+          path="/test-database/add-nested"
+          element={<AddMultipleNestedTestPage />}
+        />
+        <Route
+          path="/test-database/add-document"
+          element={<AddDocumentTestPage />}
+        />
 
         <Route path="/units" element={<Units />} />
 
@@ -159,18 +166,39 @@ function AppContents() {
 
         {/* ---------------- 🟫 Radiology ---------------- */}
         <Route path="/test-department" element={<TestDepartment />} />
-        <Route path="/radiology/test-database" element={<TestDatabaseOther />} />
-        <Route path="/radiology/test-database/add" element={<AddRadiologyTestPage />} />
-        <Route path="/radiology/other-test-panels" element={<OtherTestPanelList />} />
-        <Route path="/radiology/other-test-panels/edit" element={<EditOtherTestPanel />} />
-        <Route path="/radiology/other-test-categories" element={<OtherTestCategory />} />
+        <Route
+          path="/radiology/test-database"
+          element={<TestDatabaseOther />}
+        />
+        <Route
+          path="/radiology/test-database/add"
+          element={<AddRadiologyTestPage />}
+        />
+        <Route
+          path="/radiology/other-test-panels"
+          element={<OtherTestPanelList />}
+        />
+        <Route
+          path="/radiology/other-test-panels/edit"
+          element={<EditOtherTestPanel />}
+        />
+        <Route
+          path="/radiology/other-test-categories"
+          element={<OtherTestCategory />}
+        />
       </Route>
 
       {/* =========================================================
-                       🔵 DOCTOR PUBLIC LOGIN
+                       🔵 DOCTOR ROUTES (Protected)
       ========================================================== */}
-      <Route path="/doctor-login" element={<DoctorLoginPage />} />
+      <Route element={<DoctorAppLayout />}>
+        <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />
+        <Route path="/doctor-appointments" element={<AppointmentsPage />} />
+        <Route path="/e-prescription" element={<EprescriptionPage />} />
+      </Route>
 
+      {/* Doctor Login - Public */}
+      <Route path="/doctor-login" element={<DoctorLoginPage />} />
     </Routes>
   );
 }

@@ -1502,3 +1502,212 @@ export interface CreateOtherTestPanelPayload {
 export interface UpdateOtherTestPanelPayload extends CreateOtherTestPanelPayload {
   remove_tests?: Array<{ test_id: string }>;
 }
+
+// Doctor Login Types
+export type DoctorLoginPayload = {
+  email?: string;
+  mobile?: string;
+  user_id?: string;
+  password?: string;
+  device_type: string;
+  device_id: string;
+  frontend_type: string;
+};
+
+export interface DocLoginResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: DocLoginData;
+}
+
+export interface DocLoginData {
+  organization_id: string | null;
+  organization_name: string | null;
+  user_id: string;
+  center_name: string | null;
+  center_id: string | null;
+  central_account_id: string;
+  user_type: "doctor" | "admin" | "receptionist" | "staff" | string; // expand as needed
+  name: string;
+  email: string | null;
+  mobile: string | null;
+  time_zone: string;
+  currency: string | null;
+  country: string | null;
+  access: unknown | null; // change to correct structure if you know it
+  image: string | null;
+}
+
+
+export type DoctorVerifyOtpPayload = {
+  request_id: string;
+  otp_id: string;
+  otp: string;
+  device_type: string;
+  device_id: string;
+  frontend_type: string;
+};
+
+export type DoctorVerifyOtpResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    verified: boolean;
+    loggedUserDetails: {
+      doctor_id: string;
+      organization_id: string | null;
+      organization_name: string | null;
+      user_id: string;
+      center_name: string | null;
+      center_id: string | null;
+      central_account_id: string | null;
+      user_type: string;
+      name: string;
+      email: string | null;
+      mobile: string | null;
+      time_zone: string;
+      currency: string | null;
+      country: string | null;
+      access: string | null;
+      image: string | null;
+    };
+  };
+};
+
+// Doctor Appointments Types
+export type DoctorAppointment = {
+  uid: string;
+  doctor_id: string;
+  patient_id: string;
+  date: string;
+  time: string;
+  duration: string;
+  status: string;
+  appointment_type: string | null;
+  patient_name: string;
+  doctor_name: string;
+  symptoms: string | null;
+  profile_image?: string;
+};
+
+export type DoctorAppointmentListResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    appointments: DoctorAppointment[];
+    pagination: {
+      pageNumber: number;
+      pageSize: number;
+      totalRecords: number;
+      pageCount: number;
+    };
+  };
+};
+
+
+export interface Medicine {
+  name: string;
+  saltQuantity: string;
+  type: string;
+}
+
+export interface MedicineSidebarResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: Medicine[];
+}
+export interface AppointmentResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    appointments: AppointmentDoc[];
+  };
+}
+
+export interface AppointmentDoc {
+  uid: string;
+  doctor_id: string;
+  patient_id: string;
+  date: string;      // ISO date string
+  time: string;      // HH:mm:ss
+  duration: string;  // could be number, but API sends string
+  status: string;
+  appointment_type: string | null;
+  appointment_status: string;
+  patient_name: string;
+  doctor_name: string;
+  symptoms: string;
+}
+export interface VitalItem {
+  id: string;
+  uid: string;
+  key: string;
+  name: string;
+  lower_limit: string;
+  higher_limit: string;
+  unit: string;
+  input: string | null;
+  status: string;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+
+
+export interface VitalListData {
+  vital: VitalItem[];
+}
+
+export interface VitalListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: VitalListData;
+}
+
+export interface PrescriptionSaveData {
+  prescription_uid: string;
+  pdf_url: string;
+}
+
+
+export type CreatePrescriptionPayload = {
+  doctor_id: string;
+  patient_id: string;
+  info: string;
+  notes: string;
+  symptoms: string;
+  condition: string;
+  lab_test_id: string[];
+  medicine: {
+    medicineName: string;
+    saltQuantity: string;
+    medicinetype: string;
+    duration: string;
+    dosage: string;
+    instruction: string;
+  }[];
+  vitals: {
+    blood_pressure: string;
+    heart_rate: string;
+    temperature: string;
+    spo2: string;
+    weight: string;
+  };
+  appointment_id: string;
+  clinic_id: string;
+};
+
+export type CreatePrescriptionResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: PrescriptionSaveData;
+};

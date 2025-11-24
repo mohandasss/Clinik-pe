@@ -181,13 +181,9 @@ const FeeManagement: React.FC = () => {
         );
         if (resp?.success && resp?.data?.slots) {
           setSlots(resp.data.slots);
-          setFormState((prev) => ({
-            ...prev,
-            slotUid: resp.data.slots[0]?.uid ?? "",
-          }));
+          // Don't auto-select first slot - let user choose
         } else {
           setSlots([]);
-          setFormState((prev) => ({ ...prev, slotUid: "" }));
         }
       } catch (err) {
         console.error("Failed to fetch doctor availabilities:", err);
@@ -259,6 +255,8 @@ const FeeManagement: React.FC = () => {
     // if speciality changed, fetch availabilities for current provider + speciality
     if (field === "specialityUid") {
       const specialityUid = value as string;
+      // Reset slot selection when speciality changes
+      setFormState((prev) => ({ ...prev, slotUid: "" }));
       if (currentProvider) {
         fetchDoctorAvailabilities(currentProvider, specialityUid || undefined);
       }
@@ -293,8 +291,10 @@ const FeeManagement: React.FC = () => {
       fee_amount: String(formState.feeAmount),
       commission_type: formState.commissionType,
       commission: String(formState.commission ?? 0),
-      speciality_id: formState.specialityUid || undefined,
-      schedule_id: formState.slotUid || undefined,
+      ...(formState.specialityUid && {
+        speciality_id: formState.specialityUid,
+      }),
+      ...(formState.slotUid && { schedule_id: formState.slotUid }),
     };
 
     setIsSubmitting(true);
@@ -364,9 +364,10 @@ const FeeManagement: React.FC = () => {
                   isLoadingProviders ? "Loading..." : "Select provider"
                 }
                 searchable
+                clearable
                 required
                 disabled={isLoadingProviders}
-                value={formState.providerUid}
+                value={formState.providerUid || null}
                 onChange={(value) =>
                   updateFormField("providerUid", value || "")
                 }
@@ -384,7 +385,8 @@ const FeeManagement: React.FC = () => {
                   isLoadingSpecialities ? "Loading..." : "Select speciality"
                 }
                 searchable
-                value={formState.specialityUid}
+                clearable
+                value={formState.specialityUid || null}
                 onChange={(value) =>
                   updateFormField("specialityUid", value || "")
                 }
@@ -405,9 +407,10 @@ const FeeManagement: React.FC = () => {
                   isLoadingSlots ? "Loading..." : "Select availability"
                 }
                 searchable
-                value={formState.slotUid}
+                clearable
+                value={formState.slotUid || null}
                 onChange={(value) => updateFormField("slotUid", value || "")}
-                disabled={isLoadingSlots || slots.length === 0}
+                // disabled={isLoadingSlots || slots.length === 0}
               />
             </Grid.Col>
 
@@ -416,8 +419,9 @@ const FeeManagement: React.FC = () => {
                 label="Appointment Type"
                 data={APPOINTMENT_TYPES}
                 placeholder="Select appointment type"
+                clearable
                 required
-                value={formState.appointmentType}
+                value={formState.appointmentType || null}
                 onChange={(value) =>
                   updateFormField("appointmentType", value || "")
                 }
@@ -445,7 +449,7 @@ const FeeManagement: React.FC = () => {
               <Select
                 label="Commission Type"
                 data={[...COMMISSION_TYPES]}
-                value={formState.commissionType}
+                value={formState.commissionType || null}
                 onChange={(value) =>
                   updateFormField("commissionType", value || "Flat")
                 }

@@ -71,6 +71,16 @@ import type {
   SidebarMenuResponse,
   CreateRolePermissionResponse,
   QrCodeApiResponse,
+  DoctorLoginPayload,
+  DoctorVerifyOtpPayload,
+  DoctorVerifyOtpResponse,
+  DoctorAppointmentListResponse,
+  DocLoginResponse,
+  MedicineSidebarResponse,
+  AppointmentResponse,
+  VitalListResponse,
+  CreatePrescriptionPayload,
+  CreatePrescriptionResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -297,10 +307,11 @@ class Apis {
 
   async AddProvider(
     organization_id: string,
+    center_id: string,
     payload: ProviderDetails
   ): Promise<OrganizationSuccessResponse> {
     const response = await apiAgent
-      .path(`/organizations/${organization_id}/doctors`)
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors`)
       .method("POST")
       .json(payload)
       .execute();
@@ -894,7 +905,7 @@ class Apis {
     const response = await apiAgent
       .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/units`)
       .method("GET")
-      .query({ search ,pageNumber, pageSize })
+      .query({ search, pageNumber, pageSize })
       .execute();
     return response.data as UnitsListResponse;
 
@@ -1210,6 +1221,127 @@ class Apis {
   //     .execute();
   //   return response.data as any;
   // }
+
+  // Doctor Login APIs
+  async DoctorLogin(payload: DoctorLoginPayload): Promise<DocLoginResponse> {
+    const response = await apiAgent
+      .path("/doctors/auth/login/send-otp")
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as DocLoginResponse;
+  }
+
+  async DoctorVerifyOtp(payload: DoctorVerifyOtpPayload): Promise<DoctorVerifyOtpResponse> {
+    const response = await apiAgent
+      .path("/doctors/auth/login/verify-otp")
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as DoctorVerifyOtpResponse;
+  }
+
+  async DoctorResendOtp(payload: ResendOtpPayload): Promise<ResendOtpResponse> {
+    const response = await apiAgent
+      .path("/doctors/auth/login/resend-otp")
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as ResendOtpResponse;
+  }
+
+  async GetDoctorAppointments(
+    organization_id: string,
+    center_id: string,
+    doctor_id: string,
+    pageNumber: number = 1,
+    pageSize: number = 5
+  ): Promise<DoctorAppointmentListResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${doctor_id}/appointments`)
+      .method("GET")
+      .query({ pageNumber, pageSize })
+      .execute();
+    return response.data as DoctorAppointmentListResponse;
+  }
+
+  async GetDoctorSidebarMenu(
+    organization_id: string,
+    center_id: string,
+    doctor_id: string
+  ): Promise<SidebarMenuResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${doctor_id}/sidebar-menu`)
+      .method("GET")
+      .execute();
+    return response.data as SidebarMenuResponse;
+  }
+
+
+
+  //https://www.api.clinikpe.com/medicine?search=par
+  async GetMedicineList(
+    search: string,
+  ): Promise<MedicineSidebarResponse> {
+    const response = await apiAgent
+      .path(`/medicine`)
+      .method("GET")
+      .query({ search })
+      .execute();
+    return response.data as MedicineSidebarResponse;
+  }
+
+
+  async DoctorDashboardData(
+    organization_id: string,
+    center_id: string,
+    doctor_id: string,
+    from_date?: string,
+    to_date?: string
+  ): Promise<AppointmentResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${doctor_id}/dashboards`)
+      .method("GET")
+      .query({ from_date, to_date })
+      .execute();
+    return response.data as AppointmentResponse;
+  }
+
+
+
+  // async GetInvestigrationsList(
+
+  // ): Promise<InvestigationListResponse> {
+  //   const response = await apiAgent
+  //     .path(`/investigations`)
+  //     .method("GET")
+  //     .query()
+  //     .execute();
+  //   return response.data as InvestigationListResponse;
+  // }
+
+
+  async GetVitals(
+
+  ): Promise<VitalListResponse> {
+    const response = await apiAgent
+      .path(`doctor/vital/list`)
+      .method("GET")
+      .execute();
+    return response.data as VitalListResponse;
+  }
+
+  async CreatePrescription(
+
+    payload: CreatePrescriptionPayload
+  ): Promise<CreatePrescriptionResponse> {
+    const response = await apiAgent
+      .path(`/doctor/e-prescription`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as CreatePrescriptionResponse;
+  }
 
 }
 const apis = new Apis();

@@ -1,4 +1,5 @@
-import { useState, type ChangeEvent } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Drawer,
   Select,
@@ -10,44 +11,114 @@ import {
 } from "@mantine/core";
 import { IconSearch, IconEye } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
-
-// Appointment record type
-interface Appointment {
-  id: number;
-  time: string;
-  name: string;
-  details: string;
-  type: string;
-  amount: number;
-  status: string;
-}
+import apis from "../../../APis/Api";
+import { useDoctorAuthStore } from "../../../GlobalStore/doctorStore";
+import type { DoctorAppointment } from "../../../APis/Types";
 
 export default function Appointments() {
+  const navigate = useNavigate();
   const [opened, setOpened] = useState(false);
   const [selectedAppointment, setSelectedAppointment] =
-    useState<Appointment | null>(null);
+    useState<DoctorAppointment | null>(null);
   const [page, setPage] = useState(1);
-  const [recordsData, setRecordsData] = useState<Appointment[]>([]);
-  const [allRecords, setAllRecords] = useState<Appointment[]>([]);
+  const [recordsData, setRecordsData] = useState<DoctorAppointment[]>([]);
+  const [allRecords, setAllRecords] = useState<DoctorAppointment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [totalRecords, setTotalRecords] = useState(0);
   const PAGE_SIZE = 10;
 
-  // No mock data: initialize both records to empty array
-  // recordsData will be filled from the API in the future
+  const doctor = useDoctorAuthStore((state) => state.doctor);
+  console.log("Doctor from store:", doctor);
+
+  const fetchAppointments = async () => {
+    if (!doctor?.organization_id || !doctor?.user_id) {
+      console.error("Missing doctor organization_id or user_id");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await apis.GetDoctorAppointments(
+        doctor.organization_id,
+        doctor.center_id || "all",
+        doctor.user_id,
+        page,
+        PAGE_SIZE
+      );
+
+      console.log("Appointments API Response:", response);
+
+      if (response.success && response.data?.appointments) {
+        const appointments = Array.isArray(response.data.appointments)
+          ? response.data.appointments
+          : [];
+        setRecordsData(appointments);
+        setAllRecords(appointments);
+        setTotalRecords(response.data.pagination?.totalRecords || 0);
+      } else {
+        // Set empty arrays if response is not successful
+        setRecordsData([]);
+        setAllRecords([]);
+        setTotalRecords(0);
+      }
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      // Set empty arrays on error
+      setRecordsData([]);
+      setAllRecords([]);
+      setTotalRecords(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // fetch whenever page changes or doctor (center/user) changes
+    fetchAppointments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, doctor?.center_id, doctor?.user_id]);
+
+  // Reset page when center or doctor user changes so the new data loads from page 1
+  useEffect(() => {
+    setPage(1);
+  }, [doctor?.center_id, doctor?.user_id]);
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase();
-    setRecordsData(
-      allRecords.filter(
-        (r) =>
-          r.name.toLowerCase().includes(value) ||
-          r.details.toLowerCase().includes(value)
-      )
+    if (!value.trim()) {
+      setRecordsData(allRecords);
+      return;
+    }
+
+    const filtered = allRecords.filter(
+      (r) =>
+        r.patient_name.toLowerCase().includes(value) ||
+        (r.symptoms && r.symptoms.toLowerCase().includes(value))
     );
+    setRecordsData(filtered);
   };
 
-  const handleView = (appointment: Appointment) => {
+  const handleView = (appointment: DoctorAppointment) => {
     setSelectedAppointment(appointment);
     setOpened(true);
+  };
+
+  const formatTime = (time: string) => {
+    // Convert 24hr format to 12hr format
+    const [hours, minutes] = time.split(":");
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const formattedHour = hour % 12 || 12;
+    return `${formattedHour}:${minutes} ${ampm}`;
+  };
+
+  const formatDate = (date: string) => {
+    const d = new Date(date);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   return (
@@ -80,29 +151,47 @@ export default function Appointments() {
       </div>
 
       {/* Data Table */}
-      <DataTable<Appointment>
+      <DataTable<DoctorAppointment>
         withTableBorder
         borderRadius="md"
         highlightOnHover
         minHeight={200}
-        totalRecords={recordsData.length}
+        totalRecords={totalRecords}
         recordsPerPage={PAGE_SIZE}
         page={page}
         onPageChange={setPage}
-        records={recordsData.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)}
+        records={Array.isArray(recordsData) ? recordsData : []}
+        fetching={loading}
+        noRecordsText="No appointments found"
         columns={[
-          { accessor: "time", title: "Time", width: 100 },
+          {
+            accessor: "time",
+            title: "Time",
+            width: 120,
+            render: (record) => formatTime(record.time),
+          },
           {
             accessor: "patient",
             title: "Patient",
             render: (record) => (
               <Group gap="sm">
-                <Avatar radius="xl" size="sm" />
+                <Avatar src={record.patient_image} radius="xl" size="sm" />
                 <div>
-                  <p className="font-medium">{record.name}</p>
-                  <p className="text-xs text-gray-500">{record.details}</p>
+                  <p className="font-medium">{record.patient_name}</p>
+                  <p className="text-xs text-gray-500">
+                    {formatDate(record.date)}
+                  </p>
                 </div>
               </Group>
+            ),
+          },
+          {
+            accessor: "doctor_name",
+            title: "Doctor",
+            render: (record) => (
+              <div>
+                <p className="font-medium">{record.doctor_name}</p>
+              </div>
             ),
           },
           {
@@ -112,22 +201,26 @@ export default function Appointments() {
               <Badge
                 size="lg"
                 color={
-                  record.type === "Online"
+                  record.appointment_type === "online"
                     ? "#0D52AF"
-                    : record.type === "In-Clinic"
+                    : record.appointment_type === "in_clinic"
                     ? "teal"
                     : "gray"
                 }
                 variant="light"
               >
-                {record.type}
+                {record.appointment_type === "in_clinic"
+                  ? "In-Clinic"
+                  : record.appointment_type === "online"
+                  ? "Online"
+                  : "N/A"}
               </Badge>
             ),
           },
           {
-            accessor: "amount",
-            title: "Amount",
-            render: (record) => `₹${record.amount}`,
+            accessor: "duration",
+            title: "Duration",
+            render: (record) => `${record.duration} min`,
           },
           {
             accessor: "status",
@@ -135,10 +228,20 @@ export default function Appointments() {
             render: (record) => (
               <Badge
                 size="lg"
-                color={record.status === "Upcoming" ? "#0D52AF" : "gray"}
-                variant={record.status === "Upcoming" ? "filled" : "light"}
+                color={
+                  record.status === "active"
+                    ? "#0D52AF"
+                    : record.status === "cancel"
+                    ? "red"
+                    : "gray"
+                }
+                variant={record.status === "active" ? "filled" : "light"}
               >
-                {record.status}
+                {record.status === "active"
+                  ? "Active"
+                  : record.status === "cancel"
+                  ? "Cancelled"
+                  : record.status}
               </Badge>
             ),
           },
@@ -171,51 +274,102 @@ export default function Appointments() {
           <>
             <div className="p-3 rounded-lg bg-[#F9FAFB] border border-[#EAEAEA]">
               <div className="flex items-center gap-4 mb-2">
-                <Avatar src="/images/Ellipse.webp" alt="it's me" />
+                <Avatar src={selectedAppointment.patient_image} radius="xl" size="lg" />
                 <div>
                   <div className="text-lg text-black font-semibold">
-                    Ananya Sharma
+                    {selectedAppointment.patient_name}
                   </div>
-                  <div className="text-sm text-[#74777E]">F, 28, Mumbai</div>
+                  <div className="text-sm text-[#74777E]">
+                    Patient ID: {selectedAppointment.patient_id}
+                  </div>
+                  <div className="text-sm text-[#74777E]">
+                    Appointment ID: {selectedAppointment.uid}
+                  </div>
                 </div>
               </div>
-              <div className="bg-white flex items-center gap-2 p-3 text-[#74777E] border border-[#EAEAEA]">
-                <i>
-                  <svg
-                    width="13"
-                    height="16"
-                    viewBox="0 0 13 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M6.44472 5.58503L5.10068 6.77211C5.27835 7.37074 5.52652 7.94687 5.84015 8.48874C6.16728 9.02666 6.56147 9.52219 7.01354 9.9638L8.75413 9.43585C9.72925 9.13988 10.7938 9.44385 11.4422 10.2038L12.4336 11.3653C12.835 11.8315 13.0362 12.4333 12.9946 13.0431C12.9531 13.6529 12.672 14.2228 12.2109 14.6321C10.5939 16.0848 8.10405 16.576 6.23995 15.1345C4.60088 13.8654 3.21453 12.3087 2.15094 10.5429C1.08464 8.78591 0.370728 6.84378 0.0479279 4.8219C-0.309616 2.54693 1.38222 0.726303 3.49173 0.105564C4.74964 -0.2656 6.09205 0.371138 6.55361 1.55822L7.09805 2.95809C7.4556 3.8796 7.19881 4.91949 6.44472 5.58503Z"
-                      fill="#74777E"
-                    />
-                  </svg>
-                </i>
-                <span>+91 9876543210</span>
-              </div>
             </div>
-            <div className="space-y-3 mt-3">
+            <div className="space-y-3 mt-4">
               <div className="text-lg text-black font-semibold mb-2">
-                Consultation Details
+                Appointment Details
               </div>
-              <p>
-                <strong>Reason:</strong> {selectedAppointment.time}
-              </p>
-              <p>
-                <strong>Last Visit:</strong> {selectedAppointment.name}
-              </p>
-              <p>
-                <strong>Age:</strong> {selectedAppointment.details}
-              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-sm text-[#74777E]">Date</p>
+                  <p className="font-medium">
+                    {formatDate(selectedAppointment.date)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#74777E]">Time</p>
+                  <p className="font-medium">
+                    {formatTime(selectedAppointment.time)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#74777E]">Duration</p>
+                  <p className="font-medium">
+                    {selectedAppointment.duration} minutes
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#74777E]">Type</p>
+                  <p className="font-medium">
+                    {selectedAppointment.appointment_type === "in_clinic"
+                      ? "In-Clinic"
+                      : selectedAppointment.appointment_type === "online"
+                      ? "Online"
+                      : "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#74777E]">Status</p>
+                  <Badge
+                    color={
+                      selectedAppointment.status === "active"
+                        ? "#0D52AF"
+                        : selectedAppointment.status === "cancel"
+                        ? "red"
+                        : "gray"
+                    }
+                  >
+                    {selectedAppointment.status === "active"
+                      ? "Active"
+                      : selectedAppointment.status === "cancel"
+                      ? "Cancelled"
+                      : selectedAppointment.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-[#74777E]">Doctor</p>
+                  <p className="font-medium">
+                    {selectedAppointment.doctor_name}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="text-lg mt-4 mb-2">Doctor Notes</div>
-            <div className="p-4 bg-[#F9F9F9] rounded-lg text-[#74777E]">
-              Patient reports feeling well, blood pressure is stable. Continue
-              with current medication. Advised to monitor BP at home and report
-              any significant changes. Next follow-up in 3 months.
+            {selectedAppointment.symptoms && (
+              <>
+                <div className="text-lg mt-4 mb-2">Symptoms</div>
+                <div className="p-4 bg-[#F9F9F9] rounded-lg text-[#74777E]">
+                  {selectedAppointment.symptoms}
+                </div>
+              </>
+            )}
+            <div className="mt-6">
+              <Button
+                fullWidth
+                className="!bg-[#0D52AF]"
+                size="md"
+                onClick={() => {
+                  navigate("/e-prescription", {
+                    state: {
+                      appointment: selectedAppointment,
+                    },
+                  });
+                }}
+              >
+                Create Prescription
+              </Button>
             </div>
           </>
         ) : (
