@@ -15,7 +15,18 @@ import apis from "../../../APis/Api";
 import { useDoctorAuthStore } from "../../../GlobalStore/doctorStore";
 import type { DoctorAppointment } from "../../../APis/Types";
 
-export default function Appointments() {
+interface AppointmentsProps {
+  // Optional: pass appointments data from parent to avoid duplicate API calls
+  externalData?: DoctorAppointment[];
+  externalLoading?: boolean;
+  hidePagination?: boolean;
+}
+
+export default function Appointments({
+  externalData,
+  externalLoading,
+  hidePagination,
+}: AppointmentsProps = {}) {
   const navigate = useNavigate();
   const [opened, setOpened] = useState(false);
   const [selectedAppointment, setSelectedAppointment] =
@@ -25,16 +36,49 @@ export default function Appointments() {
   const [allRecords, setAllRecords] = useState<DoctorAppointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
   const PAGE_SIZE = 10;
 
   const doctor = useDoctorAuthStore((state) => state.doctor);
-  console.log("Doctor from store:", doctor);
+
+  // Check if we're using external data (from parent component like Dashboard)
+  const useExternalData = externalData !== undefined;
+
+  // Initialize default date range on component mount (only when fetching our own data)
+  useEffect(() => {
+    if (useExternalData) return; // Skip if using external data
+
+    const today = new Date();
+
+    // from_date: 2 days ago
+    const fromDateObj = new Date(today);
+    fromDateObj.setDate(fromDateObj.getDate() - 2);
+
+    // to_date: 7 days from now
+    const toDateObj = new Date(today);
+    toDateObj.setDate(toDateObj.getDate() + 7);
+
+    setFromDate(fromDateObj.toISOString().split("T")[0]);
+    setToDate(toDateObj.toISOString().split("T")[0]);
+  }, [useExternalData]);
+
+  // Update local state when external data changes
+  useEffect(() => {
+    if (useExternalData && externalData) {
+      setRecordsData(externalData);
+      setAllRecords(externalData);
+      setTotalRecords(externalData.length);
+    }
+  }, [externalData, useExternalData]);
 
   const fetchAppointments = async () => {
+    if (useExternalData) return; // Skip if using external data
     if (!doctor?.organization_id || !doctor?.user_id) {
       console.error("Missing doctor organization_id or user_id");
       return;
     }
+    if (!fromDate || !toDate) return; // Wait for dates to be set
 
     setLoading(true);
     try {
@@ -43,7 +87,9 @@ export default function Appointments() {
         doctor.center_id || "all",
         doctor.user_id,
         page,
-        PAGE_SIZE
+        PAGE_SIZE,
+        fromDate,
+        toDate
       );
 
       console.log("Appointments API Response:", response);
@@ -73,15 +119,27 @@ export default function Appointments() {
   };
 
   useEffect(() => {
-    // fetch whenever page changes or doctor (center/user) changes
+    if (useExternalData) return; // Skip if using external data
+    if (!fromDate || !toDate) return; // Wait for dates to be set
+
+    // fetch whenever page changes, doctor (center/user) changes, or date range changes
     fetchAppointments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, doctor?.center_id, doctor?.user_id]);
+  }, [
+    page,
+    doctor?.center_id,
+    doctor?.user_id,
+    fromDate,
+    toDate,
+    useExternalData,
+  ]);
 
   // Reset page when center or doctor user changes so the new data loads from page 1
   useEffect(() => {
-    setPage(1);
-  }, [doctor?.center_id, doctor?.user_id]);
+    if (!useExternalData) {
+      setPage(1);
+    }
+  }, [doctor?.center_id, doctor?.user_id, useExternalData]);
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase();
@@ -151,116 +209,225 @@ export default function Appointments() {
       </div>
 
       {/* Data Table */}
-      <DataTable<DoctorAppointment>
-        withTableBorder
-        borderRadius="md"
-        highlightOnHover
-        minHeight={200}
-        totalRecords={totalRecords}
-        recordsPerPage={PAGE_SIZE}
-        page={page}
-        onPageChange={setPage}
-        records={Array.isArray(recordsData) ? recordsData : []}
-        fetching={loading}
-        noRecordsText="No appointments found"
-        columns={[
-          {
-            accessor: "time",
-            title: "Time",
-            width: 120,
-            render: (record) => formatTime(record.time),
-          },
-          {
-            accessor: "patient",
-            title: "Patient",
-            render: (record) => (
-              <Group gap="sm">
-                <Avatar src={record.patient_image} radius="xl" size="sm" />
+      {hidePagination ? (
+        <DataTable<DoctorAppointment>
+          withTableBorder
+          borderRadius="md"
+          highlightOnHover
+          minHeight={200}
+          records={Array.isArray(recordsData) ? recordsData : []}
+          fetching={useExternalData ? externalLoading : loading}
+          noRecordsText="No appointments found"
+          columns={[
+            {
+              accessor: "time",
+              title: "Time",
+              width: 120,
+              render: (record) => formatTime(record.time),
+            },
+            {
+              accessor: "patient",
+              title: "Patient",
+              render: (record) => (
+                <Group gap="sm">
+                  <Avatar src={record.patient_image} radius="xl" size="sm" />
+                  <div>
+                    <p className="font-medium">{record.patient_name}</p>
+                    <p className="text-xs text-gray-500">
+                      {formatDate(record.date)}
+                    </p>
+                  </div>
+                </Group>
+              ),
+            },
+            {
+              accessor: "doctor_name",
+              title: "Doctor",
+              render: (record) => (
                 <div>
-                  <p className="font-medium">{record.patient_name}</p>
-                  <p className="text-xs text-gray-500">
-                    {formatDate(record.date)}
-                  </p>
+                  <p className="font-medium">{record.doctor_name}</p>
                 </div>
-              </Group>
-            ),
-          },
-          {
-            accessor: "doctor_name",
-            title: "Doctor",
-            render: (record) => (
-              <div>
-                <p className="font-medium">{record.doctor_name}</p>
-              </div>
-            ),
-          },
-          {
-            accessor: "type",
-            title: "Type",
-            render: (record) => (
-              <Badge
-                size="lg"
-                color={
-                  record.appointment_type === "online"
-                    ? "#0D52AF"
-                    : record.appointment_type === "in_clinic"
-                    ? "teal"
-                    : "gray"
-                }
-                variant="light"
-              >
-                {record.appointment_type === "in_clinic"
-                  ? "In-Clinic"
-                  : record.appointment_type === "online"
-                  ? "Online"
-                  : "N/A"}
-              </Badge>
-            ),
-          },
-          {
-            accessor: "duration",
-            title: "Duration",
-            render: (record) => `${record.duration} min`,
-          },
-          {
-            accessor: "status",
-            title: "Status",
-            render: (record) => (
-              <Badge
-                size="lg"
-                color={
-                  record.status === "active"
-                    ? "#0D52AF"
+              ),
+            },
+            {
+              accessor: "type",
+              title: "Type",
+              render: (record) => (
+                <Badge
+                  size="lg"
+                  color={
+                    record.appointment_type === "online"
+                      ? "#0D52AF"
+                      : record.appointment_type === "in_clinic"
+                      ? "teal"
+                      : "gray"
+                  }
+                  variant="light"
+                >
+                  {record.appointment_type === "in_clinic"
+                    ? "In-Clinic"
+                    : record.appointment_type === "online"
+                    ? "Online"
+                    : "N/A"}
+                </Badge>
+              ),
+            },
+            {
+              accessor: "duration",
+              title: "Duration",
+              render: (record) => `${record.duration} min`,
+            },
+            {
+              accessor: "status",
+              title: "Status",
+              render: (record) => (
+                <Badge
+                  size="lg"
+                  color={
+                    record.status === "active"
+                      ? "#0D52AF"
+                      : record.status === "cancel"
+                      ? "red"
+                      : "gray"
+                  }
+                  variant={record.status === "active" ? "filled" : "light"}
+                >
+                  {record.status === "active"
+                    ? "Active"
                     : record.status === "cancel"
-                    ? "red"
-                    : "gray"
-                }
-                variant={record.status === "active" ? "filled" : "light"}
-              >
-                {record.status === "active"
-                  ? "Active"
-                  : record.status === "cancel"
-                  ? "Cancelled"
-                  : record.status}
-              </Badge>
-            ),
-          },
-          {
-            accessor: "action",
-            title: "Action",
-            render: (record) => (
-              <Button
-                variant="subtle"
-                color="gray"
-                size="compact-xs"
-                onClick={() => handleView(record)}
-              >
-                <IconEye size={16} />
-              </Button>
-            ),
-          },
-        ]}
-      />
+                    ? "Cancelled"
+                    : record.status}
+                </Badge>
+              ),
+            },
+            {
+              accessor: "action",
+              title: "Action",
+              render: (record) => (
+                <Button
+                  variant="subtle"
+                  color="gray"
+                  size="compact-xs"
+                  onClick={() => handleView(record)}
+                >
+                  <IconEye size={16} />
+                </Button>
+              ),
+            },
+          ]}
+        />
+      ) : (
+        <DataTable<DoctorAppointment>
+          withTableBorder
+          borderRadius="md"
+          highlightOnHover
+          minHeight={200}
+          totalRecords={totalRecords}
+          recordsPerPage={PAGE_SIZE}
+          page={page}
+          onPageChange={setPage}
+          records={Array.isArray(recordsData) ? recordsData : []}
+          fetching={useExternalData ? externalLoading : loading}
+          noRecordsText="No appointments found"
+          columns={[
+            {
+              accessor: "time",
+              title: "Time",
+              width: 120,
+              render: (record) => formatTime(record.time),
+            },
+            {
+              accessor: "patient",
+              title: "Patient",
+              render: (record) => (
+                <Group gap="sm">
+                  <Avatar src={record.patient_image} radius="xl" size="sm" />
+                  <div>
+                    <p className="font-medium">{record.patient_name}</p>
+                    <p className="text-xs text-gray-500">
+                      {formatDate(record.date)}
+                    </p>
+                  </div>
+                </Group>
+              ),
+            },
+            {
+              accessor: "doctor_name",
+              title: "Doctor",
+              render: (record) => (
+                <div>
+                  <p className="font-medium">{record.doctor_name}</p>
+                </div>
+              ),
+            },
+            {
+              accessor: "type",
+              title: "Type",
+              render: (record) => (
+                <Badge
+                  size="lg"
+                  color={
+                    record.appointment_type === "online"
+                      ? "#0D52AF"
+                      : record.appointment_type === "in_clinic"
+                      ? "teal"
+                      : "gray"
+                  }
+                  variant="light"
+                >
+                  {record.appointment_type === "in_clinic"
+                    ? "In-Clinic"
+                    : record.appointment_type === "online"
+                    ? "Online"
+                    : "N/A"}
+                </Badge>
+              ),
+            },
+            {
+              accessor: "duration",
+              title: "Duration",
+              render: (record) => `${record.duration} min`,
+            },
+            {
+              accessor: "status",
+              title: "Status",
+              render: (record) => (
+                <Badge
+                  size="lg"
+                  color={
+                    record.status === "active"
+                      ? "#0D52AF"
+                      : record.status === "cancel"
+                      ? "red"
+                      : "gray"
+                  }
+                  variant={record.status === "active" ? "filled" : "light"}
+                >
+                  {record.status === "active"
+                    ? "Active"
+                    : record.status === "cancel"
+                    ? "Cancelled"
+                    : record.status}
+                </Badge>
+              ),
+            },
+            {
+              accessor: "action",
+              title: "Action",
+              render: (record) => (
+                <Button
+                  variant="subtle"
+                  color="gray"
+                  size="compact-xs"
+                  onClick={() => handleView(record)}
+                >
+                  <IconEye size={16} />
+                </Button>
+              ),
+            },
+          ]}
+        />
+      )}
 
       {/* Drawer */}
       <Drawer
@@ -274,7 +441,11 @@ export default function Appointments() {
           <>
             <div className="p-3 rounded-lg bg-[#F9FAFB] border border-[#EAEAEA]">
               <div className="flex items-center gap-4 mb-2">
-                <Avatar src={selectedAppointment.patient_image} radius="xl" size="lg" />
+                <Avatar
+                  src={selectedAppointment.patient_image}
+                  radius="xl"
+                  size="lg"
+                />
                 <div>
                   <div className="text-lg text-black font-semibold">
                     {selectedAppointment.patient_name}

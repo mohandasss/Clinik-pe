@@ -1,12 +1,17 @@
 import { Button } from "@mantine/core";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import Appointments from "../../../components/Doctor/Appointments/Appointments";
 import { Link } from "react-router-dom";
 import apis from "../../../APis/Api";
 import { useDoctorAuthStore } from "../../../GlobalStore/doctorStore";
+import type { DoctorAppointment } from "../../../APis/Types";
 
 export default function DoctorDashboardPage() {
   const doctor = useDoctorAuthStore((s) => s.doctor);
+  const [dashboardAppointments, setDashboardAppointments] = useState<
+    DoctorAppointment[]
+  >([]);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
     if (!doctor) return;
@@ -16,6 +21,7 @@ export default function DoctorDashboardPage() {
       );
       return;
     }
+    setDashboardLoading(true);
     try {
       // Call the API and log the response structure
       const resp = await apis.DoctorDashboardData(
@@ -23,10 +29,21 @@ export default function DoctorDashboardPage() {
         doctor.center_id ?? "",
         doctor.doctor_id
       );
+
       // Log the structure so you can inspect it
-      console.log("DoctorDashboardData response:", resp);
+      console.log("DoctorDashboardData response:", resp.data.appointments);
+
+      // Set appointments data from dashboard API
+      if (resp.success && resp.data?.appointments) {
+        setDashboardAppointments(resp.data.appointments as DoctorAppointment[]);
+      } else {
+        setDashboardAppointments([]);
+      }
     } catch (err) {
       console.error("Failed to fetch DoctorDashboardData:", err);
+      setDashboardAppointments([]);
+    } finally {
+      setDashboardLoading(false);
     }
   }, [doctor]);
 
@@ -130,11 +147,15 @@ export default function DoctorDashboardPage() {
                     View All
                   </Link>
                   <Button size="xs" variant="default" onClick={fetchDashboard}>
-                    Log Dashboard
+                    Refresh
                   </Button>
                 </div>
               </div>
-              <Appointments />
+              <Appointments
+                externalData={dashboardAppointments}
+                externalLoading={dashboardLoading}
+                hidePagination={true}
+              />
             </div>
           </div>
           <div className="flex flex-col gap-4">

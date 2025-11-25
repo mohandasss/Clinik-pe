@@ -7,9 +7,9 @@ import {
   ScrollArea,
   MultiSelect,
 } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import { IconPlus } from "@tabler/icons-react";
 import AddPatientScheduling from "./Components/AddPatientScheduling";
-import CustomDatePicker from "./Components/CustomDatePicker";
 import useAuthStore from "../../GlobalStore/store";
 import useDropdownStore from "../../GlobalStore/useDropdownStore";
 import { notifications } from "@mantine/notifications";
@@ -608,11 +608,11 @@ const BookingPage: React.FC = () => {
     setProvider("");
     setScheduleProvider("");
     setSelectedSpeciality("");
-    
+
     // Clear slots
     setAvailableSlots([]);
     setScheduleSlots([]);
-    
+
     // Reset date to today or null depending on desired behavior. Use null to 'empty' as requested
     setSelectedDate(null);
     setScheduleSelectedDate(null);
@@ -942,9 +942,12 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({
             disabled={loadingProviders}
           />
           <div className="w-full">
-            <CustomDatePicker
-              value={selectedDate}
-              onChange={onDateChange}
+            <DateInput
+              placeholder="Select Date "
+              value={
+                selectedDate ? selectedDate.toISOString().split("T")[0] : null
+              }
+              onChange={(value) => onDateChange(value ? new Date(value) : null)}
               label="Date"
               minDate={new Date()}
             />
@@ -1162,19 +1165,21 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       <div className="flex flex-col gap-4">
         <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
           <Select
+            clearable
             searchable
             label="Patient"
             placeholder="Select Patient"
-            value={selectedPatientId}
+            value={selectedPatientId || null}
             data={patientOptions}
             onChange={onPatientChange}
             disabled={loadingPatients}
           />
           <Select
+            clearable
             searchable
             label="Provider"
             placeholder="Select Provider"
-            value={provider}
+            value={provider || null}
             data={providerOptions}
             onChange={(val) => onProviderChange(val || "")}
             disabled={loadingProviders}
@@ -1190,8 +1195,9 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
             readOnly
           />
           <Select
+            clearable
             label="Appointment Type"
-            value={appointmentType}
+            value={appointmentType || null}
             data={[...appointmentTypes]}
             placeholder="Select Appointment Type"
             onChange={(val) => onAppointmentTypeChange(val || "")}
@@ -1200,10 +1206,11 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
 
         <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
           <Select
+            clearable
             searchable
             label="Speciality"
             placeholder="Select Speciality"
-            value={selectedSpeciality}
+            value={selectedSpeciality || null}
             data={specialityOptions}
             onChange={(val) => onSpecialityChange(val || "")}
             disabled={!provider || specialityOptions.length === 0}
@@ -1230,9 +1237,12 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          <CustomDatePicker
-            value={selectedDate}
-            onChange={onDateChange}
+          <DateInput
+            placeholder="Select date"
+            value={
+              selectedDate ? selectedDate.toISOString().split("T")[0] : null
+            }
+            onChange={(value) => onDateChange(value ? new Date(value) : null)}
             label="Date"
             minDate={new Date()}
           />
@@ -1412,7 +1422,6 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   onPaymentNoteChange,
   loadingFee,
 }) => {
-  console.log("Loading fee:", actualFee);
   if (loadingFee) {
     return (
       <div className="border rounded-lg p-4 bg-gray-50">
@@ -1427,9 +1436,14 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
 
   return (
     <div className="border rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
-      <h3 className="text-base font-semibold mb-3 text-gray-800">
-        Payment Details
-      </h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-semibold text-gray-800">
+          Payment Details
+        </h3>
+        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          Optional
+        </span>
+      </div>
 
       {/* Fee Display */}
       <div className="mb-3 p-3 bg-white rounded-lg border border-blue-200">
@@ -1446,7 +1460,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
       {/* Discount Section */}
       <div className="mb-3">
         <label className="text-sm font-medium text-gray-700 block mb-2">
-          Discount
+          Discount <span className="text-gray-400 font-normal">(Optional)</span>
         </label>
         <div className="flex gap-2">
           <div className="flex-1">
@@ -1485,90 +1499,99 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
         </div>
       </div>
 
-      {/* Payment Received Checkbox */}
-      <div className="mb-3">
-        <label className="flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isPaymentReceived}
-            onChange={(e) => onPaymentReceivedChange(e.target.checked)}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-          />
-          <span className="ml-2 text-sm font-medium text-gray-700">
-            Payment Received
-          </span>
-        </label>
+      {/* Collect Payment Now Section */}
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mb-3">
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isPaymentReceived}
+              onChange={(e) => onPaymentReceivedChange(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="ml-2 text-sm font-medium text-gray-700">
+              Collect Payment Now
+            </span>
+            <span className="ml-2 text-xs text-gray-400">
+              (Optional - can collect later)
+            </span>
+          </label>
+        </div>
+
+        {/* Show payment fields only if payment is received */}
+        {isPaymentReceived && (
+          <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-3">
+            {/* Amount Paid */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">
+                Amount Paid
+              </label>
+              <TextInput
+                type="number"
+                placeholder="Enter amount paid"
+                value={amountPaid}
+                onChange={(e) => onAmountPaidChange(e.target.value)}
+                min="0"
+                max={payableAmount.toString()}
+              />
+              {amountPaid && parseFloat(amountPaid) > payableAmount && (
+                <p className="text-xs text-red-600 mt-1">
+                  Amount paid cannot exceed payable amount
+                </p>
+              )}
+              {amountPaid &&
+                parseFloat(amountPaid) < payableAmount &&
+                parseFloat(amountPaid) > 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Partial payment (Advance): ₹
+                    {parseFloat(amountPaid).toFixed(2)} paid, ₹
+                    {(payableAmount - parseFloat(amountPaid)).toFixed(2)}{" "}
+                    remaining
+                  </p>
+                )}
+              {amountPaid && parseFloat(amountPaid) === payableAmount && (
+                <p className="text-xs text-green-600 mt-1">
+                  Full payment received
+                </p>
+              )}
+            </div>
+
+            {/* Payment Mode */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">
+                Payment Mode
+              </label>
+              <Select
+                data={[
+                  { value: "cash", label: "Cash" },
+                  { value: "online", label: "Online" },
+                  { value: "card", label: "Card" },
+                ]}
+                value={paymentMode}
+                onChange={(val) =>
+                  onPaymentModeChange(
+                    (val as "cash" | "online" | "card" | "") || ""
+                  )
+                }
+                placeholder="Select payment mode"
+              />
+            </div>
+
+            {/* Payment Note */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">
+                Payment Note{" "}
+                <span className="text-gray-400 font-normal">(Optional)</span>
+              </label>
+              <TextInput
+                placeholder="Add a note..."
+                value={paymentNote}
+                onChange={(e) => onPaymentNoteChange(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Show payment fields only if payment is received */}
-      {isPaymentReceived && (
-        <>
-          {/* Amount Paid */}
-          <div className="mb-3">
-            <label className="text-sm font-medium text-gray-700 block mb-2">
-              Amount Paid
-            </label>
-            <TextInput
-              type="number"
-              placeholder="Enter amount paid"
-              value={amountPaid}
-              onChange={(e) => onAmountPaidChange(e.target.value)}
-              min="0"
-              max={payableAmount.toString()}
-            />
-            {amountPaid && parseFloat(amountPaid) > payableAmount && (
-              <p className="text-xs text-red-600 mt-1">
-                Amount paid cannot exceed payable amount
-              </p>
-            )}
-            {amountPaid && parseFloat(amountPaid) < payableAmount && (
-              <p className="text-xs text-amber-600 mt-1">
-                Partial payment (Advance): ₹{parseFloat(amountPaid).toFixed(2)}{" "}
-                paid, ₹{(payableAmount - parseFloat(amountPaid)).toFixed(2)}{" "}
-                remaining
-              </p>
-            )}
-            {amountPaid && parseFloat(amountPaid) === payableAmount && (
-              <p className="text-xs text-green-600 mt-1">
-                Full payment received
-              </p>
-            )}
-          </div>
-
-          {/* Payment Mode */}
-          <div className="mb-3">
-            <label className="text-sm font-medium text-gray-700 block mb-2">
-              Payment Mode
-            </label>
-            <Select
-              data={[
-                { value: "cash", label: "Cash" },
-                { value: "online", label: "Online" },
-                { value: "card", label: "Card" },
-              ]}
-              value={paymentMode}
-              onChange={(val) =>
-                onPaymentModeChange(
-                  (val as "cash" | "online" | "card" | "") || ""
-                )
-              }
-              placeholder="Select payment mode"
-            />
-          </div>
-
-          {/* Payment Note */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">
-              Payment Note (Optional)
-            </label>
-            <TextInput
-              placeholder="Add a note..."
-              value={paymentNote}
-              onChange={(e) => onPaymentNoteChange(e.target.value)}
-            />
-          </div>
-        </>
-      )}
     </div>
   );
 };

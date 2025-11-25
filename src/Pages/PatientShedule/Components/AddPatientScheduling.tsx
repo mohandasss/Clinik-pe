@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Select, TextInput, Button, NumberInput } from "@mantine/core";
-import CustomDatePicker from "./CustomDatePicker";
+import { DateInput } from "@mantine/dates";
 import apis from "../../../APis/Api";
 import useAuthStore from "../../../GlobalStore/store";
 import useDropdownStore from "../../../GlobalStore/useDropdownStore";
@@ -18,6 +18,7 @@ const AddPatientScheduling: React.FC<Props> = ({ onClose, onPatientAdded }) => {
   const [dob, setDob] = useState<Date | null>(null);
   const [gender, setGender] = useState<string | null>(null);
   const [age, setAge] = useState<number | null>(null);
+  const [dobMode, setDobMode] = useState<"dob" | "age">("dob");
   // description removed (not part of patient payload)
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -37,6 +38,21 @@ const AddPatientScheduling: React.FC<Props> = ({ onClose, onPatientAdded }) => {
     if (numericValue.length <= 10) {
       setPhone(numericValue);
     }
+  };
+
+  const calculateAgeFromDOB = (d: Date) => {
+    const now = new Date();
+    let ageCalc = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) {
+      ageCalc--;
+    }
+    return ageCalc;
+  };
+
+  const calculateDOBFromAge = (a: number) => {
+    const now = new Date();
+    return new Date(now.getFullYear() - a, now.getMonth(), now.getDate());
   };
 
   const { organizationDetails } = useAuthStore();
@@ -82,15 +98,31 @@ const AddPatientScheduling: React.FC<Props> = ({ onClose, onPatientAdded }) => {
   const handleSave = async () => {
     if (!validateForm()) return;
 
-    // Build a complete payload with empty strings for fields not present
+    // Ensure the chosen DOB/Age mode has a value
+    if (dobMode === "dob" && !dob) {
+      notifications.show({
+        title: "Validation Error",
+        message: "Please select DOB or switch to Age mode",
+        color: "red",
+      });
+      return;
+    }
+
+    if (dobMode === "age" && (age === null || age === undefined)) {
+      notifications.show({
+        title: "Validation Error",
+        message: "Please enter Age or switch to DOB mode",
+        color: "red",
+      });
+      return;
+    }
+
+    // Build base payload (we will add either dob or age depending on mode)
     const payload: Record<string, unknown> = {
       name: firstName || "",
       last_name: lastName || "",
-      dob: dob ? dob.toISOString().slice(0, 10) : "",
       email: email || "",
       mobile: phone || "",
-      age: age !== null && age !== undefined ? age : 0,
-      age_on_date: dob ? dob.toISOString().slice(0, 10) : "",
       address: {
         address: address || "",
         lat: "",
@@ -109,6 +141,14 @@ const AddPatientScheduling: React.FC<Props> = ({ onClose, onPatientAdded }) => {
       },
       gender: gender || "",
     };
+
+    // Add either DOB (and age_on_date) OR age to the payload — not both
+    if (dobMode === "dob" && dob) {
+      payload.dob = dob.toISOString().slice(0, 10);
+      payload.age_on_date = dob.toISOString().slice(0, 10);
+    } else if (dobMode === "age" && age !== null && age !== undefined) {
+      payload.age = age;
+    }
     // remove stray invalid call; below we perform the API call with IDs from store
     // Grab org and center IDs from store
     const orgId = organizationDetails?.organization_id;
@@ -177,21 +217,76 @@ const AddPatientScheduling: React.FC<Props> = ({ onClose, onPatientAdded }) => {
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
           />
-          <div>
-            <CustomDatePicker
-              value={dob}
-              onChange={(date) => setDob(date)}
-              label="DOB"
+          <div className="col-span-2 flex items-center my-6 gap-3 w-full">
+            {/* Modern Pills Toggle */}
+            <div className="flex  bg-gray-100 rounded-full p-1 shadow-sm">
+              <button
+                onClick={() => setDobMode("dob")}
+                className={`px-3 py-1 text-sm rounded-full transition ${
+                  dobMode === "dob"
+                    ? "bg-blue-600 text-white shadow"
+                    : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                DOB
+              </button>
+
+              <button
+                onClick={() => setDobMode("age")}
+                className={`px-3 py-1 text-sm rounded-full transition ${
+                  dobMode === "age"
+                    ? "bg-blue-600 text-white shadow"
+                    : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Age
+              </button>
+            </div>
+
+            {/* DOB Input */}
+            <DateInput
+              placeholder={dobMode === "dob" ? "DOB" : "Auto"}
+              value={dob ? dob.toISOString().split("T")[0] : null}
+              onChange={(value) => {
+                const next = value ? new Date(value) : null;
+                setDob(next);
+                if (next) setAge(calculateAgeFromDOB(next));
+                else setAge(null);
+              }}
+              classNames={{
+                input: "h-9 text-sm",
+              }}
               minDate={new Date(1900, 0, 1)}
+              style={{ width: 260 }}
+              disabled={dobMode === "age"}
+            />
+
+            {/* Age Input */}
+            <NumberInput
+              placeholder={dobMode === "age" ? "Age" : "Auto"}
+              value={age ?? undefined}
+              onChange={(val: any) => {
+                const next =
+                  val === "" || val === undefined ? null : Number(val);
+                setAge(next);
+                if (next !== null && next !== undefined)
+                  setDob(calculateDOBFromAge(next));
+                else setDob(null);
+              }}
+              classNames={{
+                input: "h-9 text-sm",
+              }}
+              style={{ width: 120 }}
+              min={0}
+              disabled={dobMode === "dob"}
+            />
+            <Select
+              placeholder="Select Gender"
+              data={genders}
+              value={gender}
+              onChange={(val) => setGender(val)}
             />
           </div>
-          <Select
-            label="Gender"
-            placeholder="Select Gender"
-            data={genders}
-            value={gender}
-            onChange={(val) => setGender(val)}
-          />
         </div>
       </div>
 
@@ -232,14 +327,6 @@ const AddPatientScheduling: React.FC<Props> = ({ onClose, onPatientAdded }) => {
             placeholder="Enter email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-          />
-          <NumberInput
-            label="Age"
-            placeholder="Enter age"
-            value={age ?? undefined}
-            onChange={(val: string | number) =>
-              setAge(val === "" || val === undefined ? null : Number(val))
-            }
           />
         </div>
       </div>

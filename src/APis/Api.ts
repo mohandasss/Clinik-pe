@@ -81,6 +81,7 @@ import type {
   VitalListResponse,
   CreatePrescriptionPayload,
   CreatePrescriptionResponse,
+  LabResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -1255,12 +1256,14 @@ class Apis {
     center_id: string,
     doctor_id: string,
     pageNumber: number = 1,
-    pageSize: number = 5
+    pageSize: number = 5,
+    from_date?: string,
+    to_date?: string
   ): Promise<DoctorAppointmentListResponse> {
     const response = await apiAgent
       .path(`/organizations/${organization_id}/centers/${center_id}/doctors/${doctor_id}/appointments`)
       .method("GET")
-      .query({ pageNumber, pageSize })
+      .query({ pageNumber, pageSize, from_date, to_date })
       .execute();
     return response.data as DoctorAppointmentListResponse;
   }
@@ -1311,13 +1314,12 @@ class Apis {
 
   // async GetInvestigrationsList(
 
-  // ): Promise<InvestigationListResponse> {
+  // ): Promise<LabResponse> {
   //   const response = await apiAgent
-  //     .path(`/investigations`)
+  //     .path(`doctor/master/lab`)
   //     .method("GET")
-  //     .query()
   //     .execute();
-  //   return response.data as InvestigationListResponse;
+  //   return response.data as LabResponse;
   // }
 
 
@@ -1341,6 +1343,14 @@ class Apis {
       .json(payload)
       .execute();
     return response.data as CreatePrescriptionResponse;
+  }
+
+  async GetInvestigationsList(): Promise<LabResponse> {
+    const response = await apiAgent
+      .path(`/doctor/master/lab`)
+      .method("GET")
+      .execute();
+    return response.data as LabResponse;
   }
 
 }

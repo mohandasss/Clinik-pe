@@ -34,7 +34,7 @@ import ProviderAvailability from "./Pages/Availability/ProviderAvailability";
 import DoctorLoginPage from "./Pages/Doctor/DoctorLogin/DoctorLoginPage";
 import DoctorDashboardPage from "./Pages/Doctor/DoctorDashboard/DoctorDashboard";
 import AppointmentsPage from "./Pages/Doctor/Appointments/AppointmentsPage";
-import EprescriptionPage from "./Pages/Doctor/Eprescription/EprescriptionPage";
+import EprescriptionPage from "./Pages/Doctor/Eprescription/EprescriptionPageRefactored";
 
 // ===================== ⚪ Settings, Billing & Others =====================
 import PaymentSettings from "./Pages/PaymentSettings/PaymentSettings";

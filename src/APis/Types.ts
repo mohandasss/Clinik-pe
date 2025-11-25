@@ -1586,10 +1586,11 @@ export type DoctorAppointment = {
   duration: string;
   status: string;
   appointment_type: string | null;
+  appointment_status?: string;
   patient_name: string;
+  patient_image?: string;
   doctor_name: string;
   symptoms: string | null;
-  profile_image?: string;
 };
 
 export type DoctorAppointmentListResponse = {
@@ -1598,12 +1599,16 @@ export type DoctorAppointmentListResponse = {
   message: string;
   data: {
     appointments: DoctorAppointment[];
-    pagination: {
+    pagination?: {
       pageNumber: number;
       pageSize: number;
       totalRecords: number;
       pageCount: number;
     };
+    filter?: Array<{
+      from_date: string;
+      to_date: string;
+    }>;
   };
 };
 
@@ -1694,13 +1699,7 @@ export type CreatePrescriptionPayload = {
     dosage: string;
     instruction: string;
   }[];
-  vitals: {
-    blood_pressure: string;
-    heart_rate: string;
-    temperature: string;
-    spo2: string;
-    weight: string;
-  };
+  vitals: Record<string, string>;
   appointment_id: string;
   clinic_id: string;
 };
@@ -1711,3 +1710,14 @@ export type CreatePrescriptionResponse = {
   message: string;
   data: PrescriptionSaveData;
 };
+export interface LabItem {
+  uid: string;
+  name: string;
+}
+
+export interface LabResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: LabItem[];
+}
