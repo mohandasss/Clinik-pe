@@ -1,3 +1,4 @@
+import type { IconArrowAutofitContentFilled } from "@tabler/icons-react";
 import type {
   OrganizationAddPayloads,
   OrganizationLoginRequestPayload,
@@ -82,6 +83,10 @@ import type {
   CreatePrescriptionPayload,
   CreatePrescriptionResponse,
   LabResponse,
+  DepartmentListResponse,
+  TestListResponse,
+  TestPayload,
+  CategoryListResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -1156,72 +1161,6 @@ class Apis {
     return response.data as QrCodeApiResponse;
   }
 
-  // Other Test Panels (Radiology) APIs
-  // async GetOtherTestPanels(pageNumber: number, pageSize: number, organization_id: string, center_id: string, search: string): Promise<any> {
-  //   const response = await apiAgent
-  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels`)
-  //     .method("GET")
-  //     .query({ search, pageNumber, pageSize })
-  //     .execute();
-  //   return response.data as any;
-  // }
-
-  // async AddOtherTestPanel(
-  //   payload: any,
-  //   organization_id: string, center_id: string): Promise<any> {
-  //   const response = await apiAgent
-  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels`)
-  //     .method("POST")
-  //     .json(payload)
-  //     .execute();
-  //   return response.data as any;
-  // }
-
-  // async UpdateOtherTestPanel(
-  //   payload: any,
-  //   organization_id: string, center_id: string, panel_id: string): Promise<any> {
-  //   const response = await apiAgent
-  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/${panel_id}`)
-  //     .method("PATCH")
-  //     .json(payload)
-  //     .execute();
-  //   return response.data as any;
-  // }
-
-  // async DeleteOtherTestPanel(
-  //   organization_id: string,
-  //   center_id: string,
-  //   id: string): Promise<any> {
-  //   const response = await apiAgent
-  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/${id}`)
-  //     .method("DELETE")
-  //     .execute();
-  //   return response.data as any;
-  // }
-
-  // async ReorderOtherTestPanels(
-  //   organization_id: string,
-  //   center_id: string,
-  //   payload: ReorderPanelsPayload): Promise<any> {
-  //   const response = await apiAgent
-  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/order-sequencing`)
-  //     .method("PATCH")
-  //     .json(payload)
-  //     .execute();
-  //   return response.data as any;
-  // }
-
-  // async GetOtherTestPanelById(
-  //   organization_id: string,
-  //   center_id: string,
-  //   panel_id: string
-  // ): Promise<any> {
-  //   const response = await apiAgent
-  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/${panel_id}`)
-  //     .method("GET")
-  //     .execute();
-  //   return response.data as any;
-  // }
 
   // Doctor Login APIs
   async DoctorLogin(payload: DoctorLoginPayload): Promise<DocLoginResponse> {
@@ -1323,6 +1262,8 @@ class Apis {
   // }
 
 
+
+  //e-prescription page APIS
   async GetVitals(
 
   ): Promise<VitalListResponse> {
@@ -1352,6 +1293,139 @@ class Apis {
       .execute();
     return response.data as LabResponse;
   }
+
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/QMhgPMlJ/diagnostics/radiology/department
+  async GetAllDepartments(
+    organization_id: string,
+    center_id: string,
+    pageNumber?: number,
+    pageSize?: number
+  ): Promise<DepartmentListResponse> {
+
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/radiology/department`)
+      .method("GET")
+      .query({ pageNumber, pageSize })
+      .execute();
+
+    return response.data as DepartmentListResponse;
+  }
+
+
+
+  async GetOtherTestDatabase(
+    page: string,
+    pageNumber: number,
+    pageSize: number,
+    organization_id: string,
+    center_id: string,
+    search: string): Promise<TestListResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/test`)
+      .method("GET")
+      .query({ search, pageNumber, pageSize })
+      .execute();
+    return response.data as TestListResponse;
+  }
+
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/QMhgPMlJ/diagnostics/radiology/test
+  async AddOtherTestDatabase(
+    page: string,
+    payload: TestPayload,
+    organization_id: string, center_id: string): Promise<any> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/test`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as any;
+  }
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/QMhgPMlJ/diagnostics/radiology/categories?pageNumber=1&pageSize=10
+
+  async GetOtherCategories(
+    pageNumber: number,
+    pageSize: number,
+    page: string,
+    organization_id: string, center_id: string): Promise<CategoryListResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/categories`)
+      .method("GET")
+      .query({ pageNumber, pageSize })
+      .execute();
+    return response.data as CategoryListResponse;
+  }
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/QMhgPMlJ/diagnostics/radiology/test/2sPegc91
+  async UpdateOtherTestDatabase(
+    page: string,
+    test_id: string,
+    payload: TestPayload,
+    organization_id: string, center_id: string): Promise<any> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/test/${test_id}`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
+    return response.data as any;
+  }
+
+  async DeleteOtherTestDatabase(
+    organization_id: string,
+    center_id: string,
+    page: string,
+    test_id: string): Promise<any> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/test/${test_id}`)
+      .method("DELETE")
+      .execute();
+    return response.data as any;
+  }
+
+  // async ReorderOtherTestPanels(
+  //   organization_id: string,
+  //   center_id: string,
+  //   payload: ReorderPanelsPayload): Promise<any> {
+  //   const response = await apiAgent
+  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/order-sequencing`)
+  //     .method("PATCH")
+  //     .json(payload)
+  //     .execute();
+  //   return response.data as any;
+  // }
+
+  // async GetOtherTestPanelById(
+  //   organization_id: string,
+  //   center_id: string,
+  //   panel_id: string
+  // ): Promise<any> {
+  //   const response = await apiAgent
+  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/${panel_id}`)
+  //     .method("GET")
+  //     .execute();
+  //   return response.data as any;
+  // }
+
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/QMhgPMlJ/diagnostics/radiology/test/2sPegc91
+  async GetOtherTestDatabaseDetails(
+    page: string,
+    test_id: string,
+    organization_id: string, center_id: string): Promise<any> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/test/${test_id}`)
+      .method("GET")
+      .execute();
+    return response.data as any;
+  }
+
+
+
+
+
+
 
 }
 const apis = new Apis();

@@ -1721,3 +1721,117 @@ export interface LabResponse {
   message: string;
   data: LabItem[];
 }
+
+
+export interface Department {
+  id: string;
+  uid: string;
+  central_account_id: string | null;
+  organization_id: string | null;
+  center_id: string | null;
+  name: string;
+  slug: string;
+  status: string;
+  created_at: string;
+  created_by: string;
+  updated_at: string;
+  updated_by: string;
+}
+
+
+export interface DepartmentListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    departments: Department[];
+    pagination: Pagination;
+  };
+}
+
+
+//
+
+export interface TestItem {
+  id: string;
+  uid: string;
+  name: string;
+  description: string;
+  price: string;
+  status: string;
+  data: string;
+  department_id: string;
+  category_id: string;
+  created_at: string;
+  created_by: string;
+  updated_at: string;
+  updated_by: string;
+  central_account_id: string;
+  organization_id: string;
+  center_id: string;
+}
+
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+export interface TestListData {
+  tests: TestItem[];
+  pagination: Pagination;
+}
+
+export interface TestListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: TestListData;
+}
+
+
+export interface TestPayload {
+  name: string;
+  description: string;
+  price: string;
+  data: string;
+  category_id: string;
+}
+
+
+
+
+export interface CategoryItem {
+  id: string;
+  uid: string;
+  central_account_id: string | null;
+  organization_id: string | null;
+  center_id: string | null;
+  name: string;
+  department_id: string;
+  status: string;
+  created_at: string;
+  created_by: string;
+  updated_at: string;
+  updated_by: string;
+}
+
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+export interface CategoryListData {
+  categorys: CategoryItem[]; // keeping same key as API
+  pagination: Pagination;
+}
+
+export interface CategoryListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: CategoryListData;
+}

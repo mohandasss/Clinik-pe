@@ -934,6 +934,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({
         </h2>
         <div className="grid grid-cols-2 gap-3">
           <Select
+          clearable
             label="Provider"
             placeholder="Select Provider"
             value={provider}
@@ -1542,12 +1543,21 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
               {amountPaid &&
                 parseFloat(amountPaid) < payableAmount &&
                 parseFloat(amountPaid) > 0 && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Partial payment (Advance): ₹
-                    {parseFloat(amountPaid).toFixed(2)} paid, ₹
+                  <div className="flex items-center justify-between ">
+                    <p className="text-xs  text-green-600 mt-1">
+                   Advance: ₹
+                    {parseFloat(amountPaid).toFixed(2)} paid
+                    
+                  </p>
+                  <p className="text-xs flex items-center justify-center text-red-600 mt-1">
+                     ₹
                     {(payableAmount - parseFloat(amountPaid)).toFixed(2)}{" "}
                     remaining
-                  </p>
+                     </p>
+
+
+                  </div>
+                  
                 )}
               {amountPaid && parseFloat(amountPaid) === payableAmount && (
                 <p className="text-xs text-green-600 mt-1">

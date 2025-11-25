@@ -343,7 +343,7 @@ const AddAvailabilityModal: React.FC<Props> = ({
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-2 py-1 border rounded"
+                    className="w-full outline-none  px-2 py-1 border rounded"
                   />
                 </div>
                 <div>
@@ -354,7 +354,7 @@ const AddAvailabilityModal: React.FC<Props> = ({
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full px-2 py-1 border rounded"
+                    className="w-full outline-none px-2 py-1 border rounded"
                   />
                 </div>
                 <div>
@@ -366,7 +366,7 @@ const AddAvailabilityModal: React.FC<Props> = ({
                     min="1"
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
-                    className="w-full px-2 py-1 border rounded"
+                    className="w-full outline-none px-2 py-1 border rounded"
                     placeholder="15"
                   />
                 </div>
@@ -379,7 +379,7 @@ const AddAvailabilityModal: React.FC<Props> = ({
                     min="0"
                     value={waitTime}
                     onChange={(e) => setWaitTime(e.target.value)}
-                    className="w-full px-2 py-1 border rounded"
+                    className="w-full outline-none px-2 py-1 border rounded"
                     placeholder="0"
                   />
                 </div>

@@ -194,7 +194,7 @@ export default function DoctorLogin() {
           </svg>
         </i>
         <div className="lg:text-4xl text-2xl font-semibold text-black">
-          Welcome Dr. <span className="text-[#0D52AF]">Ajij Rahaman</span>
+          Welcome Doctor
         </div>
       </div>
       <div className="text-[#74777E] mb-10">

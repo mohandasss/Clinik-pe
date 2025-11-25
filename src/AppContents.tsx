@@ -72,6 +72,7 @@ import OtherTestPanelList from "./Pages/Radiology/OtherTestPanel/OtherTestPanelL
 import EditOtherTestPanel from "./Pages/Radiology/OtherTestPanel/EditOtherTestPanel";
 import OtherTestCategory from "./Pages/Radiology/OtherTestCategory/OtherTestCategory";
 import TestDepartment from "./Pages/Radiology/TestDepartment/TestDepartment";
+import OtherTestDatabaseDetails from "./Pages/Radiology/OtherTest/OtherTestDatabaseDetails";
 
 function AppContents() {
   return (
@@ -169,6 +170,10 @@ function AppContents() {
         <Route
           path="/radiology/test-database"
           element={<TestDatabaseOther />}
+        />
+        <Route
+          path="/radiology/test-database/details/:id"
+          element={<OtherTestDatabaseDetails />}
         />
         <Route
           path="/radiology/test-database/add"

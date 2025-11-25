@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Paper, TextInput, Button, Text, Anchor, Select } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import Notification from "../../components/Global/Notification";
 import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../APis/Api";
@@ -220,11 +221,11 @@ const AddOrganization: React.FC = () => {
                 <Text size="xs" className="text-gray-600 mb-2">
                   Founded Date
                 </Text>
-                <TextInput
-                  type="date"
-                  value={form.foundedDate}
-                  onChange={(e) =>
-                    handleChange("foundedDate", e.currentTarget.value)
+                <DateInput
+                  placeholder="Select date"
+                  value={form.foundedDate || null}
+                  onChange={(val) =>
+                    handleChange("foundedDate", val ? String(val) : "")
                   }
                   error={formErrors.foundedDate}
                 />

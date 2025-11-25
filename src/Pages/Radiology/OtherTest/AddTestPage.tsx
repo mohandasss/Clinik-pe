@@ -8,46 +8,61 @@ import {
   Select,
   Switch,
 } from "@mantine/core";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { notifications } from "@mantine/notifications";
 import useAuthStore from "../../../GlobalStore/store";
 import apis from "../../../APis/Api";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { Anchor } from "@mantine/core";
 
+interface LocationState {
+  isEdit?: boolean;
+  testData?: {
+    id: string;
+    name: string;
+    description?: string;
+    category?: string;
+    price?: string;
+    status?: string;
+  };
+}
+
 const AddTestPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as LocationState | null;
+  const isEdit = state?.isEdit ?? false;
+  const testData = state?.testData;
+
   const organizationId = useAuthStore(
     (s) => s.organizationDetails?.organization_id ?? ""
   );
   const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [status, setStatus] = useState(true);
+  const [name, setName] = useState(testData?.name ?? "");
+  const [description, setDescription] = useState(testData?.description ?? "");
+  const [price, setPrice] = useState(testData?.price ?? "");
+  const [status, setStatus] = useState(testData?.status === "active");
   const [data, setData] = useState("");
-  const [department, setDepartment] = useState<string | null>(null);
-  const [category, setCategory] = useState<string | null>(null);
+  const [category, setCategory] = useState<string | null>(
+    testData?.category ?? null
+  );
 
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     []
   );
-  const [departments, setDepartments] = useState<
-    { id: string; name: string }[]
-  >([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const resp = await apis.GetTestCategories(
-          organizationId,
-          centerId,
-          undefined,
+        const resp = await apis.GetOtherCategories(
           1,
-          100
+          100,
+          "radiology",
+          organizationId,
+          centerId
         );
         if (mounted && resp?.success && resp?.data?.categorys) {
           setCategories(
@@ -58,13 +73,6 @@ const AddTestPage: React.FC = () => {
         console.warn("Failed to load categories", err);
       }
     })();
-
-    // Mock departments for now — replace with API later if available
-    setDepartments([
-      { id: "radiology", name: "Radiology" },
-      { id: "pathology", name: "Pathology" },
-      { id: "microbiology", name: "Microbiology" },
-    ]);
 
     return () => {
       mounted = false;
@@ -92,50 +100,65 @@ const AddTestPage: React.FC = () => {
 
     setLoading(true);
     try {
-      // Build create payload (minimal to satisfy API)
+      // Build payload
       const payload = {
-        type: "single",
         name: name.trim(),
-        short_name: name.trim().slice(0, 10),
-        category_id: category,
-        unit_id: undefined,
-        input_type: "numeric",
-        default_result: "",
-        optional: false,
+        description: description || "",
         price: price || "0",
-        method: "",
-        instrument: "",
-        interpretation: description || "",
-        notes: "",
-        comments: "",
-      } as any;
+        data: data || "",
+        category_id: category,
+      };
 
-      const response = await apis.AddTestToLabDatabase(
-        organizationId || "",
-        centerId || "",
-        payload
-      );
-      console.log("AddTestToLabDatabase response:", response);
+      let response;
+      if (isEdit && testData?.id) {
+        // Update existing test
+        response = await apis.UpdateOtherTestDatabase(
+          "radiology",
+          testData.id,
+          payload,
+          organizationId || "",
+          centerId || ""
+        );
+        console.log("UpdateOtherTestDatabase response:", response);
+      } else {
+        // Add new test
+        response = await apis.AddOtherTestDatabase(
+          "radiology",
+          payload,
+          organizationId || "",
+          centerId || ""
+        );
+        console.log("AddOtherTestDatabase response:", response);
+      }
 
       if (response?.success) {
         notifications.show({
           title: "Success",
-          message: response.message || "Test added",
+          message:
+            response.message ||
+            (isEdit ? "Test updated successfully" : "Test added successfully"),
           color: "green",
         });
-        setTimeout(() => navigate("/radiology/test-database"), 800);
+        setTimeout(() => navigate(-1), 800);
       } else {
         notifications.show({
           title: "Error",
-          message: response?.message || "Failed to add test",
+          message:
+            response?.message ||
+            (isEdit ? "Failed to update test" : "Failed to add test"),
           color: "red",
         });
       }
     } catch (err) {
-      console.error("AddTestToLabDatabase failed:", err);
+      console.error(
+        isEdit
+          ? "UpdateOtherTestDatabase failed:"
+          : "AddOtherTestDatabase failed:",
+        err
+      );
       notifications.show({
         title: "Error",
-        message: "Failed to add test",
+        message: isEdit ? "Failed to update test" : "Failed to add test",
         color: "red",
       });
     } finally {
@@ -160,10 +183,12 @@ const AddTestPage: React.FC = () => {
 
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900">
-          Add Radiology Test
+          {isEdit ? "Edit Radiology Test" : "Add Radiology Test"}
         </h2>
         <p className="text-sm text-gray-600">
-          Enter details for a new radiology test
+          {isEdit
+            ? "Update details for this radiology test"
+            : "Enter details for a new radiology test"}
         </p>
       </div>
 
@@ -198,36 +223,25 @@ const AddTestPage: React.FC = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <Select
-                label="Department"
-                placeholder="Select department"
-                data={departments.map((d) => ({ value: d.id, label: d.name }))}
-                value={department}
-                onChange={(v) => setDepartment(v)}
-              />
-            </div>
-            <div>
-              <Select
-                label="Category"
-                placeholder="Select category"
-                data={categories.map((c) => ({ value: c.id, label: c.name }))}
-                value={category}
-                onChange={(v) => setCategory(v)}
-              />
-            </div>
+          <div className="mb-4">
+            <Select
+              label="Category"
+              placeholder="Select category"
+              data={categories.map((c) => ({ value: c.id, label: c.name }))}
+              value={category}
+              onChange={(v) => setCategory(v)}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
+            {/* <div>
               <TextInput
                 label="Data"
                 placeholder="Additional data"
                 value={data}
                 onChange={(e) => setData(e.currentTarget.value)}
               />
-            </div>
+            </div> */}
             <div className="flex items-center gap-2">
               <Switch
                 label="Active"
@@ -244,7 +258,7 @@ const AddTestPage: React.FC = () => {
               color="blue"
               loading={loading}
             >
-              Create Test
+              {isEdit ? "Update Test" : "Create Test"}
             </Button>
           </div>
         </form>

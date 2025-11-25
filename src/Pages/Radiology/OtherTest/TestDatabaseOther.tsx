@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import FilterBar from "../../TestDatabase/Components/FilterBar";
-import TestTable from "../../TestDatabase/Components/TestTable";
-import type { TestRow } from "../../TestDatabase/Components/TestTable";
+import OtherTestTable from "./OtherTestTable";
+import ConfirmDeleteModal from "./ConfirmDeleteModal";
+import type { OtherTestRow } from "./OtherTestTable";
 import apis from "../../../APis/Api";
 import { notifications } from "@mantine/notifications";
 import useAuthStore from "../../../GlobalStore/store";
 import { useNavigate } from "react-router-dom";
-import type { LabTest } from "../../../APis/Types";
 
 const TestDatabaseOther: React.FC = () => {
   const [categories, setCategories] = useState<
@@ -15,29 +15,33 @@ const TestDatabaseOther: React.FC = () => {
       name: string;
     }[]
   >([]);
-  const [tests, setTests] = useState<TestRow[]>([]);
+  const [tests, setTests] = useState<OtherTestRow[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+  const [selectedRowForDelete, setSelectedRowForDelete] =
+    useState<OtherTestRow | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const organizationId = useAuthStore(
     (s) => s.organizationDetails?.organization_id ?? ""
   );
   const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
-
   useEffect(() => {
     let mounted = true;
     (async () => {
       setLoading(true);
       try {
-        const resp = await apis.GetTestCategories(
+        const resp = await apis.GetOtherTestDatabase(
+          "radiology",
+          1,
+          5,
           organizationId,
           centerId,
-          undefined,
-          1,
-          100
+          ""
         );
         if (mounted && resp?.success && resp?.data?.categorys) {
           const catList = resp.data.categorys.map((c) => ({
@@ -68,30 +72,29 @@ const TestDatabaseOther: React.FC = () => {
     (async () => {
       setLoading(true);
       try {
-        const resp = await apis.GetAllTestsList(
-          query,
+        const resp = await apis.GetOtherTestDatabase(
+          "radiology",
           page,
           pageSize,
           organizationId,
-          centerId
+          centerId,
+          query
         );
-        console.log("GetAllTestsList response (radiology):", resp);
-        // @ts-expect-error: allow data form this API response
-        if (mounted && resp.data.tests && Array.isArray(resp.data.tests)) {
-          // @ts-expect-error: allow data form this API response
-          const testRows: TestRow[] = (resp.data.tests as LabTest[]).map(
-            (test) => ({
-              id: test.uid,
-              order: Number(test.order) || 0,
-              name: test.name,
-              shortName: test.short_name,
-              category: test.category_id,
-            })
-          );
+        console.log("GetOtherTestDatabase response (radiology):", resp);
+        if (mounted && resp?.data?.tests && Array.isArray(resp.data.tests)) {
+          const testRows: OtherTestRow[] = resp.data.tests.map((test: any) => ({
+            id: test.uid,
+            order: Number(test.id) || 0,
+            name: test.name,
+            description: test.description,
+            category: test.category_id,
+            price: test.price,
+            status: test.status,
+          }));
           setTests(testRows);
         }
       } catch (err) {
-        console.warn("GetAllTestsList failed:", err);
+        console.warn("GetOtherTestDatabase failed:", err);
         notifications.show({
           title: "Error",
           message: "Failed to load tests",
@@ -115,7 +118,7 @@ const TestDatabaseOther: React.FC = () => {
       data = data.filter(
         (t) =>
           t.name.toLowerCase().includes(q) ||
-          (t.shortName || "").toLowerCase().includes(q)
+          (t.description || "").toLowerCase().includes(q)
       );
     }
     return data;
@@ -124,15 +127,74 @@ const TestDatabaseOther: React.FC = () => {
   const total = filtered.length;
   const rows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const handleEdit = (row: TestRow) => {
-    console.log("edit radiology", row);
-  };
-
-  const handleView = (row: TestRow) => {
-    console.log("view radiology", row);
-  };
-
   const navigate = useNavigate();
+
+  const handleEdit = (row: OtherTestRow) => {
+    console.log("edit radiology", row);
+    navigate("/radiology/test-database/add", {
+      state: {
+        isEdit: true,
+        testData: row,
+      },
+    });
+  };
+
+  const handleView = (row: OtherTestRow) => {
+    console.log("view radiology", row);
+    navigate(`/radiology/test-database/details/${row.id}`, {
+      state: {
+        testId: row.id,
+      },
+    });
+  };
+
+  const handleDelete = (row: OtherTestRow) => {
+    setSelectedRowForDelete(row);
+    setDeleteModalOpened(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedRowForDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      const response = await apis.DeleteOtherTestDatabase(
+        organizationId,
+        centerId,
+        "radiology",
+        selectedRowForDelete.id
+      );
+
+      if (response?.success) {
+        notifications.show({
+          title: "Success",
+          message: "Test deleted successfully",
+          color: "green",
+        });
+        // Refresh the data by triggering the useEffect
+        setTests((prev) =>
+          prev.filter((test) => test.id !== selectedRowForDelete.id)
+        );
+        setDeleteModalOpened(false);
+        setSelectedRowForDelete(null);
+      } else {
+        notifications.show({
+          title: "Error",
+          message: response?.message || "Failed to delete test",
+          color: "red",
+        });
+      }
+    } catch (err) {
+      console.error("DeleteOtherTestDatabase failed:", err);
+      notifications.show({
+        title: "Error",
+        message: "Failed to delete test",
+        color: "red",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const handleAdd = () => {
     // navigate to radiology add page
@@ -168,7 +230,7 @@ const TestDatabaseOther: React.FC = () => {
         {/* Using direct Add Page instead of modal for Radiology */}
       </div>
 
-      <TestTable
+      <OtherTestTable
         records={rows}
         page={page}
         pageSize={pageSize}
@@ -177,6 +239,19 @@ const TestDatabaseOther: React.FC = () => {
         total={total}
         onEdit={handleEdit}
         onView={handleView}
+        onDelete={handleDelete}
+      />
+
+      <ConfirmDeleteModal
+        opened={deleteModalOpened}
+        onClose={() => {
+          setDeleteModalOpened(false);
+          setSelectedRowForDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Delete Test"
+        message={`Are you sure you want to delete "${selectedRowForDelete?.name}"? This action cannot be undone.`}
+        loading={deleteLoading}
       />
     </div>
   );

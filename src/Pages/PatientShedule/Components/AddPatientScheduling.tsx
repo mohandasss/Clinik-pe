@@ -145,7 +145,7 @@ const AddPatientScheduling: React.FC<Props> = ({ onClose, onPatientAdded }) => {
     // Add either DOB (and age_on_date) OR age to the payload — not both
     if (dobMode === "dob" && dob) {
       payload.dob = dob.toISOString().slice(0, 10);
-      payload.age_on_date = dob.toISOString().slice(0, 10);
+      // payload.age_on_date = dob.toISOString().slice(0, 10);
     } else if (dobMode === "age" && age !== null && age !== undefined) {
       payload.age = age;
     }
@@ -256,7 +256,7 @@ const AddPatientScheduling: React.FC<Props> = ({ onClose, onPatientAdded }) => {
               classNames={{
                 input: "h-9 text-sm",
               }}
-              minDate={new Date(1900, 0, 1)}
+              minDate={new Date(1990, 0, 1)}
               style={{ width: 260 }}
               disabled={dobMode === "age"}
             />
