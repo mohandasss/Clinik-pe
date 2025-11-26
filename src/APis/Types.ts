@@ -808,8 +808,10 @@ export interface TestPackageRow {
 
 export type TestPackagePayload = {
   name: string;
+  description?: string;
   price: number | string; // price instead of fee
   bill_only_for_gender: "male" | "female" | "both"; // exact key requested
+  data?: string;
   included?: string;
   // Each test/panel should be an object per user request
   tests?: { test_id: string }[];
@@ -1524,6 +1526,19 @@ export interface UpdateOtherTestPanelPayload extends CreateOtherTestPanelPayload
   remove_tests?: Array<{ test_id: string }>;
 }
 
+// Other Test Package Types (Radiology Package)
+export interface OtherTestPackageRow {
+  id?: string;
+  uid?: string;
+  name: string;
+  description?: string;
+  price: number | string;
+  status: "male" | "female" | "both" | "active" | "inactive";
+  data?: string;
+  tests?: Array<{ test_id: string; name?: string }> | string[];
+  panels?: Array<{ panel_id: string; name?: string }> | string[];
+}
+
 // Doctor Login Types
 export type DoctorLoginPayload = {
   email?: string;
@@ -1895,4 +1910,261 @@ export interface OtherPanelItem {
   tests: Array<{ test_id: string; test_name: string }> | string[];
   hide_individual?: Record<string, string>;
   created_at?: string;
+}
+
+
+export interface OtherPanelDetailsResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    panel: Panel;
+  };
+}
+
+export interface Panel {
+  panel_id: string;
+  name: string;
+  description: string;
+  price: string;              // API gives price as string
+  department_id: string;
+  status: string;
+  created_at: string;
+  department_name: string;
+  tests: PanelTest[];
+  tests_count: number;
+}
+
+export interface PanelTest {
+  uid: string;
+  test_id: string;
+  test_name: string;
+}
+
+
+
+
+//dashbaord data 
+// export interface ReportRequest { //parent ok
+//   success: boolean;
+//   httpStatus: number;
+//   message: string;
+//   data: ReportRequestData;
+// }
+
+export interface ReportRequestData {
+  hierarchy: Hierarchy;
+  items: ReportRequestItem[];
+}
+
+export interface Hierarchy {
+  central_account_id: string;
+  organization_id: string;
+  center_id: string;
+}
+
+// Dashboard API Types
+export interface DashboardRequestPayload {
+  hierarchy: DashboardHierarchy;
+  items: DashboardRequestItem[];
+}
+
+export interface DashboardHierarchy {
+  central_account_id: string; // mandatory
+  organization_id?: string | string[] | "all"; // optional: single id, array of ids, or "all"
+  center_id?: string | string[] | "all"; // optional: single id, array of ids, or "all"
+}
+
+export interface DashboardRequestItem {
+  topics: DashboardTopic;
+  date_range: DateRange;
+  period: Period;
+  criteria?: DashboardCriteria;
+}
+
+export type DashboardTopic =
+  | "appointment"
+  | "appointments"
+  | "provider"
+  | "providers"
+  | "revenue"
+  | "patient"
+  | "patients"
+  | "department"
+  | "category"
+  | "test"
+  | "panel"
+  | "package"
+  | "users"
+  | "center"
+  | "business";
+
+export interface DateRange {
+  from: string; // format: YYYY-MM-DD
+  to: string; // format: YYYY-MM-DD
+}
+
+export interface Period {
+  unit: "day" | "hour" | "week" | "month" | "year";
+  value: number;
+}
+
+export interface DashboardCriteria {
+  status?: DashboardStatus;
+  mode?: RevenueMode;
+  [key: string]: any; // Allow additional dynamic criteria
+}
+
+export interface DashboardStatus {
+  active?: boolean;
+  inactive?: boolean;
+  cancelled?: boolean;
+  rescheduled?: boolean;
+}
+
+export interface RevenueMode {
+  cash?: boolean;
+  online?: boolean;
+}
+
+// Dashboard Response Types
+export interface DashboardResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: DashboardResponseData;
+}
+
+export interface DashboardResponseData {
+  items: DashboardResponseItem[];
+}
+
+export interface DashboardResponseItem {
+  topics: DashboardTopic;
+  date_range: DateRange;
+  period: Period;
+  data: DashboardDataBlock[];
+}
+
+export interface DashboardDataBlock {
+  value: number;
+  date_range: DateRange;
+  criteria?: DashboardCriteria;
+}
+
+// Legacy Report Types (keeping for backward compatibility)
+export interface ReportRequestItem {
+  topics: string;
+  date_range: DateRange;
+  period: Period;
+  criteria: Criteria;
+}
+
+export interface Criteria {
+  status: ReportStatus;
+}
+
+export interface ReportStatus {
+  active: boolean;
+  inactive: boolean;
+  cancelled: boolean;
+  rescheduled: boolean;
+}
+
+export interface ReportResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: ReportResponseData;
+}
+
+export interface ReportResponseData {
+  items: ReportResponseItem[];
+}
+
+export interface ReportResponseItem {
+  topics: string;
+  date_range: DateRange;
+  period: Period;
+  data: ReportDataBlock[];
+}
+
+export interface ReportDataBlock {
+  value: number;
+  date_range: DateRange;
+  criteria: Criteria;
+}
+
+
+
+
+export interface PackageTest {
+  test_id: string;
+  test_name: string;
+}
+
+export interface PackagePanel {
+  panel_id: string;
+  panel_name: string;
+}
+
+export interface PackageItem {
+  uid: string;
+  name: string;
+  description: string;
+  price: string;            // API sends price as string
+  status: "active" | "inactive";
+  data: string | null;
+  department_uid: string;
+  department_name: string;
+  tests: PackageTest[];
+  panels: PackagePanel[];
+}
+
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+export interface PackagesData {
+  packages: PackageItem[];
+  pagination: Pagination;
+}
+
+export interface PackagesListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: PackagesData;
+}
+
+// Package Details Types
+export interface PackageDetailsData {
+  package: {
+    uid: string;
+    name: string;
+    description: string;
+    price: string;
+    status: string;
+    data: string;
+    department_uid: string;
+    department_name: string;
+    tests: Array<{
+      test_id: string;
+      test_name: string;
+    }>;
+    panels: Array<{
+      panel_id: string;
+      panel_name: string;
+    }>;
+  };
+}
+
+export interface PackageDetailsResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: PackageDetailsData;
 }

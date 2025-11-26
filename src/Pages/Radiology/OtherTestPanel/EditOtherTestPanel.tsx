@@ -68,7 +68,12 @@ const EditOtherTestPanel: React.FC = () => {
         description: row.description || "",
         price: String(row.price) || "",
         status: row.status || "active",
-        data: row.data || "",
+        data:
+          typeof row.data === "string"
+            ? row.data
+            : row.data
+            ? JSON.stringify(row.data)
+            : "",
         tests: row.tests || [],
       });
     } else {
@@ -153,18 +158,23 @@ const EditOtherTestPanel: React.FC = () => {
     setSaving(true);
     try {
       if (row) {
-        // Edit mode
+        // Edit mode - calculate removed tests
+        const removedTests = initialTestUids.filter(
+          (testId) => !form.tests.includes(testId)
+        );
+
         const payload = {
           name: form.name.trim(),
           description: form.description.trim(),
           price: Number(form.price),
-          data: form.data.trim(),
+          data: typeof form.data === "string" ? form.data.trim() : "",
           status: form.status,
           tests: form.tests.map((testId) => ({ test_id: testId })),
+          remove_tests: removedTests.map((test_id) => ({ test_id })),
         };
 
-        // @ts-expect-error: allow UpdateOtherTestPanel
-        const response = await apis.UpdateOtherTestPanel(
+        // @ts-expect-error: allow UpdateOtherTestPanels
+        const response = await apis.UpdateOtherTestPanels(
           payload,
           "radiology",
           organizationDetails?.organization_id ?? "",
@@ -191,7 +201,7 @@ const EditOtherTestPanel: React.FC = () => {
           name: form.name.trim(),
           description: form.description.trim(),
           price: Number(form.price),
-          data: form.data.trim(),
+          data: typeof form.data === "string" ? form.data.trim() : "",
           status: form.status,
           tests: form.tests.map((testId) => ({ test_id: testId })),
         };
@@ -280,6 +290,19 @@ const EditOtherTestPanel: React.FC = () => {
                   required
                 />
               </div>
+              <div>
+                <Text size="xs" className="text-gray-600 mb-2">
+                  Price *
+                </Text>
+                <TextInput
+                  placeholder="e.g., 500"
+                  type="number"
+                  value={form.price}
+                  onChange={(e) => handleChange("price", e.currentTarget.value)}
+                  error={formErrors.price}
+                  required
+                />
+              </div>
 
               <div className="md:col-span-2">
                 <Text size="xs" className="text-gray-600 mb-2">
@@ -295,36 +318,7 @@ const EditOtherTestPanel: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Price *
-                </Text>
-                <TextInput
-                  placeholder="e.g., 500"
-                  type="number"
-                  value={form.price}
-                  onChange={(e) => handleChange("price", e.currentTarget.value)}
-                  error={formErrors.price}
-                  required
-                />
-              </div>
-
-              <div>
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Status
-                </Text>
-                <Select
-                  placeholder="Select status"
-                  data={[
-                    { value: "active", label: "Active" },
-                    { value: "inactive", label: "Inactive" },
-                  ]}
-                  value={form.status}
-                  onChange={(v) => handleChange("status", v ?? "active")}
-                />
-              </div>
-
-              <div className="md:col-span-2">
+              {/* <div className="md:col-span-2">
                 <Text size="xs" className="text-gray-600 mb-2">
                   Additional Data
                 </Text>
@@ -334,9 +328,9 @@ const EditOtherTestPanel: React.FC = () => {
                   onChange={(e) => handleChange("data", e.currentTarget.value)}
                   rows={3}
                 />
-              </div>
+              </div> */}
 
-              <div className="md:col-span-2">
+              <div className="">
                 <Text size="xs" className="text-gray-600 mb-2">
                   Tests *
                 </Text>
@@ -349,6 +343,20 @@ const EditOtherTestPanel: React.FC = () => {
                   clearable
                   error={formErrors.tests}
                   required
+                />
+              </div>
+              <div>
+                <Text size="xs" className="text-gray-600 mb-2">
+                  Status
+                </Text>
+                <Select
+                  placeholder="Select status"
+                  data={[
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" },
+                  ]}
+                  value={form.status}
+                  onChange={(v) => handleChange("status", v ?? "active")}
                 />
               </div>
             </div>

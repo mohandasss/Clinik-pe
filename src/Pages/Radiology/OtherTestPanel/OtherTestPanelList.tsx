@@ -5,7 +5,7 @@ import { notifications } from "@mantine/notifications";
 import apis from "../../../APis/Api";
 import useAuthStore from "../../../GlobalStore/store";
 import type { RadiologyTestPanel } from "../../../APis/Types";
-import { IconPencil, IconEye } from "@tabler/icons-react";
+import { IconPencil, IconEye, IconTrash } from "@tabler/icons-react";
 
 // Sortable Row Component
 const SortableRow: React.FC<{
@@ -13,7 +13,8 @@ const SortableRow: React.FC<{
   index: number;
   onEdit: (row: RadiologyTestPanel) => void;
   onView: (panelId: string) => void;
-}> = ({ row, index, onEdit, onView }) => {
+  onDelete: (row: RadiologyTestPanel) => void;
+}> = ({ row, index, onEdit, onView, onDelete }) => {
   return (
     <tr className="hover:bg-gray-50">
       <td className="border-b border-gray-200 px-4 py-3">
@@ -59,6 +60,12 @@ const SortableRow: React.FC<{
           >
             <IconEye size={16} />
           </button>
+          <button
+            className="text-red-600 text-sm hover:text-red-800 transition-colors"
+            onClick={() => onDelete(row)}
+          >
+            <IconTrash size={16} />
+          </button>
         </div>
       </td>
     </tr>
@@ -86,59 +93,64 @@ const OtherTestPanelList: React.FC = () => {
 
   const organizationDetails = useAuthStore((s) => s.organizationDetails);
 
+  // Function to fetch panels
+  const fetchPanels = async () => {
+    setLoadingPanels(true);
+    try {
+      const resp = await apis.GetOtherTestPanels(
+        "radiology",
+        organizationDetails?.organization_id ?? "",
+        organizationDetails?.center_id ?? "",
+        page,
+        pageSize,
+        query
+      );
+
+      if (resp?.success && resp?.data?.panels) {
+        const mapped: RadiologyTestPanel[] = resp.data.panels.map((p) => ({
+          id: p.panel_id,
+          uid: p.panel_id,
+          order: 0,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          status: p.status,
+          data: p,
+          tests: p.tests?.list?.map((t) => t.test_name) || [],
+        }));
+
+        setPanels(mapped);
+
+        const totalRec = resp.data.pagination?.totalRecords ?? 0;
+        setTotalRecords(totalRec);
+
+        const pagesCount = Math.max(1, Math.ceil(totalRec / pageSize));
+        if (page > pagesCount) setPage(pagesCount);
+      } else {
+        setPanels([]);
+        setTotalRecords(0);
+      }
+    } catch (err) {
+      console.error("GetOtherTestPanels error:", err);
+      setPanels([]);
+      setTotalRecords(0);
+      notifications.show({
+        title: "Error",
+        message: "Failed to load test panels",
+        color: "red",
+      });
+    } finally {
+      setLoadingPanels(false);
+    }
+  };
+
   // Load panels from API
   useEffect(() => {
     let mounted = true;
     const timer = setTimeout(() => {
-      (async () => {
-        setLoadingPanels(true);
-        try {
-          const resp = await apis.GetOtherTestPanels(
-            "radiology",
-            organizationDetails?.organization_id ?? "",
-            organizationDetails?.center_id ?? "",
-            page,
-            pageSize,
-            query
-          );
-
-          if (mounted && resp?.success && resp?.data?.panels) {
-            const mapped: RadiologyTestPanel[] = resp.data.panels.map((p) => ({
-              id: p.panel_id,
-              uid: p.panel_id,
-              order: 0,
-              name: p.name,
-              description: p.description,
-              price: p.price,
-              status: p.status,
-              data: p,
-              tests: p.tests?.list?.map((t) => t.test_name) || [],
-            }));
-
-            setPanels(mapped);
-
-            const totalRec = resp.data.pagination?.totalRecords ?? 0;
-            setTotalRecords(totalRec);
-
-            const pagesCount = Math.max(1, Math.ceil(totalRec / pageSize));
-            if (page > pagesCount) setPage(pagesCount);
-          } else if (mounted) {
-            setPanels([]);
-            setTotalRecords(0);
-          }
-        } catch (err) {
-          console.error("GetOtherTestPanels error:", err);
-          setPanels([]);
-          setTotalRecords(0);
-          notifications.show({
-            title: "Error",
-            message: "Failed to load test panels",
-            color: "red",
-          });
-        } finally {
-          setLoadingPanels(false);
-        }
-      })();
+      if (mounted) {
+        fetchPanels();
+      }
     }, 300);
 
     return () => {
@@ -162,7 +174,8 @@ const OtherTestPanelList: React.FC = () => {
         organizationDetails?.center_id ?? "",
         panel_id
       );
-      setPanels((prev) => prev.filter((p) => p.id !== panel_id));
+      // Refetch the panels after successful deletion
+      await fetchPanels();
       setDeletingRow(null);
       setDeleteModalOpen(false);
       notifications.show({
@@ -172,7 +185,8 @@ const OtherTestPanelList: React.FC = () => {
       });
     } catch (err) {
       console.error(err);
-      setPanels((prev) => prev.filter((p) => p.id !== panel_id));
+      // Still refetch on error to ensure consistency
+      await fetchPanels();
       setDeletingRow(null);
       setDeleteModalOpen(false);
       notifications.show({
@@ -257,6 +271,10 @@ const OtherTestPanelList: React.FC = () => {
                 onView={(panelId) =>
                   navigate(`/radiology/test-panels/${panelId}`)
                 }
+                onDelete={(row) => {
+                  setDeletingRow(row);
+                  setDeleteModalOpen(true);
+                }}
               />
             ))}
           </tbody>

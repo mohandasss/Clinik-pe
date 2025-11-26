@@ -90,6 +90,13 @@ import type {
   CreateOtherPanelPayload,
   GlobalAPIResponse,
   OtherPanelsResponse,
+  OtherPanelDetailsResponse,
+  DashboardRequestPayload,
+  DashboardResponse,
+  ReportRequestData,
+  ReportResponse,
+  PackagesListResponse,
+  PackageDetailsResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -633,7 +640,7 @@ class Apis {
     pageSize: number,
     organization_id: string, center_id: string): Promise<TestPackageListResponse> {
     const response = await apiAgent
-      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/packages`)
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/lab/packages`)
       .method("GET")
       .query({ search, pageNumber, pageSize })
       .execute();
@@ -649,7 +656,7 @@ class Apis {
 
   async AddTestPackage(organization_id: string, center_id: string, payload: TestPackagePayload): Promise<TestPackageResponse> {
     const response = await apiAgent
-      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/packages`)
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/lab/packages`)
       .method("POST")
       .json(payload)
       .execute();
@@ -670,7 +677,7 @@ class Apis {
     center_id: string,
     id: string, payload: TestPackageUpdatePayload): Promise<TestPackageResponse> {
     const response = await apiAgent
-      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/packages/${id}`)
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/lab/packages/${id}`)
       .method("PATCH")
       .json(payload)
       .execute();
@@ -1482,19 +1489,121 @@ class Apis {
 
 
   //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/Chkf3087/diagnostics/radiology/panels/CCf_RI3_ UPDATE
+  async UpdateOtherTestPanels(
+    payload: CreateOtherPanelPayload,
+    page: string,
+    organization_id: string,
+    center_id: string,
+    panel_id: string): Promise<GlobalAPIResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/panels/${panel_id}`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
+    return response.data as GlobalAPIResponse;
+  }
 
 
-
-
-
-
-  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/Chkf3087/diagnostics/radiology/panels/CCf_RI3_ DELETE 
 
 
 
 
 
   //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/Chkf3087/diagnostics/radiology/panels/CCf_RI3_ //Details PAge
+
+  async GetOtherTestPanelById(
+    page: string,
+    organization_id: string,
+    center_id: string,
+    panel_id: string
+  ): Promise<OtherPanelDetailsResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/panels/${panel_id}`)
+      .method("GET")
+      .execute();
+    return response.data as OtherPanelDetailsResponse;
+  }
+
+  async GetDashboard(
+
+    payload: DashboardRequestPayload
+  ): Promise<DashboardResponse> {
+    const response = await apiAgent
+      .path(`organizations/dashboard`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as DashboardResponse;
+  }
+
+  async AddOtherTestPackage(
+    page: string,
+    payload: TestPackagePayload,
+    organization_id: string, center_id: string): Promise<TestPackageResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/packages`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as TestPackageResponse;
+  }
+
+  async GetOtherTestPackage(
+    page: string,
+    pageNumber: number,
+    pageSize: number,
+    organization_id: string, center_id: string): Promise<PackagesListResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/packages`)
+      .method("GET")
+      .query({ pageNumber, pageSize })
+      .execute();
+    return response.data as PackagesListResponse;
+  }
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/Chkf3087/diagnostics/radiology/packages/zy_2sMnf
+  async GetOtherTestPackageById(
+    page: string,
+    organization_id: string,
+    center_id: string,
+    package_id: string
+  ): Promise<PackageDetailsResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/packages/${package_id}`)
+      .method("GET")
+      .execute();
+    return response.data as PackageDetailsResponse;
+
+  }
+
+  async UpdateOtherTestPackage(
+    page: string,
+    organization_id: string,
+    center_id: string,
+    package_id: string,
+    payload: TestPackageUpdatePayload): Promise<GlobalAPIResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/packages/${package_id}`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
+    return response.data as GlobalAPIResponse;
+  }
+
+  async DeleteOtherTestPackage(
+    page: string,
+    organization_id: string,
+    center_id: string,
+    package_id: string,
+  ): Promise<GlobalAPIResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/packages/${package_id}`)
+      .method("DELETE")
+      .execute();
+    return response.data as GlobalAPIResponse;
+  }
 }
 const apis = new Apis();
 export default apis;
+
+//intrigrate the delete and update api as well prefill when update 

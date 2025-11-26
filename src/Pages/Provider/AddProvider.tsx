@@ -291,7 +291,7 @@ const AddProvider = () => {
         });
         setTimeout(() => {
           setNotif((s) => ({ ...s, open: false }));
-          navigate("/providers");
+          navigate(-1);
         }, 1500);
       } else {
         setNotif({

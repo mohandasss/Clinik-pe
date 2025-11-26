@@ -280,25 +280,7 @@ export default function Appointments({
             {
               accessor: "status",
               title: "Status",
-              render: (record) => (
-                <Badge
-                  size="lg"
-                  color={
-                    record.status === "active"
-                      ? "#0D52AF"
-                      : record.status === "cancel"
-                      ? "red"
-                      : "gray"
-                  }
-                  variant={record.status === "active" ? "filled" : "light"}
-                >
-                  {record.status === "active"
-                    ? "Active"
-                    : record.status === "cancel"
-                    ? "Cancelled"
-                    : record.status}
-                </Badge>
-              ),
+              render: (record) => <Badge>{record.appointment_status}</Badge>,
             },
             {
               accessor: "action",
@@ -391,25 +373,7 @@ export default function Appointments({
             {
               accessor: "status",
               title: "Status",
-              render: (record) => (
-                <Badge
-                  size="lg"
-                  color={
-                    record.status === "active"
-                      ? "#0D52AF"
-                      : record.status === "cancel"
-                      ? "red"
-                      : "gray"
-                  }
-                  variant={record.status === "active" ? "filled" : "light"}
-                >
-                  {record.status === "active"
-                    ? "Active"
-                    : record.status === "cancel"
-                    ? "Cancelled"
-                    : record.status}
-                </Badge>
-              ),
+              render: (record) => <Badge>{record.appointment_status}</Badge>,
             },
             {
               accessor: "action",
@@ -494,21 +458,7 @@ export default function Appointments({
                 </div>
                 <div>
                   <p className="text-sm text-[#74777E]">Status</p>
-                  <Badge
-                    color={
-                      selectedAppointment.status === "active"
-                        ? "#0D52AF"
-                        : selectedAppointment.status === "cancel"
-                        ? "red"
-                        : "gray"
-                    }
-                  >
-                    {selectedAppointment.status === "active"
-                      ? "Active"
-                      : selectedAppointment.status === "cancel"
-                      ? "Cancelled"
-                      : selectedAppointment.status}
-                  </Badge>
+                  <Badge>{selectedAppointment.appointment_status}</Badge>
                 </div>
                 <div>
                   <p className="text-sm text-[#74777E]">Doctor</p>

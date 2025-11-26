@@ -73,6 +73,10 @@ import EditOtherTestPanel from "./Pages/Radiology/OtherTestPanel/EditOtherTestPa
 import OtherTestCategory from "./Pages/Radiology/OtherTestCategory/OtherTestCategory";
 import TestDepartment from "./Pages/Radiology/TestDepartment/TestDepartment";
 import OtherTestDatabaseDetails from "./Pages/Radiology/OtherTest/OtherTestDatabaseDetails";
+import OtherTestPanelDetails from "./Pages/Radiology/OtherTestPanel/OtherTestPanelDetails";
+import Dashboard from "./Pages/Dashboard/Dashboard";
+import OtherTestPackage from "./Pages/Radiology/OtherTestPackage";
+import OtherTestPackageDetailPage from "./Pages/Radiology/OtherTestPackage/OtherTestPackageDetailPage";
 
 function AppContents() {
   const CLinic = "clinic";
@@ -116,7 +120,7 @@ function AppContents() {
         <Route path="/centers/add" element={<AddCenter />} />
 
         {/* ---------------- 🟨 Providers ---------------- */}
-        <Route path="/providers" element={<ProviderList />} />
+        <Route path={`${CLinic}/providers`} element={<ProviderList />} />
         <Route path="/providers/add" element={<AddProvider />} />
 
         {/* ---------------- 🟪 Availability ---------------- */}
@@ -130,7 +134,7 @@ function AppContents() {
           path={`${CLinic}/settings/payment`}
           element={<PaymentSettings />}
         />
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/fee-management" element={<FeeManagement />} />
         <Route path="/general-settings" element={<GeneralSettings />} />
 
@@ -186,13 +190,19 @@ function AppContents() {
           path="/radiology/test-database/add"
           element={<AddRadiologyTestPage />}
         />
-        <Route
-          path="/radiology/test-panels"
-          element={<OtherTestPanelList />}
-        />
+        <Route path="/radiology/test-panels" element={<OtherTestPanelList />} />
         <Route
           path="/radiology/test-panels/edit"
           element={<EditOtherTestPanel />}
+        />
+        <Route path="/radiology/test-packages" element={<OtherTestPackage />} />
+        <Route
+          path="/radiology/test-packages/:id"
+          element={<OtherTestPackageDetailPage />}
+        />
+        <Route
+          path="/radiology/test-panels/:id"
+          element={<OtherTestPanelDetails />}
         />
         <Route
           path="/radiology/test-categories"
