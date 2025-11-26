@@ -1,5 +1,5 @@
 import { Button, Image, NavLink, Modal, Text, Group } from "@mantine/core";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../../GlobalStore/store";
 import useSidebarStore from "../../GlobalStore/sidebarStore";
@@ -15,9 +15,38 @@ type SideBarProps = {
 const MenuItemRenderer: React.FC<{
   item: SidebarMenuItem;
   isSmall: boolean;
-}> = ({ item, isSmall }) => {
+  onDedicatedClick: (item: SidebarMenuItem) => void;
+}> = ({ item, isSmall, onDedicatedClick }) => {
   const hasChildren = item.children && item.children.length > 0;
 
+  // If item has dedicated flag and children, handle special navigation
+  if (hasChildren && item.dedicated) {
+    return (
+      <NavLink
+        key={item.id}
+        leftSection={
+          item.icon ? (
+            <Image
+              src={item.icon}
+              height="26px"
+              width="26px"
+              className="h-[26px] w-[26px] sidebar-icon"
+              alt={item.title}
+              style={{ filter: "brightness(0) invert(1)" }}
+            />
+          ) : undefined
+        }
+        href="#"
+        label={item.title}
+        onClick={(e) => {
+          e.preventDefault();
+          onDedicatedClick(item);
+        }}
+      />
+    );
+  }
+
+  // Regular expandable item (not dedicated)
   if (hasChildren) {
     return (
       <NavLink
@@ -30,7 +59,6 @@ const MenuItemRenderer: React.FC<{
               width="26px"
               className="h-[26px] w-[26px] sidebar-icon"
               alt={item.title}
-              // force icon color to white using CSS filter for raster images
               style={{ filter: "brightness(0) invert(1)" }}
             />
           ) : undefined
@@ -39,12 +67,18 @@ const MenuItemRenderer: React.FC<{
         label={item.title}
       >
         {item.children.map((child) => (
-          <MenuItemRenderer key={child.id} item={child} isSmall={isSmall} />
+          <MenuItemRenderer
+            key={child.id}
+            item={child}
+            isSmall={isSmall}
+            onDedicatedClick={onDedicatedClick}
+          />
         ))}
       </NavLink>
     );
   }
 
+  // Leaf item (no children)
   return (
     <NavLink
       key={item.id}
@@ -56,7 +90,6 @@ const MenuItemRenderer: React.FC<{
             width="26px"
             className="h-[26px] w-[26px] sidebar-icon"
             alt={item.title}
-            // force icon color to white so it matches sidebar theme
             style={{ filter: "brightness(0) invert(1)" }}
           />
         ) : undefined
@@ -69,12 +102,49 @@ const MenuItemRenderer: React.FC<{
 };
 
 const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
-  // logout modal state
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
   const sidebar = useSidebarStore((s) => s.sidebar);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // State for dedicated navigation - stores the full navigation stack
+  const [navigationStack, setNavigationStack] = useState<SidebarMenuItem[]>([]);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Get current menu items (either main sidebar or dedicated view)
+  const currentMenuItems =
+    navigationStack.length > 0
+      ? navigationStack[navigationStack.length - 1].children
+      : sidebar || [];
+
+  // Check if we're in a dedicated view
+  const isInDedicatedView = navigationStack.length > 0;
+  useEffect(() => {
+    // sidebar updated → reset deep navigation
+    setNavigationStack([]);
+  }, [sidebar]);
+
+  // Get the breadcrumb path for display
+  const breadcrumbPath = navigationStack.map((item) => item.title);
+
+  // Handle dedicated item click - works at any level
+  const handleDedicatedClick = (item: SidebarMenuItem) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setNavigationStack([...navigationStack, item]);
+      setIsTransitioning(false);
+    }, 300);
+  };
+
+  // Handle back button click
+  const handleBack = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setNavigationStack(navigationStack.slice(0, -1));
+      setIsTransitioning(false);
+    }, 300);
+  };
 
   return (
     <aside
@@ -101,18 +171,65 @@ const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
           />
         </Link>
       </div>
+
+      {/* Back button for dedicated view */}
+      {isInDedicatedView && (
+        <div className="px-4 pb-2">
+          <Button
+            variant="subtle"
+            color="gray"
+            leftSection={
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M15 18L9 12L15 6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            }
+            onClick={handleBack}
+            className="!text-white hover:!bg-white/10"
+          >
+            {!isSmall && "Back"}
+          </Button>
+          {/* Optional: Show breadcrumb path */}
+          {!isSmall && breadcrumbPath.length > 0 && (
+            <div className="mt-2 px-2">
+              <Text size="xs" className="text-white/50 truncate">
+                {breadcrumbPath.join(" > ")}
+              </Text>
+            </div>
+          )}
+        </div>
+      )}
+
       <nav
-        className="overflow-auto p-4 sidebarNav flex flex-col gap-2"
+        className={`overflow-auto p-4 sidebarNav flex flex-col gap-2 transition-opacity duration-300 ${
+          isTransitioning ? "opacity-50" : "opacity-100"
+        }`}
         onClick={() => {
           if (isSmall) {
             setIsSmall(false);
           }
         }}
       >
-        {/* Render sidebar items from store, or show placeholder if not yet loaded */}
-        {sidebar && sidebar.length > 0 ? (
-          sidebar.map((item) => (
-            <MenuItemRenderer key={item.id} item={item} isSmall={isSmall} />
+        {/* Render current menu items */}
+        {currentMenuItems && currentMenuItems.length > 0 ? (
+          currentMenuItems.map((item) => (
+            <MenuItemRenderer
+              key={item.id}
+              item={item}
+              isSmall={isSmall}
+              onDedicatedClick={handleDedicatedClick}
+            />
           ))
         ) : (
           <div className="text-center text-gray-400 py-4">
@@ -120,6 +237,7 @@ const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
           </div>
         )}
       </nav>
+
       <div className="sidebarFooter mt-auto p-4">
         <Button
           className="!bg-transparent !text-white !border-0"
@@ -145,6 +263,7 @@ const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
         >
           Logout
         </Button>
+
         {/* Logout Confirmation Modal */}
         <Modal
           opened={isLogoutModalOpen}
@@ -169,10 +288,9 @@ const SideBar: React.FC<SideBarProps> = ({ isSmall, setIsSmall }) => {
               onClick={async () => {
                 setIsLoggingOut(true);
                 try {
-                  // Clear Zustand stores
                   logout();
                   const setSidebar = useSidebarStore.getState().setSidebar;
-                  setSidebar(null); // Clear sidebar store
+                  setSidebar(null);
 
                   await apis.Logout({ isLocalStorageClear: true });
 

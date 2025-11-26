@@ -19,7 +19,7 @@ const Provider = () => {
     active: 0,
     inactive: 0,
   });
-
+  const statOverAll = "need_stats_overall";
   const organizationDetails = useAuthStore((s) => s.organizationDetails);
   const orgId = organizationDetails?.organization_id ?? "";
   const selectedCenter = useDropdownStore((s) => s.selectedCenter);
@@ -35,7 +35,7 @@ const Provider = () => {
       setLoading(true);
       try {
         const resp = await apis.GetAllProviders(
-          "",
+          statOverAll,
           orgId,
           centerId,
           undefined,

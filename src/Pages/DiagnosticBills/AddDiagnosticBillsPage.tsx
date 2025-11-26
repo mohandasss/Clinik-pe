@@ -212,7 +212,7 @@ const AddDiagnosticBillsPage: React.FC = () => {
           color: "green",
         });
         // Navigate back to bills list
-        navigate("/bills");
+        navigate("/bookings");
       } else {
         notifications.show({
           title: "Error",

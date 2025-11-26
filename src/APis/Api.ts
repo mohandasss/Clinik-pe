@@ -87,6 +87,9 @@ import type {
   TestListResponse,
   TestPayload,
   CategoryListResponse,
+  CreateOtherPanelPayload,
+  GlobalAPIResponse,
+  OtherPanelsResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -346,11 +349,11 @@ class Apis {
     pageNumber?: number,
     pageSize?: number
   ): Promise<ProviderListResponse> {
+    console.log("hello", configuration)
     const response = await apiAgent
       .path(`/organizations/${organization_id}/centers/${center_id}/doctors`)
       .method("GET")
-      .query({ search, pageNumber, pageSize })
-      .json({ configuration })
+      .query({ search, pageNumber, pageSize, configuration })
       .execute();
     return response.data as ProviderListResponse;
   }
@@ -699,7 +702,7 @@ class Apis {
   // Test Panels APIs
   async GetTestPanels(pageNumber: number, pageSize: number, organization_id: string, center_id: string, search: string): Promise<PanelsListResponse> {
     const response = await apiAgent
-      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/panels`)
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/lab/panels`)
       .method("GET")
       .query({ search, pageNumber, pageSize })
       .execute();
@@ -711,7 +714,7 @@ class Apis {
     payload: CreatePanelPayload,
     organization_id: string, center_id: string): Promise<PanelsListResponse> {
     const response = await apiAgent
-      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/panels`)
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/lab/panels`)
       .method("POST")
       .json(payload)
       .execute();
@@ -722,7 +725,7 @@ class Apis {
     payload: UpdatePanelPayload,
     organization_id: string, center_id: string, panel_id: string): Promise<PanelsListResponse> {
     const response = await apiAgent
-      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/panels/${panel_id}`)
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/lab/panels/${panel_id}`)
       .method("PATCH")
       .json(payload)
       .execute();
@@ -758,7 +761,7 @@ class Apis {
   ): Promise<PanelDetailsResponse> {
 
     const response = await apiAgent
-      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/panels/${panel_id}`)
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/lab/panels/${panel_id}`)
       .method("GET")
       .execute();
     return response.data as PanelDetailsResponse;
@@ -1295,6 +1298,13 @@ class Apis {
   }
 
 
+
+
+
+
+
+  //OTHER AREA
+
   //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/QMhgPMlJ/diagnostics/radiology/department
   async GetAllDepartments(
     organization_id: string,
@@ -1384,17 +1394,19 @@ class Apis {
     return response.data as any;
   }
 
-  // async ReorderOtherTestPanels(
-  //   organization_id: string,
-  //   center_id: string,
-  //   payload: ReorderPanelsPayload): Promise<any> {
-  //   const response = await apiAgent
-  //     .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/other-panels/order-sequencing`)
-  //     .method("PATCH")
-  //     .json(payload)
-  //     .execute();
-  //   return response.data as any;
-  // }
+  async ReorderOtherTestPanels(
+    page: string,
+    organization_id: string,
+    center_id: string,
+    payload: ReorderPanelsPayload
+  ): Promise<ReorderPanelsResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/panels/order-sequencing`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
+    return response.data as ReorderPanelsResponse;
+  }
 
   // async GetOtherTestPanelById(
   //   organization_id: string,
@@ -1422,11 +1434,67 @@ class Apis {
   }
 
 
+  //OTHER AREA TEST-Panel
+
+  async AddOtherTestPanels(
+    payload: CreateOtherPanelPayload,
+    page: string,
+    organization_id: string,
+    center_id: string): Promise<GlobalAPIResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/panels`)
+      .method("POST")
+      .json(payload)
+      .execute();
+    return response.data as GlobalAPIResponse;
+  }
+
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/Chkf3087/diagnostics/radiology/panels
+  async GetOtherTestPanels(
+    page: string,
+    organization_id: string,
+    center_id: string,
+    pageNumber?: number,
+    pageSize?: number,
+    search?: string
+  ): Promise<OtherPanelsResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/panels`)
+      .method("GET")
+      .query({ pageNumber, pageSize, search })
+      .execute();
+    return response.data as OtherPanelsResponse;
+  }
+
+  async DeleteOtherTestPanel(
+    page: string,
+    organization_id: string,
+    center_id: string,
+    panel_id: string
+  ): Promise<GlobalAPIResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/panels/${panel_id}`)
+      .method("DELETE")
+      .execute();
+    return response.data as GlobalAPIResponse;
+  }
+
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/Chkf3087/diagnostics/radiology/panels/CCf_RI3_ UPDATE
 
 
 
 
 
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/Chkf3087/diagnostics/radiology/panels/CCf_RI3_ DELETE 
+
+
+
+
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/Chkf3087/diagnostics/radiology/panels/CCf_RI3_ //Details PAge
 }
 const apis = new Apis();
 export default apis;

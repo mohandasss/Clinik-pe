@@ -153,7 +153,7 @@ const AddAvailabilityModal: React.FC<Props> = ({
           start: formatTime(startTime),
           end: formatTime(endTime),
           wait_time: waitTime,
-          duration: duration,
+          time_slot_interval: duration,
         },
       ],
       appointment_type: type.toLowerCase().replace(/\s+/g, "-"),

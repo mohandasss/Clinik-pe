@@ -1,3 +1,12 @@
+export type GlobalAPIResponse = {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: any;
+
+}
+
+
 export type OrganizationRegistrationPayload = {
   name: string;
   email: string;
@@ -1445,6 +1454,7 @@ export interface SidebarMenuItem {
   title: string;
   path: string;
   icon: string;
+  dedicated?: boolean;
   children: SidebarMenuItem[];
 }
 
@@ -1481,12 +1491,24 @@ export interface OtherTestPanelRow {
   order: number;
   name: string;
   description: string;
-  department: string;
   price: number | string;
   status: "active" | "inactive" | string;
   data: string;
   tests: string[];
   hide_individual?: Record<string, string>;
+}
+
+// Display type for Radiology Test Panels (converted from OtherPanelItem)
+export interface RadiologyTestPanel {
+  id: string;
+  uid: string;
+  order: number;
+  name: string;
+  description: string;
+  price: string | number;
+  status: string;
+  data: string;
+  tests: string[];
 }
 
 export interface CreateOtherTestPanelPayload {
@@ -1495,7 +1517,6 @@ export interface CreateOtherTestPanelPayload {
   price: number;
   status: "active" | "inactive" | string;
   data: string;
-  department: string;
   tests: Array<{ test_id: string }>;
 }
 
@@ -1834,4 +1855,44 @@ export interface CategoryListResponse {
   httpStatus: number;
   message: string;
   data: CategoryListData;
+}
+
+
+//OTHER TEST PANEL TYPES
+export interface CreateOtherPanelPayload {
+  name: string;
+  description: string;
+  price: number;
+  data: string;
+  status: "active" | "inactive" | string; // adjust if status is fixed
+  tests: {
+    test_id: string;
+  }[];
+}
+
+
+export interface OtherPanelsResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: OtherPanelsData;
+}
+
+export interface OtherPanelsData {
+  panels: OtherPanelItem[];
+  pagination: Pagination;
+}
+
+export interface OtherPanelItem {
+  id: string;
+  uid: string;
+  order: number;
+  name: string;
+  description: string;
+  price: string | number;
+  status: string;
+  data: string;
+  tests: Array<{ test_id: string; test_name: string }> | string[];
+  hide_individual?: Record<string, string>;
+  created_at?: string;
 }

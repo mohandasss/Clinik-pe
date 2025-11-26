@@ -174,6 +174,7 @@ const TestPanels: React.FC = () => {
               ratelistEntries: p.price,
               price: p.price,
               hide_individual: p.hide_individual,
+              interpretation: p.interpretation || "",
               hideInterpretation: Boolean(
                 p.hide_individual &&
                   Object.keys(p.hide_individual).some(

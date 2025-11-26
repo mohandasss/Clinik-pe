@@ -75,6 +75,9 @@ import TestDepartment from "./Pages/Radiology/TestDepartment/TestDepartment";
 import OtherTestDatabaseDetails from "./Pages/Radiology/OtherTest/OtherTestDatabaseDetails";
 
 function AppContents() {
+  const CLinic = "clinic";
+  const diagnostic = "diagnostic";
+
   return (
     <Routes>
       {/* =========================================================
@@ -123,11 +126,15 @@ function AppContents() {
         {/* ---------------- 🟥 Doctor (Inside Admin Layout) ---------------- */}
 
         {/* ---------------- ⚪ Settings, Billing, Tests ---------------- */}
-        <Route path="/payments" element={<PaymentSettings />} />
+        <Route
+          path={`${CLinic}/settings/payment`}
+          element={<PaymentSettings />}
+        />
+        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         <Route path="/fee-management" element={<FeeManagement />} />
         <Route path="/general-settings" element={<GeneralSettings />} />
 
-        <Route path="/booking" element={<BookingPage />} />
+        <Route path="/appointments" element={<BookingPage />} />
 
         {/* Test Panels */}
         <Route path="/test-packages" element={<TestPackage />} />
@@ -155,7 +162,7 @@ function AppContents() {
         <Route path="/units" element={<Units />} />
 
         {/* Billing */}
-        <Route path="/bills" element={<DiagnosticBillsPage />} />
+        <Route path="/bookings" element={<DiagnosticBillsPage />} />
         <Route path="/bills/add" element={<AddDiagnosticBillsPage />} />
 
         <Route path="/interpretation" element={<InterpretationPage />} />
@@ -180,15 +187,15 @@ function AppContents() {
           element={<AddRadiologyTestPage />}
         />
         <Route
-          path="/radiology/other-test-panels"
+          path="/radiology/test-panels"
           element={<OtherTestPanelList />}
         />
         <Route
-          path="/radiology/other-test-panels/edit"
+          path="/radiology/test-panels/edit"
           element={<EditOtherTestPanel />}
         />
         <Route
-          path="/radiology/other-test-categories"
+          path="/radiology/test-categories"
           element={<OtherTestCategory />}
         />
       </Route>

@@ -26,7 +26,6 @@ interface FormState {
   price: string;
   status: string;
   data: string;
-  department: string;
   tests: string[];
 }
 
@@ -50,7 +49,6 @@ const EditOtherTestPanel: React.FC = () => {
     price: "",
     status: "active",
     data: "",
-    department: "",
     tests: [] as string[],
   });
 
@@ -59,15 +57,6 @@ const EditOtherTestPanel: React.FC = () => {
   const [availableTests, setAvailableTests] = useState<
     { value: string; label: string }[]
   >([]);
-
-  const [availableDepartments, setAvailableDepartments] = useState<
-    { value: string; label: string }[]
-  >([
-    { value: "radiology", label: "Radiology" },
-    { value: "pathology", label: "Pathology" },
-    { value: "cardiology", label: "Cardiology" },
-    { value: "dermatology", label: "Dermatology" },
-  ]);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -80,7 +69,6 @@ const EditOtherTestPanel: React.FC = () => {
         price: String(row.price) || "",
         status: row.status || "active",
         data: row.data || "",
-        department: row.department || "",
         tests: row.tests || [],
       });
     } else {
@@ -90,7 +78,6 @@ const EditOtherTestPanel: React.FC = () => {
         price: "",
         status: "active",
         data: "",
-        department: "",
         tests: [],
       });
     }
@@ -98,29 +85,30 @@ const EditOtherTestPanel: React.FC = () => {
 
   const organizationDetails = useAuthStore((s) => s.organizationDetails);
 
-  // Load tests for MultiSelect dropdown (use GetAllTests API only for dropdown values)
+  // Load tests for MultiSelect dropdown (use GetOtherTestDatabase API only for dropdown values)
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const resp = await apis.GetAllTests(
-          ["uid", "name"],
+        const resp = await apis.GetOtherTestDatabase(
+          "radiology",
+          1,
+          1000,
           organizationDetails?.organization_id ?? "",
-          organizationDetails?.center_id ?? ""
+          organizationDetails?.center_id ?? "",
+          ""
         );
-        // The GetAllTests API may return tests in different shapes depending on backend.
-        // We only use GetAllTests for populating the dropdown (do not call other 'get tests' APIs here).
-        const testsArray =
-          resp?.data?.tests ?? resp?.data?.data ?? resp?.data ?? [];
+        // The GetOtherTestDatabase API returns tests in the expected shape.
+        const testsArray = resp?.data?.tests ?? [];
         if (mounted && Array.isArray(testsArray)) {
           const options = testsArray.map((t: any) => ({
-            value: t.uid ?? t.id ?? t.test_id ?? t.uid,
-            label: t.name ?? t.test_name ?? t.label,
+            value: t.uid,
+            label: t.name,
           }));
           setAvailableTests(options);
         }
       } catch (err) {
-        console.warn("GetAllTests failed:", err);
+        console.warn("GetOtherTestDatabase failed:", err);
       }
     })();
     return () => {
@@ -149,8 +137,6 @@ const EditOtherTestPanel: React.FC = () => {
 
     const newErrors: Record<string, string> = {};
     if (!form.name.trim()) newErrors.name = "Panel name is required";
-    if (!form.department.trim())
-      newErrors.department = "Department is required";
     if (!form.price.trim()) newErrors.price = "Price is required";
     if (form.tests.length === 0)
       newErrors.tests = "At least one test is required";
@@ -172,15 +158,15 @@ const EditOtherTestPanel: React.FC = () => {
           name: form.name.trim(),
           description: form.description.trim(),
           price: Number(form.price),
-          status: form.status,
           data: form.data.trim(),
-          department: form.department,
+          status: form.status,
           tests: form.tests.map((testId) => ({ test_id: testId })),
         };
 
         // @ts-expect-error: allow UpdateOtherTestPanel
         const response = await apis.UpdateOtherTestPanel(
           payload,
+          "radiology",
           organizationDetails?.organization_id ?? "",
           organizationDetails?.center_id ?? "",
           row.id
@@ -205,14 +191,14 @@ const EditOtherTestPanel: React.FC = () => {
           name: form.name.trim(),
           description: form.description.trim(),
           price: Number(form.price),
-          status: form.status,
           data: form.data.trim(),
-          department: form.department,
+          status: form.status,
           tests: form.tests.map((testId) => ({ test_id: testId })),
         };
         // @ts-expect-error: allow AddOtherTestPanel
-        const response = await apis.AddOtherTestPanel(
+        const response = await apis.AddOtherTestPanels(
           payload,
+          "radiology",
           organizationDetails?.organization_id ?? "",
           organizationDetails?.center_id ?? ""
         );
@@ -291,21 +277,6 @@ const EditOtherTestPanel: React.FC = () => {
                   value={form.name}
                   onChange={(e) => handleChange("name", e.currentTarget.value)}
                   error={formErrors.name}
-                  required
-                />
-              </div>
-
-              <div>
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Department *
-                </Text>
-                <Select
-                  placeholder="Select department"
-                  data={availableDepartments}
-                  value={form.department}
-                  onChange={(v) => handleChange("department", v ?? "")}
-                  error={formErrors.department}
-                  searchable
                   required
                 />
               </div>

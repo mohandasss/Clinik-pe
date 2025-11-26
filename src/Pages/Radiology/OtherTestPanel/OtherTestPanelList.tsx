@@ -1,97 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, TextInput, Loader } from "@mantine/core";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay,
-} from "@dnd-kit/core";
-import type { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { notifications } from "@mantine/notifications";
 import apis from "../../../APis/Api";
 import useAuthStore from "../../../GlobalStore/store";
-import type { OtherTestPanelRow } from "../../../APis/Types";
+import type { RadiologyTestPanel } from "../../../APis/Types";
 import { IconPencil, IconEye } from "@tabler/icons-react";
-
-// Inline SVG for chevrons up/down
-const ChevronsUpDown: React.FC<
-  React.SVGProps<SVGSVGElement> & { size?: number }
-> = ({ size = 16, className, ...props }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={`${size}px`}
-    height={`${size}px`}
-    viewBox="0 0 24 24"
-    fill="none"
-    className={className}
-    {...props}
-  >
-    <path
-      d="M12.7071 3.29289C12.3166 2.90237 11.6834 2.90237 11.2929 3.29289L6.29289 8.29289C5.90237 8.68342 5.90237 9.31658 6.29289 9.70711C6.68342 10.0976 7.31658 10.0976 7.70711 9.70711L12 5.41421L16.2929 9.70711C16.6834 10.0976 17.3166 10.0976 17.7071 9.70711C18.0976 9.31658 18.0976 8.68342 17.7071 8.29289L12.7071 3.29289Z"
-      fill="currentColor"
-    />
-    <path
-      d="M7.70711 14.2929C7.31658 13.9024 6.68342 13.9024 6.29289 14.2929C5.90237 14.6834 5.90237 15.3166 6.29289 15.7071L11.2929 20.7071C11.6834 21.0976 12.3166 21.0976 12.7071 20.7071L17.7071 15.7071C18.0976 15.3166 18.0976 14.6834 17.7071 14.2929C17.3166 13.9024 16.6834 13.9024 16.2929 14.2929L12 18.5858L7.70711 14.2929Z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
-import DeleteConfirm from "../../TestPackages/Components/DeleteConfirm";
 
 // Sortable Row Component
 const SortableRow: React.FC<{
-  row: OtherTestPanelRow;
-  onEdit: (row: OtherTestPanelRow) => void;
+  row: RadiologyTestPanel;
+  index: number;
+  onEdit: (row: RadiologyTestPanel) => void;
   onView: (panelId: string) => void;
-}> = ({ row, onEdit, onView }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: row.id });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
+}> = ({ row, index, onEdit, onView }) => {
   return (
-    <tr ref={setNodeRef} style={style} className="hover:bg-gray-50">
+    <tr className="hover:bg-gray-50">
       <td className="border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing"
-          >
-            <ChevronsUpDown size={16} className="text-gray-400" />
-          </div>
-          <span className="text-sm text-gray-600">{row.order}.</span>
-        </div>
+        <span className="text-sm text-gray-600">{index}.</span>
       </td>
       <td className="border-b border-gray-200 px-4 py-3">
         <div className="font-medium text-gray-900">{row.name}</div>
       </td>
       <td className="border-b border-gray-200 px-4 py-3">
         <div className="text-sm text-gray-600">{row.description}</div>
-      </td>
-      <td className="border-b border-gray-200 px-4 py-3">
-        <div className="text-sm text-gray-600">{row.department}</div>
       </td>
       <td className="border-b border-gray-200 px-4 py-3">
         <div className="text-sm text-gray-600">{row.price}</div>
@@ -133,77 +65,71 @@ const SortableRow: React.FC<{
   );
 };
 
+import DeleteConfirm from "../../TestPackages/Components/DeleteConfirm";
+
 const OtherTestPanelList: React.FC = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(5);
   const [query, setQuery] = useState("");
-  const [panels, setPanels] = useState<OtherTestPanelRow[]>([]);
+  const [panels, setPanels] = useState<RadiologyTestPanel[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
-  const [deletingRow, setDeletingRow] = useState<OtherTestPanelRow | null>(
+  const [deletingRow, setDeletingRow] = useState<RadiologyTestPanel | null>(
     null
   );
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [loadingPanels, setLoadingPanels] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
 
   const rows = panels;
   const total = totalRecords;
 
   const organizationDetails = useAuthStore((s) => s.organizationDetails);
 
-  // Load panels from API (debounced on query)
+  // Load panels from API
   useEffect(() => {
     let mounted = true;
     const timer = setTimeout(() => {
       (async () => {
         setLoadingPanels(true);
         try {
-          // @ts-expect-error: allow GetOtherTestPanels
-          const resp = await apis.GetTestPanels(
-            page,
-            pageSize,
+          const resp = await apis.GetOtherTestPanels(
+            "radiology",
             organizationDetails?.organization_id ?? "",
             organizationDetails?.center_id ?? "",
+            page,
+            pageSize,
             query
           );
-          // @ts-expect-error: allow data.panels
-          if (mounted && resp?.data?.panels) {
-            // @ts-expect-error: allow data.panels
-            const mapped: OtherTestPanelRow[] = resp.data.panels.map((p) => ({
-              id: p.id,
-              uid: p.id,
-              order: Number(p.order) || 0,
+
+          if (mounted && resp?.success && resp?.data?.panels) {
+            const mapped: RadiologyTestPanel[] = resp.data.panels.map((p) => ({
+              id: p.panel_id,
+              uid: p.panel_id,
+              order: 0,
               name: p.name,
-              description: p.description || "",
-              department: p.department || "",
+              description: p.description,
               price: p.price,
               status: p.status,
-              data: p.data,
-              tests: (p.tests || []).map((t: any) =>
-                typeof t === "string" ? t : t.name || t.test_name
-              ),
+              data: p,
+              tests: p.tests?.list?.map((t) => t.test_name) || [],
             }));
-            setPanels(
-              [...mapped].sort((a, b) => Number(a.order) - Number(b.order))
-            );
-            const totalRec =
-              resp.data.pagination?.totalRecords ?? mapped.length;
+
+            setPanels(mapped);
+
+            const totalRec = resp.data.pagination?.totalRecords ?? 0;
             setTotalRecords(totalRec);
+
             const pagesCount = Math.max(1, Math.ceil(totalRec / pageSize));
             if (page > pagesCount) setPage(pagesCount);
+          } else if (mounted) {
+            setPanels([]);
+            setTotalRecords(0);
           }
         } catch (err) {
-          console.warn("GetOtherTestPanels failed:", err);
+          console.error("GetOtherTestPanels error:", err);
+          setPanels([]);
+          setTotalRecords(0);
           notifications.show({
             title: "Error",
             message: "Failed to load test panels",
@@ -230,8 +156,8 @@ const OtherTestPanelList: React.FC = () => {
   const handleDeleteConfirm = async (panel_id: string) => {
     setDeleting(true);
     try {
-      // @ts-expect-error: allow DeleteOtherTestPanel
       await apis.DeleteOtherTestPanel(
+        "radiology",
         organizationDetails?.organization_id ?? "",
         organizationDetails?.center_id ?? "",
         panel_id
@@ -259,60 +185,6 @@ const OtherTestPanelList: React.FC = () => {
     }
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(String(event.active.id));
-  };
-
-  const reorderPanels = async (draggedUid: string, afterUid: string) => {
-    try {
-      // @ts-expect-error: allow ReorderOtherTestPanels
-      const response = await apis.ReorderOtherTestPanels(
-        organizationDetails?.organization_id ?? "",
-        organizationDetails?.center_id ?? "",
-        {
-          uid: draggedUid,
-          after_uid: afterUid,
-        }
-      );
-
-      const notificationType = response.success ? "blue" : "red";
-      notifications.show({
-        title: response.success,
-        message: response.message,
-        color: notificationType,
-      });
-    } catch (error) {
-      console.error("Failed to reorder panels:", error);
-      notifications.show({
-        title: "Error",
-        message: "Failed to sync order",
-        color: "red",
-      });
-    }
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = panels.findIndex((p) => p.id === active.id);
-    const newIndex = panels.findIndex((p) => p.id === over.id);
-
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const draggedPanel = panels[oldIndex];
-    const reordered = arrayMove(panels, oldIndex, newIndex);
-
-    const afterUid = newIndex === 0 ? "" : reordered[newIndex - 1].uid;
-
-    setPanels(reordered);
-    await reorderPanels(draggedPanel.uid, afterUid);
-  };
-
-  const activeRow = activeId ? panels.find((p) => p.id === activeId) : null;
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 ring-1 ring-gray-100">
       <div className="flex items-center justify-between mb-4">
@@ -332,7 +204,7 @@ const OtherTestPanelList: React.FC = () => {
         </div>
         <Button
           onClick={() => {
-            navigate("/radiology/other-test-panels/edit", {
+            navigate("/radiology/test-panels/edit", {
               state: { row: null },
             });
           }}
@@ -344,131 +216,52 @@ const OtherTestPanelList: React.FC = () => {
         </Button>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Order
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Name
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Description
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Department
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Price
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Status
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Tests
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <SortableContext
-                items={rows.map((r) => r.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                {rows.map((row) => (
-                  <SortableRow
-                    key={row.id}
-                    row={row}
-                    onEdit={(r) =>
-                      navigate("/radiology/test-panels/edit", {
-                        state: { row: r },
-                      })
-                    }
-                    onView={(panelId) =>
-                      navigate(`/radiology/test-panels/${panelId}`)
-                    }
-                  />
-                ))}
-              </SortableContext>
-            </tbody>
-          </table>
-        </div>
-
-        <DragOverlay>
-          {activeRow ? (
-            <div className="bg-white shadow-lg rounded border-2 border-blue-400 opacity-90">
-              <table className="w-full text-sm">
-                <tbody>
-                  <tr>
-                    <td className="px-4 py-3 w-20">
-                      <div className="flex items-center gap-2">
-                        <ChevronsUpDown size={16} className="text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                          {activeRow.order}.
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">
-                        {activeRow.name}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-600">
-                        {activeRow.description}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-600">
-                        {activeRow.department}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-600">
-                        {activeRow.price}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full ${
-                          activeRow.status === "active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {activeRow.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-600">
-                        {activeRow.tests.slice(0, 3).join(", ")}
-                        {activeRow.tests.length > 3 &&
-                          ` ... (${activeRow.tests.length} tests)`}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <IconPencil size={16} className="text-blue-600" />
-                        <IconEye size={16} className="text-green-600" />
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                S. No.
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                Name
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                Description
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                Price
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                Status
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                Tests
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                Action
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <SortableRow
+                key={row.id}
+                row={row}
+                index={index + 1}
+                onEdit={(r) =>
+                  navigate("/radiology/test-panels/edit", {
+                    state: { row: r },
+                  })
+                }
+                onView={(panelId) =>
+                  navigate(`/radiology/test-panels/${panelId}`)
+                }
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <DeleteConfirm
         opened={deleteModalOpen}
