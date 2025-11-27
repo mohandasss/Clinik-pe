@@ -79,7 +79,7 @@ import OtherTestPackage from "./Pages/Radiology/OtherTestPackage";
 import OtherTestPackageDetailPage from "./Pages/Radiology/OtherTestPackage/OtherTestPackageDetailPage";
 
 function AppContents() {
-  const CLinic = "clinic";
+  const CLinic = "";
   const diagnostic = "diagnostic";
 
   return (

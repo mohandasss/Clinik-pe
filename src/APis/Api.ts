@@ -1466,7 +1466,7 @@ class Apis {
     pageSize?: number,
     search?: string
   ): Promise<OtherPanelsResponse> {
-    const response = await apiAgent
+    const response = await apiAgent 
       .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/panels`)
       .method("GET")
       .query({ pageNumber, pageSize, search })
@@ -1602,6 +1602,26 @@ class Apis {
       .execute();
     return response.data as GlobalAPIResponse;
   }
+
+
+  async GetOtherTestCategories(
+    page: string,
+    organization_id: string,
+    center_id: string,
+    pageNumber?: number,
+    pageSize?: number,
+    search?: string
+  ): Promise<TestCategoryListResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/categories`)
+      .method("GET")
+      .query({ pageNumber, pageSize, search })
+      .execute();
+    return response.data as TestCategoryListResponse;
+  }
+
+
+
 }
 const apis = new Apis();
 export default apis;

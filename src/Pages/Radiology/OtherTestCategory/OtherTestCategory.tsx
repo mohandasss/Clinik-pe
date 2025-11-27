@@ -1,94 +1,27 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { Button, Popover, TextInput } from "@mantine/core";
-import CategoryModal from "../../TestCategories/Components/CategoryModal";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay,
-} from "@dnd-kit/core";
-import type { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { notifications } from "@mantine/notifications";
 import apis from "../../../APis/Api";
 import useAuthStore from "../../../GlobalStore/store";
 import type { TestCategory, TestCategoryPagination } from "../../../APis/Types";
 import { IconDots, IconPencil } from "@tabler/icons-react";
 import DeleteConfirm from "../../TestPackages/Components/DeleteConfirm";
+import CategoryModal from "../../TestCategories/Components/CategoryModal";
 
 const DEFAULT_PAGE_SIZE = 5;
-const DRAG_ACTIVATION_DISTANCE = 8;
 
-const ChevronsUpDown: React.FC<
-  React.SVGProps<SVGSVGElement> & { size?: number }
-> = ({ size = 16, className, ...props }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={`${size}px`}
-    height={`${size}px`}
-    viewBox="0 0 24 24"
-    fill="none"
-    className={className}
-    {...props}
-  >
-    <path
-      d="M12.7071 3.29289C12.3166 2.90237 11.6834 2.90237 11.2929 3.29289L6.29289 8.29289C5.90237 8.68342 5.90237 9.31658 6.29289 9.70711C6.68342 10.0976 7.31658 10.0976 7.70711 9.70711L12 5.41421L16.2929 9.70711C16.6834 10.0976 17.3166 10.0976 17.7071 9.70711C18.0976 9.31658 18.0976 8.68342 17.7071 8.29289L12.7071 3.29289Z"
-      fill="currentColor"
-    />
-    <path
-      d="M7.70711 14.2929C7.31658 13.9024 6.68342 13.9024 6.29289 14.2929C5.90237 14.6834 5.90237 15.3166 6.29289 15.7071L11.2929 20.7071C11.6834 21.0976 12.3166 21.0976 12.7071 20.7071L17.7071 15.7071C18.0976 15.3166 18.0976 14.6834 17.7071 14.2929C17.3166 13.9024 16.6834 13.9024 16.2929 14.2929L12 18.5858L7.70711 14.2929Z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
-interface SortableRowProps {
+interface RowProps {
   category: TestCategory;
+  index: number;
   onEdit: (category: TestCategory) => void;
   onDelete: (category: TestCategory) => void;
 }
 
-const SortableRow: React.FC<SortableRowProps> = ({
-  category,
-  onEdit,
-  onDelete,
-}) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: category.id });
-
-  const rowStyle: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
+const Row: React.FC<RowProps> = ({ category, index, onEdit, onDelete }) => {
   return (
-    <tr ref={setNodeRef} style={rowStyle} className="hover:bg-gray-50">
+    <tr className="hover:bg-gray-50">
       <td className="border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing"
-          >
-            <ChevronsUpDown size={16} className="text-gray-400" />
-          </div>
-          <span className="text-sm text-gray-600">{category.order}.</span>
-        </div>
+        <span className="text-sm text-gray-600">{index + 1}.</span>
       </td>
 
       <td className="border-b border-gray-200 px-4 py-3">
@@ -143,9 +76,6 @@ const OtherTestCategory: React.FC = () => {
   );
 
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
-  const [draggedCategoryId, setDraggedCategoryId] = useState<string | null>(
-    null
-  );
 
   const [categoryToDelete, setCategoryToDelete] = useState<TestCategory | null>(
     null
@@ -165,7 +95,7 @@ const OtherTestCategory: React.FC = () => {
     Math.ceil(totalCategories / DEFAULT_PAGE_SIZE)
   );
 
-  const filteredCategories = useMemo(() => {
+  const displayCategories = useMemo(() => {
     if (!searchQuery) return categories;
 
     const normalizedQuery = searchQuery.toLowerCase();
@@ -173,24 +103,6 @@ const OtherTestCategory: React.FC = () => {
       category.name.toLowerCase().includes(normalizedQuery)
     );
   }, [searchQuery, categories]);
-
-  const sortedCategories = useMemo(() => {
-    return [...filteredCategories].sort(
-      (a, b) => Number(a.order) - Number(b.order)
-    );
-  }, [filteredCategories]);
-
-  const draggedCategory = draggedCategoryId
-    ? categories.find((cat) => cat.id === draggedCategoryId)
-    : null;
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: DRAG_ACTIVATION_DISTANCE,
-      },
-    })
-  );
 
   const showNotification = useCallback(
     (message: string, type: "success" | "error" | "warning") => {
@@ -225,12 +137,13 @@ const OtherTestCategory: React.FC = () => {
   const loadCategories = useCallback(async () => {
     setIsLoadingCategories(true);
     try {
-      const response = await apis.GetTestCategories(
+      const response = await apis.GetOtherTestCategories(
+        "radiology",
         organizationId,
         centerId,
-        searchQuery || undefined,
         currentPage,
-        DEFAULT_PAGE_SIZE
+        DEFAULT_PAGE_SIZE,
+        searchQuery || undefined
       );
       if (response.success) {
         setCategories(response.data.categorys);
@@ -307,56 +220,6 @@ const OtherTestCategory: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const reorderCategories = async (draggedUid: string, afterUid: string) => {
-    try {
-      const response = await apis.ReorderTestCategories(
-        organizationId,
-        centerId,
-        { uid: draggedUid, after_uid: afterUid }
-      );
-      const notificationType = response.success ? "success" : "error";
-      showNotification(response.message, notificationType);
-      if (response.success) {
-        await loadCategories();
-      }
-    } catch (error) {
-      console.error("Failed to reorder categories:", error);
-      showErrorNotification("Failed to sync order");
-    }
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setDraggedCategoryId(String(event.active.id));
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setDraggedCategoryId(null);
-    if (!over || active.id === over.id) return;
-
-    const visible = sortedCategories;
-    const oldVisibleIndex = visible.findIndex((cat) => cat.id === active.id);
-    const newVisibleIndex = visible.findIndex((cat) => cat.id === over.id);
-    if (oldVisibleIndex === -1 || newVisibleIndex === -1) return;
-
-    const draggedVisibleCategory = visible[oldVisibleIndex];
-    const reorderedVisible = arrayMove(
-      visible,
-      oldVisibleIndex,
-      newVisibleIndex
-    );
-
-    const afterUid =
-      newVisibleIndex === 0 ? "" : reorderedVisible[newVisibleIndex - 1].uid;
-
-    const oldFullIndex = categories.findIndex((cat) => cat.id === active.id);
-    const newFullIndex = categories.findIndex((cat) => cat.id === over.id);
-    if (oldFullIndex === -1 || newFullIndex === -1) return;
-    const reorderedFull = arrayMove(categories, oldFullIndex, newFullIndex);
-    setCategories(reorderedFull);
-    await reorderCategories(draggedVisibleCategory.uid, afterUid);
   };
 
   const handleEditCategory = (category: TestCategory) => {
@@ -458,77 +321,34 @@ const OtherTestCategory: React.FC = () => {
         </Button>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Order
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Name
-                </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <SortableContext
-                items={sortedCategories.map((cat) => cat.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                {sortedCategories.map((category) => (
-                  <SortableRow
-                    key={category.id}
-                    category={category}
-                    onEdit={handleEditCategory}
-                    onDelete={handleDeleteCategory}
-                  />
-                ))}
-              </SortableContext>
-            </tbody>
-          </table>
-        </div>
-
-        <DragOverlay>
-          {draggedCategory && (
-            <div className="bg-white shadow-lg rounded border-2 border-blue-400 opacity-90">
-              <table className="w-full text-sm">
-                <tbody>
-                  <tr>
-                    <td className="px-4 py-3 w-20">
-                      <div className="flex items-center gap-2">
-                        <ChevronsUpDown size={16} className="text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                          {draggedCategory.order}.
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">
-                        {draggedCategory.name}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <IconPencil size={16} className="text-blue-600" />
-                        <IconDots className="rotate-90 text-gray-400" />
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                S.No
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                Name
+              </th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                Action
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {displayCategories.map((category, index) => (
+              <Row
+                key={category.id}
+                category={category}
+                index={index}
+                onEdit={handleEditCategory}
+                onDelete={handleDeleteCategory}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <CategoryModal
         opened={isEditModalOpen}
