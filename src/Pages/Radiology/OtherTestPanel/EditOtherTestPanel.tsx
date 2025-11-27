@@ -9,12 +9,14 @@ import {
   MultiSelect,
   Select,
   Textarea,
+  Tabs,
 } from "@mantine/core";
 import Notification from "../../../components/Global/Notification";
 import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../../APis/Api";
 import useAuthStore from "../../../GlobalStore/store";
 import RichEditor from "../../../components/Global/RichEditor";
+import DisplayTabs from "../../../components/Global/DisplayTabs";
 import type { OtherTestPanelRow, LabTestItem } from "../../../APis/Types";
 
 interface LocationState {
@@ -274,48 +276,61 @@ const EditOtherTestPanel: React.FC = () => {
       </div>
 
       <Paper withBorder radius="md" className="p-6">
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <div className="text-sm font-medium mb-3">Panel Details</div>
+        <Tabs defaultValue="core" className="mb-4">
+          <Tabs.List grow>
+            <Tabs.Tab value="core">Core</Tabs.Tab>
+            <Tabs.Tab value="display">Display</Tabs.Tab>
+          </Tabs.List>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Panel Name *
-                </Text>
-                <TextInput
-                  placeholder="e.g., Chest X-Ray"
-                  value={form.name}
-                  onChange={(e) => handleChange("name", e.currentTarget.value)}
-                  error={formErrors.name}
-                  required
-                />
-              </div>
-              <div>
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Price *
-                </Text>
-                <TextInput
-                  placeholder="e.g., 500"
-                  type="number"
-                  value={form.price}
-                  onChange={(e) => handleChange("price", e.currentTarget.value)}
-                  error={formErrors.price}
-                  required
-                />
-              </div>
+          <Tabs.Panel value="core" pt="md">
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <div className="text-sm font-medium mb-3">Panel Details</div>
 
-              <div className="md:col-span-2">
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Description
-                </Text>
-                <RichEditor
-                  value={form.description}
-                  onChange={(content) => handleChange("description", content)}
-                />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Text size="xs" className="text-gray-600 mb-2">
+                      Panel Name *
+                    </Text>
+                    <TextInput
+                      placeholder="e.g., Chest X-Ray"
+                      value={form.name}
+                      onChange={(e) =>
+                        handleChange("name", e.currentTarget.value)
+                      }
+                      error={formErrors.name}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Text size="xs" className="text-gray-600 mb-2">
+                      Price *
+                    </Text>
+                    <TextInput
+                      placeholder="e.g., 500"
+                      type="number"
+                      value={form.price}
+                      onChange={(e) =>
+                        handleChange("price", e.currentTarget.value)
+                      }
+                      error={formErrors.price}
+                      required
+                    />
+                  </div>
 
-              {/* <div className="md:col-span-2">
+                  <div className="md:col-span-2">
+                    <Text size="xs" className="text-gray-600 mb-2">
+                      Description
+                    </Text>
+                    <RichEditor
+                      value={form.description}
+                      onChange={(content) =>
+                        handleChange("description", content)
+                      }
+                    />
+                  </div>
+
+                  {/* <div className="md:col-span-2">
                 <Text size="xs" className="text-gray-600 mb-2">
                   Additional Data
                 </Text>
@@ -327,48 +342,54 @@ const EditOtherTestPanel: React.FC = () => {
                 />
               </div> */}
 
-              <div className="">
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Tests *
-                </Text>
-                <MultiSelect
-                  placeholder="Select tests"
-                  data={availableTests}
-                  value={form.tests}
-                  onChange={(val) => handleChange("tests", val)}
-                  searchable
-                  clearable
-                  error={formErrors.tests}
-                  required
-                />
+                  <div className="">
+                    <Text size="xs" className="text-gray-600 mb-2">
+                      Tests *
+                    </Text>
+                    <MultiSelect
+                      placeholder="Select tests"
+                      data={availableTests}
+                      value={form.tests}
+                      onChange={(val) => handleChange("tests", val)}
+                      searchable
+                      clearable
+                      error={formErrors.tests}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Text size="xs" className="text-gray-600 mb-2">
+                      Status
+                    </Text>
+                    <Select
+                      placeholder="Select status"
+                      data={[
+                        { value: "active", label: "Active" },
+                        { value: "inactive", label: "Inactive" },
+                      ]}
+                      value={form.status}
+                      onChange={(v) => handleChange("status", v ?? "active")}
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Status
-                </Text>
-                <Select
-                  placeholder="Select status"
-                  data={[
-                    { value: "active", label: "Active" },
-                    { value: "inactive", label: "Inactive" },
-                  ]}
-                  value={form.status}
-                  onChange={(v) => handleChange("status", v ?? "active")}
-                />
-              </div>
-            </div>
-          </div>
 
-          <div className="mt-6">
-            <Button
-              type="submit"
-              style={{ backgroundColor: "#0b5ed7" }}
-              loading={saving}
-            >
-              {row ? "Update Panel" : "Add Panel"}
-            </Button>
-          </div>
-        </form>
+              <div className="mt-6">
+                <Button
+                  type="submit"
+                  style={{ backgroundColor: "#0b5ed7" }}
+                  loading={saving}
+                >
+                  {row ? "Update Panel" : "Add Panel"}
+                </Button>
+              </div>
+            </form>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="display" pt="md">
+            <DisplayTabs />
+          </Tabs.Panel>
+        </Tabs>
       </Paper>
     </div>
   );

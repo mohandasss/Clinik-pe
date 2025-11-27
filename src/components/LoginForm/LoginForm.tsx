@@ -156,7 +156,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             frontend_type: "browser",
           },
         });
-      }, 1500);
+      }, 500);
     }
   };
 

@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Drawer, TextInput, Select, Button, MultiSelect } from "@mantine/core";
+import {
+  Drawer,
+  TextInput,
+  Select,
+  Button,
+  MultiSelect,
+  Tabs,
+} from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 
 import apis from "../../../../APis/Api";
 import useAuthStore from "../../../../GlobalStore/store";
+import DisplayTabs from "../../../../components/Global/DisplayTabs";
 
 import type { OtherTestPackageRow } from "../../../../APis/Types";
 
@@ -239,92 +247,105 @@ const EditOtherPackageDrawer: React.FC<Props> = ({
       opened={opened}
       onClose={onClose}
       position="right"
-      size="md"
+      size="xl"
       title={row ? "Edit radiology test package" : "Add radiology test package"}
     >
-      <div className="flex flex-col gap-4">
-        <TextInput
-          label="Name"
-          placeholder="Enter package name"
-          value={name}
-          onChange={(e) => setName(e.currentTarget.value)}
-          required
-        />
+      <Tabs defaultValue="core">
+        <Tabs.List>
+          <Tabs.Tab value="core">Core</Tabs.Tab>
+          <Tabs.Tab value="display">Display</Tabs.Tab>
+        </Tabs.List>
 
-        <TextInput
-          label="Description"
-          placeholder="Enter package description"
-          value={description}
-          onChange={(e) => setDescription(e.currentTarget.value)}
-        />
+        <Tabs.Panel value="core" pt="md">
+          <div className="flex flex-col gap-4">
+            <TextInput
+              label="Name"
+              placeholder="Enter package name"
+              value={name}
+              onChange={(e) => setName(e.currentTarget.value)}
+              required
+            />
 
-        <TextInput
-          label="Price"
-          placeholder="Enter price"
-          type="number"
-          value={price}
-          onChange={(e) => setPrice(e.currentTarget.value)}
-          required
-        />
+            <TextInput
+              label="Description"
+              placeholder="Enter package description"
+              value={description}
+              onChange={(e) => setDescription(e.currentTarget.value)}
+            />
 
-        <Select
-          label="Status"
-          value={status}
-          onChange={(v) =>
-            setStatus(
-              (v as "male" | "female" | "both" | "active" | "inactive") ||
-                "active"
-            )
-          }
-          data={[
-            { value: "active", label: "Active" },
-            { value: "inactive", label: "Inactive" },
-          ]}
-        />
+            <TextInput
+              label="Price"
+              placeholder="Enter price"
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.currentTarget.value)}
+              required
+            />
 
-        <TextInput
-          label="Data"
-          placeholder="Enter additional data (optional)"
-          value={data}
-          onChange={(e) => setData(e.currentTarget.value)}
-        />
+            <Select
+              label="Status"
+              value={status}
+              onChange={(v) =>
+                setStatus(
+                  (v as "male" | "female" | "both" | "active" | "inactive") ||
+                    "active"
+                )
+              }
+              data={[
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
+            />
 
-        <MultiSelect
-          label="Tests"
-          placeholder="Select radiology tests"
-          data={availableTests}
-          value={tests}
-          onChange={setTests}
-          searchable
-          clearable
-          disabled={loadingData}
-        />
+            <TextInput
+              label="Data"
+              placeholder="Enter additional data (optional)"
+              value={data}
+              onChange={(e) => setData(e.currentTarget.value)}
+            />
 
-        <MultiSelect
-          label="Panels"
-          placeholder="Select radiology panels"
-          data={availablePanels}
-          value={panels}
-          onChange={setPanels}
-          searchable
-          clearable
-          disabled={loadingData}
-        />
+            <MultiSelect
+              label="Tests"
+              placeholder="Select radiology tests"
+              data={availableTests}
+              value={tests}
+              onChange={setTests}
+              searchable
+              clearable
+              disabled={loadingData}
+            />
 
-        <div className="flex items-center gap-3 mt-4">
-          <Button
-            onClick={handleSave}
-            variant="filled"
-            color="blue"
-            loading={loading}
-          >
-            Save
-          </Button>
-          <Button variant="default" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
-      </div>
+            <MultiSelect
+              label="Panels"
+              placeholder="Select radiology panels"
+              data={availablePanels}
+              value={panels}
+              onChange={setPanels}
+              searchable
+              clearable
+              disabled={loadingData}
+            />
+
+            <div className="flex items-center gap-3 mt-4">
+              <Button
+                onClick={handleSave}
+                variant="filled"
+                color="blue"
+                loading={loading}
+              >
+                Save
+              </Button>
+              <Button variant="default" onClick={onClose}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="display" pt="md">
+          <DisplayTabs />
+        </Tabs.Panel>
+      </Tabs>
     </Drawer>
   );
 };

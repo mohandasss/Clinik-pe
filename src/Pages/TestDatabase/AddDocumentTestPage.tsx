@@ -10,6 +10,7 @@ import {
   Textarea,
   Checkbox,
   NumberInput,
+  Tabs,
 } from "@mantine/core";
 import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../APis/Api";
@@ -17,6 +18,7 @@ import useAuthStore from "../../GlobalStore/store";
 import type { CreateTestPayload } from "../../APis/Types";
 import { notifications } from "@mantine/notifications";
 import RichEditor from "../../components/Global/RichEditor";
+import DisplayTabs from "../../components/Global/DisplayTabs";
 
 const AddDocumentTestPage: React.FC = () => {
   const navigate = useNavigate();
@@ -233,101 +235,119 @@ const AddDocumentTestPage: React.FC = () => {
       </div>
 
       <Paper withBorder radius="md" className="p-6">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <div>
-              <Text size="xs" className="text-gray-600 mb-2">
-                Name
-              </Text>
-              <TextInput
-                placeholder=""
-                value={form.name}
-                onChange={(e) => handleChange("name", e.currentTarget.value)}
-                error={errors.name}
-                required
-              />
-            </div>
-            <div>
-              <Text size="xs" className="text-gray-600 mb-2">
-                Short name
-              </Text>
-              <TextInput
-                placeholder=""
-                value={form.shortName}
-                onChange={(e) =>
-                  handleChange("shortName", e.currentTarget.value)
-                }
-                error={errors.shortName}
-                required
-              />
-            </div>
+        <Tabs defaultValue="core" className="mb-4">
+          <Tabs.List grow>
+            <Tabs.Tab value="core">Core</Tabs.Tab>
+            <Tabs.Tab value="display">Display</Tabs.Tab>
+          </Tabs.List>
 
-            <div>
-              <Text size="xs" className="text-gray-600 mb-2">
-                Category
-              </Text>
-              <Select
-                placeholder="Select category"
-                data={categoryOptions}
-                value={form.category}
-                onChange={(v) => handleChange("category", v || "")}
-                error={errors.category}
-                searchable
-              />
-            </div>
-
-            <div>
-              <Text size="xs" className="text-gray-600 mb-2">
-                Price
-              </Text>
-              <NumberInput
-                placeholder=""
-                value={form.price ? Number(form.price) : undefined}
-                onChange={(v) => handleChange("price", String(v || ""))}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <Checkbox
-              label="Display test name in report"
-              checked={form.displayTestNameInReport}
-              onChange={(e) =>
-                handleChange("displayTestNameInReport", e.currentTarget.checked)
-              }
-            />
-          </div>
-
-          <div className="mb-6">
-            <div className="text-sm font-medium mb-2">Default result</div>
-            <RichEditor
-              value={form.defaultResult || ""}
-              onChange={(content) => handleChange("defaultResult", content)}
-            />
-            <div className="text-xs text-gray-500 mt-2">
-              Changes to default result will only reflect in new reports, not
-              modified reports.
-            </div>
-          </div>
-
-          <div className="flex gap-3 justify-end mt-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/test-database")}
+          <Tabs.Panel value="core" pt="md">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmit();
+              }}
             >
-              Cancel
-            </Button>
-            <Button type="submit" loading={loading}>
-              Save
-            </Button>
-          </div>
-        </form>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Name
+                  </Text>
+                  <TextInput
+                    placeholder=""
+                    value={form.name}
+                    onChange={(e) =>
+                      handleChange("name", e.currentTarget.value)
+                    }
+                    error={errors.name}
+                    required
+                  />
+                </div>
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Short name
+                  </Text>
+                  <TextInput
+                    placeholder=""
+                    value={form.shortName}
+                    onChange={(e) =>
+                      handleChange("shortName", e.currentTarget.value)
+                    }
+                    error={errors.shortName}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Category
+                  </Text>
+                  <Select
+                    placeholder="Select category"
+                    data={categoryOptions}
+                    value={form.category}
+                    onChange={(v) => handleChange("category", v || "")}
+                    error={errors.category}
+                    searchable
+                  />
+                </div>
+
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Price
+                  </Text>
+                  <NumberInput
+                    placeholder=""
+                    value={form.price ? Number(form.price) : undefined}
+                    onChange={(v) => handleChange("price", String(v || ""))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <Checkbox
+                  label="Display test name in report"
+                  checked={form.displayTestNameInReport}
+                  onChange={(e) =>
+                    handleChange(
+                      "displayTestNameInReport",
+                      e.currentTarget.checked
+                    )
+                  }
+                />
+              </div>
+
+              <div className="mb-6">
+                <div className="text-sm font-medium mb-2">Default result</div>
+                <RichEditor
+                  value={form.defaultResult || ""}
+                  onChange={(content) => handleChange("defaultResult", content)}
+                />
+                <div className="text-xs text-gray-500 mt-2">
+                  Changes to default result will only reflect in new reports,
+                  not modified reports.
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/test-database")}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" loading={loading}>
+                  Save
+                </Button>
+              </div>
+            </form>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="display" pt="md">
+            <DisplayTabs />
+          </Tabs.Panel>
+        </Tabs>
       </Paper>
     </div>
   );

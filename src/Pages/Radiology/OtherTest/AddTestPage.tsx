@@ -7,6 +7,7 @@ import {
   Text,
   Select,
   Switch,
+  Tabs,
 } from "@mantine/core";
 import { useNavigate, useLocation } from "react-router-dom";
 import { notifications } from "@mantine/notifications";
@@ -15,6 +16,7 @@ import apis from "../../../APis/Api";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { Anchor } from "@mantine/core";
 import RichEditor from "../../../components/Global/RichEditor";
+import DisplayTabs from "../../../components/Global/DisplayTabs";
 
 interface LocationState {
   isEdit?: boolean;
@@ -194,49 +196,56 @@ const AddTestPage: React.FC = () => {
       </div>
 
       <Paper withBorder radius="md" className="p-6">
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <TextInput
-                label="Name"
-                placeholder="Test name"
-                value={name}
-                onChange={(e) => setName(e.currentTarget.value)}
-                required
-              />
-            </div>
-            <div>
-              <TextInput
-                label="Price"
-                placeholder="Price"
-                value={price}
-                onChange={(e) => setPrice(e.currentTarget.value)}
-              />
-            </div>
-          </div>
+        <Tabs defaultValue="core" className="mb-4">
+          <Tabs.List grow>
+            <Tabs.Tab value="core">Core</Tabs.Tab>
+            <Tabs.Tab value="display">Display</Tabs.Tab>
+          </Tabs.List>
 
-          <div className="mb-4">
-            <Text size="xs" className="text-gray-600 mb-2">
-              Description
-            </Text>
-            <RichEditor
-              value={description}
-              onChange={(content) => setDescription(content)}
-            />
-          </div>
+          <Tabs.Panel value="core" pt="md">
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <TextInput
+                    label="Name"
+                    placeholder="Test name"
+                    value={name}
+                    onChange={(e) => setName(e.currentTarget.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <TextInput
+                    label="Price"
+                    placeholder="Price"
+                    value={price}
+                    onChange={(e) => setPrice(e.currentTarget.value)}
+                  />
+                </div>
+              </div>
 
-          <div className="mb-4">
-            <Select
-              label="Category"
-              placeholder="Select category"
-              data={categories.map((c) => ({ value: c.id, label: c.name }))}
-              value={category}
-              onChange={(v) => setCategory(v)}
-            />
-          </div>
+              <div className="mb-4">
+                <Text size="xs" className="text-gray-600 mb-2">
+                  Description
+                </Text>
+                <RichEditor
+                  value={description}
+                  onChange={(content) => setDescription(content)}
+                />
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {/* <div>
+              <div className="mb-4">
+                <Select
+                  label="Category"
+                  placeholder="Select category"
+                  data={categories.map((c) => ({ value: c.id, label: c.name }))}
+                  value={category}
+                  onChange={(v) => setCategory(v)}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {/* <div>
               <TextInput
                 label="Data"
                 placeholder="Additional data"
@@ -244,26 +253,32 @@ const AddTestPage: React.FC = () => {
                 onChange={(e) => setData(e.currentTarget.value)}
               />
             </div> */}
-            <div className="flex items-center gap-2">
-              <Switch
-                label="Active"
-                checked={status}
-                onChange={(e) => setStatus(e.currentTarget.checked)}
-              />
-            </div>
-          </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    label="Active"
+                    checked={status}
+                    onChange={(e) => setStatus(e.currentTarget.checked)}
+                  />
+                </div>
+              </div>
 
-          <div className="flex justify-start">
-            <Button
-              type="submit"
-              variant="filled"
-              color="blue"
-              loading={loading}
-            >
-              {isEdit ? "Update Test" : "Create Test"}
-            </Button>
-          </div>
-        </form>
+              <div className="flex justify-start">
+                <Button
+                  type="submit"
+                  variant="filled"
+                  color="blue"
+                  loading={loading}
+                >
+                  {isEdit ? "Update Test" : "Create Test"}
+                </Button>
+              </div>
+            </form>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="display" pt="md">
+            <DisplayTabs />
+          </Tabs.Panel>
+        </Tabs>
       </Paper>
     </div>
   );

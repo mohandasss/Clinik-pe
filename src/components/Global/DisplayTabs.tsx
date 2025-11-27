@@ -141,9 +141,7 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
     <div className="space-y-4">
       {/* Organs Section */}
       <Paper withBorder radius="md" className="p-4">
-        <Text size="sm" fw={600} className="mb-4">
-          Display Information
-        </Text>
+        
         <Grid gutter="md">
           <Grid.Col span={{ base: 12, md: 6 }}>
             <TextInput
@@ -198,8 +196,14 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
             </Chip>
           ))}
         </div>
+      </Paper>
 
-        <div className="flex items-center gap-4 pt-3 border-t">
+      {/* Top Rating & Top Selling Section */}
+      <Paper withBorder radius="md" className="p-4">
+        <Text size="sm" fw={600} className="mb-3">
+          Marketing Options
+        </Text>
+        <div className="flex items-center gap-4">
           <Checkbox
             label="Top rating"
             checked={topRating}
@@ -236,6 +240,11 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
           }}
           size="sm"
           clearable
+          styles={{
+            input: {
+              minHeight: "80px",
+            },
+          }}
         />
       </Paper>
 

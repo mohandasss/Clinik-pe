@@ -10,12 +10,14 @@ import {
   Select,
   Checkbox,
   Textarea,
+  Tabs,
 } from "@mantine/core";
 import Notification from "../../components/Global/Notification";
 import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 import RichEditor from "../../components/Global/RichEditor";
+import DisplayTabs from "../../components/Global/DisplayTabs";
 import type {
   TestPanelRow,
   CreatePanelPayload,
@@ -351,109 +353,131 @@ const EditPanelPage: React.FC = () => {
       </div>
 
       <Paper withBorder radius="md" className="p-6">
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <div className="text-sm font-medium mb-3">Panel Details</div>
+        <Tabs defaultValue="core" className="mb-4">
+          <Tabs.List grow>
+            <Tabs.Tab value="core">Core</Tabs.Tab>
+            <Tabs.Tab value="display">Display</Tabs.Tab>
+          </Tabs.List>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Panel Name
-                </Text>
-                <TextInput
-                  placeholder="e.g., Complete Blood Count (CBC)"
-                  value={form.name}
-                  onChange={(e) => handleChange("name", e.currentTarget.value)}
-                  error={formErrors.name}
-                  required
-                />
+          <Tabs.Panel value="core" pt="md">
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <div className="text-sm font-medium mb-3">Panel Details</div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Text size="xs" className="text-gray-600 mb-2">
+                      Panel Name
+                    </Text>
+                    <TextInput
+                      placeholder="e.g., Complete Blood Count (CBC)"
+                      value={form.name}
+                      onChange={(e) =>
+                        handleChange("name", e.currentTarget.value)
+                      }
+                      error={formErrors.name}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Text size="xs" className="text-gray-600 mb-2">
+                      Category
+                    </Text>
+                    <Select
+                      placeholder="Select category"
+                      data={availableCategories}
+                      value={form.categoryId}
+                      onChange={(v) => {
+                        const selected = availableCategories.find(
+                          (opt) => opt.value === v
+                        );
+                        handleChange("categoryId", v ?? "");
+                        if (selected) handleChange("category", selected.label);
+                      }}
+                      error={formErrors.category}
+                      searchable
+                    />
+                  </div>
+
+                  <div>
+                    <Text size="xs" className="text-gray-600 mb-2">
+                      Price
+                    </Text>
+                    <TextInput
+                      placeholder="e.g., 500"
+                      type="number"
+                      value={form.price}
+                      onChange={(e) =>
+                        handleChange("price", e.currentTarget.value)
+                      }
+                      error={formErrors.price}
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-1">
+                    <Text size="xs" className="text-gray-600 mb-2">
+                      Tests
+                    </Text>
+                    <MultiSelect
+                      placeholder="Select tests"
+                      data={availableTests}
+                      value={form.tests}
+                      onChange={(val) => handleChange("tests", val)}
+                      searchable
+                      clearable
+                      error={formErrors.tests}
+                    />
+                  </div>
+                  <div className="mt-2 border p-3 rounded-md flex  gap-2">
+                    <Checkbox
+                      label="Hide individual test interpretation, notes, comments from report."
+                      checked={form.hideInterpretation}
+                      onChange={(e) =>
+                        handleChange(
+                          "hideInterpretation",
+                          e.currentTarget.checked
+                        )
+                      }
+                    />
+                    <Checkbox
+                      label="Hide individual test method and instrument from report."
+                      checked={form.hideMethod}
+                      onChange={(e) =>
+                        handleChange("hideMethod", e.currentTarget.checked)
+                      }
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Category
-                </Text>
-                <Select
-                  placeholder="Select category"
-                  data={availableCategories}
-                  value={form.categoryId}
-                  onChange={(v) => {
-                    const selected = availableCategories.find(
-                      (opt) => opt.value === v
-                    );
-                    handleChange("categoryId", v ?? "");
-                    if (selected) handleChange("category", selected.label);
-                  }}
-                  error={formErrors.category}
-                  searchable
-                />
-              </div>
-
-              <div>
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Price
-                </Text>
-                <TextInput
-                  placeholder="e.g., 500"
-                  type="number"
-                  value={form.price}
-                  onChange={(e) => handleChange("price", e.currentTarget.value)}
-                  error={formErrors.price}
-                  required
-                />
-              </div>
-
-              <div className="md:col-span-1">
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Tests
-                </Text>
-                <MultiSelect
-                  placeholder="Select tests"
-                  data={availableTests}
-                  value={form.tests}
-                  onChange={(val) => handleChange("tests", val)}
-                  searchable
-                  clearable
-                  error={formErrors.tests}
-                />
-              </div>
-              <div className="mt-2 border p-3 rounded-md flex  gap-2">
-                <Checkbox
-                  label="Hide individual test interpretation, notes, comments from report."
-                  checked={form.hideInterpretation}
-                  onChange={(e) =>
-                    handleChange("hideInterpretation", e.currentTarget.checked)
+              <div className="mb-4">
+                <div className="text-sm font-medium mb-3">Interpretation</div>
+                <RichEditor
+                  value={form.interpretation}
+                  onChange={(content) =>
+                    handleChange("interpretation", content)
                   }
                 />
-                <Checkbox
-                  label="Hide individual test method and instrument from report."
-                  checked={form.hideMethod}
-                  onChange={(e) =>
-                    handleChange("hideMethod", e.currentTarget.checked)
-                  }
-                />
               </div>
-            </div>
-          </div>
 
-          <div className="mb-4">
-            <div className="text-sm font-medium mb-3">Interpretation</div>
-            <RichEditor
-              value={form.interpretation}
-              onChange={(content) => handleChange("interpretation", content)}
-            />
-          </div>
+              <div className="mt-4">
+                <Button
+                  type="submit"
+                  style={{ backgroundColor: "#0b5ed7" }}
+                  loading={saving}
+                >
+                  {row ? "Update Panel" : "Add Test"}
+                </Button>
+              </div>
+            </form>
+          </Tabs.Panel>
 
-          <div className="mt-4">
-            <Button
-              type="submit"
-              style={{ backgroundColor: "#0b5ed7" }}
-              loading={saving}
-            >
-              {row ? "Update Panel" : "Add Test"}
-            </Button>
-          </div>
-        </form>
+          <Tabs.Panel value="display" pt="md">
+            <DisplayTabs />
+          </Tabs.Panel>
+        </Tabs>
       </Paper>
     </div>
   );
