@@ -16,8 +16,10 @@ import {
   ActionIcon,
   Card,
   Grid,
+  MultiSelect,
 } from "@mantine/core";
 import { IconUpload, IconX, IconPlus } from "@tabler/icons-react";
+import RichEditor from "./RichEditor";
 
 interface FAQ {
   question: string;
@@ -94,12 +96,9 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
     onOrgansChange?.(newSelection);
   };
 
-  const handleCategoryToggle = (category: string) => {
-    const newSelection = selectedCategories.includes(category)
-      ? selectedCategories.filter((c) => c !== category)
-      : [...selectedCategories, category];
-    setSelectedCategories(newSelection);
-    onCategoriesChange?.(newSelection);
+  const handleCategoriesChange = (values: string[]) => {
+    setSelectedCategories(values);
+    onCategoriesChange?.(values);
   };
 
   const handleTopRatingChange = (checked: boolean) => {
@@ -176,14 +175,10 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
             />
           </Grid.Col>
           <Grid.Col span={12}>
-            <Textarea
-              label="Long About"
-              placeholder="Detailed description"
-              value={longAbout}
-              onChange={(e) => setLongAbout(e.currentTarget.value)}
-              minRows={4}
-              size="sm"
-            />
+            <Text size="sm" fw={500} mb="xs">
+              Long About
+            </Text>
+            <RichEditor value={longAbout} onChange={setLongAbout} />
           </Grid.Col>
         </Grid>
       </Paper>
@@ -225,27 +220,27 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
         <Text size="sm" fw={600} className="mb-3">
           Categories
         </Text>
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <Chip
-              key={category}
-              checked={selectedCategories.includes(category)}
-              onChange={() => handleCategoryToggle(category)}
-              size="sm"
-            >
-              {category}
-            </Chip>
-          ))}
-        </div>
+        <MultiSelect
+          data={categories}
+          value={selectedCategories}
+          onChange={handleCategoriesChange}
+          placeholder="Search and select categories"
+          searchable
+          creatable
+          getCreateLabel={(query) => `+ Create "${query}"`}
+          onCreate={(query) => {
+            const item = query;
+            setSelectedCategories([...selectedCategories, item]);
+            onCategoriesChange?.([...selectedCategories, item]);
+            return item;
+          }}
+          size="sm"
+          clearable
+        />
       </Paper>
-
-      {/* Display Information */}
 
       {/* Sample & Collection Details */}
       <Paper withBorder radius="md" className="p-4">
-        <Text size="sm" fw={600} className="mb-4">
-          Sample & Collection Details
-        </Text>
         <Grid gutter="md">
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Select

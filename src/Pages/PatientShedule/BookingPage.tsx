@@ -791,7 +791,7 @@ const BookingPage: React.FC = () => {
 
         const paymentObj: AppointmentPayload["payment"] = {
           amount: paidAmount,
-          as: paidAmount >= payableAmount ? "paid" : "advance",
+          as: paidAmount >= payableAmount ? "full" : "advance",
           purpose: "appointment" as const,
           source: "manual" as const,
           mode: paymentMode as "cash" | "online" | "card",
