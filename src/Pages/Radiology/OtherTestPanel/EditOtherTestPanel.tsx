@@ -14,6 +14,7 @@ import Notification from "../../../components/Global/Notification";
 import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../../APis/Api";
 import useAuthStore from "../../../GlobalStore/store";
+import RichEditor from "../../../components/Global/RichEditor";
 import type { OtherTestPanelRow, LabTestItem } from "../../../APis/Types";
 
 interface LocationState {
@@ -308,13 +309,9 @@ const EditOtherTestPanel: React.FC = () => {
                 <Text size="xs" className="text-gray-600 mb-2">
                   Description
                 </Text>
-                <Textarea
-                  placeholder="Enter panel description"
+                <RichEditor
                   value={form.description}
-                  onChange={(e) =>
-                    handleChange("description", e.currentTarget.value)
-                  }
-                  rows={3}
+                  onChange={(content) => handleChange("description", content)}
                 />
               </div>
 

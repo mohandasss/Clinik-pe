@@ -14,6 +14,7 @@ import useAuthStore from "../../../GlobalStore/store";
 import apis from "../../../APis/Api";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { Anchor } from "@mantine/core";
+import RichEditor from "../../../components/Global/RichEditor";
 
 interface LocationState {
   isEdit?: boolean;
@@ -215,11 +216,12 @@ const AddTestPage: React.FC = () => {
           </div>
 
           <div className="mb-4">
-            <Textarea
-              label="Description"
-              placeholder="Test description"
+            <Text size="xs" className="text-gray-600 mb-2">
+              Description
+            </Text>
+            <RichEditor
               value={description}
-              onChange={(e) => setDescription(e.currentTarget.value)}
+              onChange={(content) => setDescription(content)}
             />
           </div>
 

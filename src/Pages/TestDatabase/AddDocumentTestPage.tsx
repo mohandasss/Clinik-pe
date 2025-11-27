@@ -16,6 +16,7 @@ import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 import type { CreateTestPayload } from "../../APis/Types";
 import { notifications } from "@mantine/notifications";
+import RichEditor from "../../components/Global/RichEditor";
 
 const AddDocumentTestPage: React.FC = () => {
   const navigate = useNavigate();
@@ -304,16 +305,10 @@ const AddDocumentTestPage: React.FC = () => {
           </div>
 
           <div className="mb-6">
-            <Text size="xs" className="text-gray-600 mb-2">
-              Default result
-            </Text>
-            <Textarea
-              placeholder=""
-              minRows={8}
-              value={form.defaultResult}
-              onChange={(e) =>
-                handleChange("defaultResult", e.currentTarget.value)
-              }
+            <div className="text-sm font-medium mb-2">Default result</div>
+            <RichEditor
+              value={form.defaultResult || ""}
+              onChange={(content) => handleChange("defaultResult", content)}
             />
             <div className="text-xs text-gray-500 mt-2">
               Changes to default result will only reflect in new reports, not

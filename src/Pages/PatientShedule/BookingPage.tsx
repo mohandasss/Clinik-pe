@@ -380,10 +380,18 @@ const BookingPage: React.FC = () => {
     fetchSymptoms();
   }, [orgId, centerId, canFetchData]);
 
-  // Fetch appointments
+  // Fetch appointments ONLY AFTER slots are loaded
   useEffect(() => {
     const fetchAppointments = async () => {
-      if (!canFetchData || !scheduleSelectedDate) return;
+      // Wait for slots to be loaded first
+      if (
+        !canFetchData ||
+        !scheduleSelectedDate ||
+        loadingScheduleSlots ||
+        scheduleSlots.length === 0
+      ) {
+        return;
+      }
 
       try {
         const dateStr = formatDate(scheduleSelectedDate);
@@ -421,7 +429,15 @@ const BookingPage: React.FC = () => {
     };
 
     fetchAppointments();
-  }, [orgId, centerId, canFetchData, scheduleSelectedDate, clinicName]);
+  }, [
+    orgId,
+    centerId,
+    canFetchData,
+    scheduleSelectedDate,
+    clinicName,
+    loadingScheduleSlots,
+    scheduleSlots,
+  ]);
 
   // Fetch available slots for appointment form
   useEffect(() => {
@@ -449,10 +465,15 @@ const BookingPage: React.FC = () => {
     fetchSlots();
   }, [orgId, centerId, canFetchData, provider, selectedDate]);
 
-  // Fetch schedule slots for left side
+  // Fetch schedule slots for left side - Always fetch slots when provider and date are selected
   useEffect(() => {
     const fetchScheduleSlots = async () => {
-      if (!canFetchData || !scheduleProvider || !scheduleSelectedDate) return;
+      if (!canFetchData || !scheduleProvider || !scheduleSelectedDate) {
+        // Clear slots if provider or date not selected
+        setScheduleSlots([]);
+        setAppointments([]); // Also clear appointments when slots are cleared
+        return;
+      }
 
       setLoadingScheduleSlots(true);
       try {
@@ -463,15 +484,38 @@ const BookingPage: React.FC = () => {
           scheduleProvider,
           dateStr
         );
-        setScheduleSlots(resp?.data?.slots ?? []);
+
+        // If API returns slots, use them; otherwise generate default slots
+        const apiSlots = resp?.data?.slots ?? [];
+        if (apiSlots.length > 0) {
+          setScheduleSlots(apiSlots);
+        } else {
+          // Generate default slots from 6 AM to 11 PM with 20-minute intervals
+          const defaultSlots = generateDefaultSlots(
+            scheduleSelectedDate,
+            6,
+            23,
+            20
+          );
+          setScheduleSlots(defaultSlots);
+        }
       } catch (err) {
         console.error("Failed to fetch schedule slots:", err);
+        // On error, still show default slots so schedule is visible
+        const defaultSlots = generateDefaultSlots(
+          scheduleSelectedDate,
+          6,
+          23,
+          20
+        );
+        setScheduleSlots(defaultSlots);
+
         notifications.show({
-          title: "Error",
-          message: "Failed to load schedule slots",
-          color: "red",
+          title: "Warning",
+          message:
+            "Using default time slots. Could not fetch provider's schedule.",
+          color: "yellow",
         });
-        setScheduleSlots([]);
       } finally {
         setLoadingScheduleSlots(false);
       }
@@ -934,7 +978,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({
         </h2>
         <div className="grid grid-cols-2 gap-3">
           <Select
-          clearable
+            clearable
             label="Provider"
             placeholder="Select Provider"
             value={provider}
@@ -959,32 +1003,29 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({
       <ScrollArea className="h-[calc(100vh-180px)]">
         {loadingSlots ? (
           <LoadingState message="Loading schedule..." />
+        ) : !provider || !selectedDate ? (
+          <EmptyState message="Please select a provider and date to view schedule" />
+        ) : slots.length === 0 ? (
+          <EmptyState message="No schedule available for this provider on the selected date" />
         ) : (
-          // Always render a set of slots; use API slots if present, otherwise generate defaults
-          (() => {
-            const displaySlots =
-              slots.length > 0
-                ? slots
-                : generateDefaultSlots(selectedDate || new Date());
-            return displaySlots.map((slot, index) => {
-              const slotStart = extractTime(slot.start);
-              const scheduleDateStr = formatDate(selectedDate);
-              const slotAppointments = appointments.filter(
-                (apt) =>
-                  apt.date === scheduleDateStr &&
-                  apt.time === slotStart &&
-                  apt.provider === provider
-              );
+          slots.map((slot, index) => {
+            const slotStart = extractTime(slot.start);
+            const scheduleDateStr = formatDate(selectedDate);
+            const slotAppointments = appointments.filter(
+              (apt) =>
+                apt.date === scheduleDateStr &&
+                apt.time === slotStart &&
+                apt.provider === provider
+            );
 
-              return (
-                <ScheduleSlot
-                  key={`${index}-${slotStart}`}
-                  time={slotStart}
-                  appointments={slotAppointments}
-                />
-              );
-            });
-          })()
+            return (
+              <ScheduleSlot
+                key={`${index}-${slotStart}`}
+                time={slotStart}
+                appointments={slotAppointments}
+              />
+            );
+          })
         )}
       </ScrollArea>
     </div>
@@ -1545,19 +1586,13 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
                 parseFloat(amountPaid) > 0 && (
                   <div className="flex items-center justify-between ">
                     <p className="text-xs  text-green-600 mt-1">
-                   Advance: ₹
-                    {parseFloat(amountPaid).toFixed(2)} paid
-                    
-                  </p>
-                  <p className="text-xs flex items-center justify-center text-red-600 mt-1">
-                     ₹
-                    {(payableAmount - parseFloat(amountPaid)).toFixed(2)}{" "}
-                    remaining
-                     </p>
-
-
+                      Advance: ₹{parseFloat(amountPaid).toFixed(2)} paid
+                    </p>
+                    <p className="text-xs flex items-center justify-center text-red-600 mt-1">
+                      ₹{(payableAmount - parseFloat(amountPaid)).toFixed(2)}{" "}
+                      remaining
+                    </p>
                   </div>
-                  
                 )}
               {amountPaid && parseFloat(amountPaid) === payableAmount && (
                 <p className="text-xs text-green-600 mt-1">

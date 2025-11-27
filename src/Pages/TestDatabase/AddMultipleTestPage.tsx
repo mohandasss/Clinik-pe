@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 import { notifications } from "@mantine/notifications";
+import RichEditor from "../../components/Global/RichEditor";
 
 interface ChildParameter {
   id: string; // temp id for UI
@@ -104,7 +105,13 @@ const AddMultipleTestPage: React.FC = () => {
         }
 
         // Fetch units
-        const unitResp = await apis.GetTestUnits(1, 100, organizationId, centerId, "");
+        const unitResp = await apis.GetTestUnits(
+          1,
+          100,
+          organizationId,
+          centerId,
+          ""
+        );
         if (unitResp?.success && unitResp?.data?.units) {
           const unitList = unitResp.data.units.map((u) => ({
             id: u.uid,
@@ -491,19 +498,16 @@ const AddMultipleTestPage: React.FC = () => {
                     }
                   />
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                  <Textarea
-                    label="Interpretation"
-                    placeholder="Enter interpretation"
-                    minRows={4}
+                <div className="mb-6">
+                  <div className="text-sm font-medium mb-2">Interpretation</div>
+                  <RichEditor
                     value={form.interpretation}
-                    onChange={(e) =>
-                      handleParentChange(
-                        "interpretation",
-                        e.currentTarget.value
-                      )
+                    onChange={(content) =>
+                      handleParentChange("interpretation", content)
                     }
                   />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                   <Textarea
                     label="Notes"
                     placeholder="Enter notes"

@@ -15,6 +15,7 @@ import Notification from "../../components/Global/Notification";
 import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
+import RichEditor from "../../components/Global/RichEditor";
 import type {
   TestPanelRow,
   CreatePanelPayload,
@@ -437,13 +438,9 @@ const EditPanelPage: React.FC = () => {
 
           <div className="mb-4">
             <div className="text-sm font-medium mb-3">Interpretation</div>
-            <Textarea
-              resize="vertical"
-              placeholder="Enter clinical notes and interpretation guidelines..."
+            <RichEditor
               value={form.interpretation}
-              onChange={(e) =>
-                handleChange("interpretation", e.currentTarget.value)
-              }
+              onChange={(content) => handleChange("interpretation", content)}
             />
           </div>
 

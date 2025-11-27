@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import useDropdownStore from "./useDropdownStore";
 // Sidebar items moved to `sidebarStore.ts`.
 
 type User = {
@@ -50,6 +51,9 @@ const useAuthStore = create<AuthState>()(
             logout: () => {
 
                 set({ user: null, organizationDetails: null });
+
+                // Clear dropdown store
+                useDropdownStore.getState().clearSelectedCenter();
 
                 try {
                     // Clear all persisted storage

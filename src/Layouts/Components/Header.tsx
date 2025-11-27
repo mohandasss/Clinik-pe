@@ -79,9 +79,6 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
         const options = centers.map((c) => ({ label: c.name, value: c.uid }));
         setCentersOptions(options);
 
-        // No default selection - user must choose explicitly
-        // (Removed: set default value from store or first center)
-
         console.log(
           "Organization centers (api.getOrganizationCenters):",
           response
@@ -100,15 +97,21 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
     centersRefreshCounter,
   ]);
 
-  // when centers load, restore previously selected center from localStorage or dropdown store
+  // when centers load, restore previously selected center from localStorage or dropdown store, or select first
   useEffect(() => {
     if (centersOptions.length === 0) return;
 
     // try Zustand store first
     const currentSelected = useDropdownStore.getState().selectedCenter;
     if (currentSelected && currentSelected.center_id) {
-      setOrgValue(currentSelected.center_id);
-      return;
+      // Verify this center exists in current user's centers
+      const exists = centersOptions.some(
+        (c) => c.value === currentSelected.center_id
+      );
+      if (exists) {
+        setOrgValue(currentSelected.center_id);
+        return;
+      }
     }
 
     // then try persisted localStorage
@@ -118,21 +121,23 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
         const parsed = JSON.parse(raw) as {
           center_id: string;
           center_name: string;
+          user_id?: string; // Add user_id to verify ownership
         };
         if (parsed && parsed.center_id) {
-          // ensure the center exists in options
+          // Verify this center belongs to current user and exists in options
+          const currentUserId = organizationDetails?.user_id;
           const exists = centersOptions.some(
             (c) => c.value === parsed.center_id
           );
-          if (exists) {
+
+          // Only restore if center exists for current user
+          // If user_id is stored and doesn't match, clear and select first
+          if (exists && (!parsed.user_id || parsed.user_id === currentUserId)) {
             setOrgValue(parsed.center_id);
             setSelectedCenter({
               center_id: parsed.center_id,
               center_name: parsed.center_name,
             });
-            // Also update organizationDetails with center info so other components (which read auth store)
-            // can access the selected center name. Only do this if organizationDetails is already present
-            // (we avoid constructing a partial OrganizationDetails object when it's null).
             if (organizationDetails) {
               try {
                 setOrganizationDetails({
@@ -141,62 +146,61 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
                   center_name: parsed.center_name,
                 });
               } catch (e) {
-                // If for any reason updating fails, log and continue; this is non-critical
                 console.warn(
                   "Failed to update organizationDetails with center_name",
                   e
                 );
               }
             }
+            return; // Found valid persisted selection, exit
+          } else {
+            // Center doesn't exist or belongs to different user - clear it
+            localStorage.removeItem(SELECTED_CENTER_KEY);
           }
         }
       }
     } catch {
-      // ignore
+      // ignore parse errors
+      localStorage.removeItem(SELECTED_CENTER_KEY);
     }
-    // If nothing selected from store/localStorage, set default to first option
-    const selectedNow = useDropdownStore.getState().selectedCenter;
-    if (!selectedNow || !selectedNow.center_id) {
-      const first = centersOptions[0];
-      if (first) {
+
+    // If nothing selected from store/localStorage, automatically select first option
+    const first = centersOptions[0];
+    if (first) {
+      setOrgValue(first.value);
+      setSelectedCenter({
+        center_id: first.value,
+        center_name: first.label,
+      });
+
+      // Update auth store center info if available
+      if (organizationDetails) {
         try {
-          setOrgValue(first.value);
-          setSelectedCenter({
+          setOrganizationDetails({
+            ...organizationDetails,
             center_id: first.value,
             center_name: first.label,
           });
-
-          // Update auth store center info if available
-          if (organizationDetails) {
-            try {
-              setOrganizationDetails({
-                ...organizationDetails,
-                center_id: first.value,
-                center_name: first.label,
-              });
-            } catch (e) {
-              console.warn(
-                "Failed to update organizationDetails with default center",
-                e
-              );
-            }
-          }
-
-          // Persist first selection so reload keeps it
-          try {
-            localStorage.setItem(
-              SELECTED_CENTER_KEY,
-              JSON.stringify({
-                center_id: first.value,
-                center_name: first.label,
-              })
-            );
-          } catch (e) {
-            console.warn("Failed to persist default center in localStorage", e);
-          }
-        } catch {
-          // ignore
+        } catch (e) {
+          console.warn(
+            "Failed to update organizationDetails with default center",
+            e
+          );
         }
+      }
+
+      // Persist first selection with user_id so reload keeps it
+      try {
+        localStorage.setItem(
+          SELECTED_CENTER_KEY,
+          JSON.stringify({
+            center_id: first.value,
+            center_name: first.label,
+            user_id: organizationDetails?.user_id, // Store user_id for validation
+          })
+        );
+      } catch (e) {
+        console.warn("Failed to persist default center in localStorage", e);
       }
     }
   }, [
@@ -265,6 +269,7 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
           JSON.stringify({
             center_id: switchDetails.center_id ?? value,
             center_name: switchDetails.center_name ?? "",
+            user_id: organizationDetails?.user_id, // Store user_id for validation
           })
         );
       } catch (e) {
