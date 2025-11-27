@@ -6,9 +6,11 @@ import type { OtherTestRow } from "./OtherTestTable";
 import apis from "../../../APis/Api";
 import { notifications } from "@mantine/notifications";
 import useAuthStore from "../../../GlobalStore/store";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 const TestDatabaseOther: React.FC = () => {
+  const { department } = useParams();
+  console.log("Department from params:", department);
   const [categories, setCategories] = useState<
     {
       id: string;
@@ -36,7 +38,7 @@ const TestDatabaseOther: React.FC = () => {
       setLoading(true);
       try {
         const resp = await apis.GetOtherTestDatabase(
-          "radiology",
+          department,
           1,
           5,
           organizationId,
@@ -73,7 +75,7 @@ const TestDatabaseOther: React.FC = () => {
       setLoading(true);
       try {
         const resp = await apis.GetOtherTestDatabase(
-          "radiology",
+          department,
           page,
           pageSize,
           organizationId,
@@ -161,7 +163,7 @@ const TestDatabaseOther: React.FC = () => {
       const response = await apis.DeleteOtherTestDatabase(
         organizationId,
         centerId,
-        "radiology",
+        department,
         selectedRowForDelete.id
       );
 

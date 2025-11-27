@@ -11,8 +11,9 @@ import type { OtherTestPackageRow } from "../../../APis/Types";
 
 import EditOtherPackageDrawer from "./Components/EditOtherPackageDrawer";
 import DeleteConfirm from "../../TestPackages/Components/DeleteConfirm";
-
+import { useParams } from "react-router-dom";
 const OtherTestPackage: React.FC = () => {
+  const { department } = useParams();
   const { organizationDetails } = useAuthStore();
   const navigate = useNavigate();
 
@@ -97,7 +98,7 @@ const OtherTestPackage: React.FC = () => {
 
         // Update existing package
         await apis.UpdateOtherTestPackage(
-          "radiology",
+          department,
           orgId,
           centerId,
           id!,
@@ -147,7 +148,7 @@ const OtherTestPackage: React.FC = () => {
         throw new Error("Organization or center not found");
       }
 
-      await apis.DeleteOtherTestPackage("radiology", orgId, centerId, id);
+      await apis.DeleteOtherTestPackage(department, orgId, centerId, id);
 
       notifications.show({
         title: "Deleted",
@@ -181,7 +182,7 @@ const OtherTestPackage: React.FC = () => {
       if (!orgId || !centerId) return;
 
       const response = await apis.GetOtherTestPackage(
-        "radiology",
+        department,
         page,
         pageSize,
         orgId,

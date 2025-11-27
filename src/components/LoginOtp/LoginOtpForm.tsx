@@ -159,7 +159,7 @@ const LoginOtpForm: React.FC = () => {
           } else if (!organization_id && center_id) {
             navigate("/organizations");
           } else if (organization_id && center_id) {
-            navigate("/providers");
+            navigate("/clinic/providers");
           }
         }, 0);
       }

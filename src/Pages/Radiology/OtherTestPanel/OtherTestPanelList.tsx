@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button, TextInput, Loader } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import apis from "../../../APis/Api";
@@ -75,6 +75,7 @@ const SortableRow: React.FC<{
 import DeleteConfirm from "../../TestPackages/Components/DeleteConfirm";
 
 const OtherTestPanelList: React.FC = () => {
+  const { department } = useParams();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(5);
@@ -98,7 +99,7 @@ const OtherTestPanelList: React.FC = () => {
     setLoadingPanels(true);
     try {
       const resp = await apis.GetOtherTestPanels(
-        "radiology",
+        department,
         organizationDetails?.organization_id ?? "",
         organizationDetails?.center_id ?? "",
         page,
@@ -169,7 +170,7 @@ const OtherTestPanelList: React.FC = () => {
     setDeleting(true);
     try {
       await apis.DeleteOtherTestPanel(
-        "radiology",
+        department,
         organizationDetails?.organization_id ?? "",
         organizationDetails?.center_id ?? "",
         panel_id

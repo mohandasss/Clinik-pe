@@ -7,6 +7,7 @@ import type { TestCategory, TestCategoryPagination } from "../../../APis/Types";
 import { IconDots, IconPencil } from "@tabler/icons-react";
 import DeleteConfirm from "../../TestPackages/Components/DeleteConfirm";
 import CategoryModal from "../../TestCategories/Components/CategoryModal";
+import { useParams } from "react-router-dom";
 
 const DEFAULT_PAGE_SIZE = 5;
 
@@ -67,6 +68,7 @@ const Row: React.FC<RowProps> = ({ category, index, onEdit, onDelete }) => {
 };
 
 const OtherTestCategory: React.FC = () => {
+  const { department } = useParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -138,7 +140,7 @@ const OtherTestCategory: React.FC = () => {
     setIsLoadingCategories(true);
     try {
       const response = await apis.GetOtherTestCategories(
-        "radiology",
+        department,
         organizationId,
         centerId,
         currentPage,
