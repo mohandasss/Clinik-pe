@@ -353,7 +353,7 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
             leftSection={<IconMenu2 size={24} />}
             onClick={() => setIsSmall(!isSmall)}
           />
-          <TextInput
+          {/* <TextInput
             placeholder="Search patients, appointments, charts..."
             radius="md"
             size="sm"
@@ -364,7 +364,7 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
               </div>
             }
             leftSectionWidth={36}
-          />
+          /> */}
         </div>
       </div>
 

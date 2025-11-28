@@ -1,17 +1,21 @@
 import React, { useMemo } from "react";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
-import { Button, Popover } from "@mantine/core";
+import { Button, Popover, Badge } from "@mantine/core";
 import { IconDots, IconPencil, IconEye } from "@tabler/icons-react";
 
 export interface TestRow {
   id: string;
-  order: number;
   name: string;
   shortName?: string;
+  displayName?: string;
   category?: string;
   price?: string;
+  mrp?: string;
   type?: string;
-  optional?: boolean | string;
+  sampleType?: string;
+  gender?: string;
+  optional?: boolean;
+  homeCollection?: boolean;
 }
 
 interface TestTableProps {
@@ -39,67 +43,118 @@ const TestTable: React.FC<TestTableProps> = ({
     () => [
       {
         accessor: "sno",
-        title: "ORDER",
-        width: 80,
-        render: (_r, i) => <div>{(page - 1) * pageSize + i + 1}.</div>,
+        title: "#",
+        width: 50,
+        render: (_r, i) => (
+          <div className="text-gray-500">{(page - 1) * pageSize + i + 1}</div>
+        ),
       },
       {
         accessor: "name",
-        title: "NAME",
+        title: "TEST NAME",
         render: (r) => (
-          <div className="font-medium text-gray-900">{r.name}</div>
+          <div>
+            <div className="font-medium text-gray-900">{r.name}</div>
+            {r.displayName && r.displayName !== r.name && (
+              <div className="text-xs text-gray-500">{r.displayName}</div>
+            )}
+          </div>
         ),
       },
       {
         accessor: "shortName",
         title: "SHORT NAME",
-        width: 160,
+        width: 120,
         render: (r) => (
-          <div className="text-sm text-gray-600">{r.shortName}</div>
+          <div className="text-sm text-gray-600">{r.shortName || "-"}</div>
+        ),
+      },
+      {
+        accessor: "type",
+        title: "TYPE",
+        width: 100,
+        render: (r) => (
+          <Badge
+            size="sm"
+            variant="light"
+            color={
+              r.type === "single"
+                ? "blue"
+                : r.type === "multiple"
+                ? "green"
+                : r.type === "nested"
+                ? "orange"
+                : "gray"
+            }
+          >
+            {r.type || "-"}
+          </Badge>
         ),
       },
       {
         accessor: "category",
         title: "CATEGORY",
         width: 140,
-        render: (r) => <div className="text-sm text-gray-600">{r.category}</div>,
+        render: (r) => (
+          <div className="text-sm text-gray-600">{r.category || "-"}</div>
+        ),
+      },
+      {
+        accessor: "sampleType",
+        title: "SAMPLE",
+        width: 100,
+        render: (r) => (
+          <div className="text-sm text-gray-600 capitalize">
+            {r.sampleType || "-"}
+          </div>
+        ),
+      },
+      {
+        accessor: "gender",
+        title: "GENDER",
+        width: 80,
+        render: (r) => (
+          <div className="text-sm text-gray-600 capitalize">
+            {r.gender === "both" ? "All" : r.gender || "-"}
+          </div>
+        ),
       },
       {
         accessor: "price",
         title: "PRICE",
-        width: 100,
-        render: (r) => <div className="text-sm text-gray-600">{r.price}</div>,
-      },
-      {
-        accessor: "type",
-        title: "TYPE",
-        width: 120,
-        render: (r) => <div className="text-sm text-gray-600">{r.type}</div>,
-      },
-      {
-        accessor: "optional",
-        title: "OPTIONAL",
-        width: 100,
+        width: 90,
         render: (r) => (
-          <div className="text-sm text-gray-600">{r.optional ? "Yes" : "No"}</div>
+          <div className="text-sm">
+            {r.price ? (
+              <span className="font-medium text-gray-900">₹{r.price}</span>
+            ) : (
+              "-"
+            )}
+          </div>
         ),
       },
-      // {
-      //   accessor: "category",
-      //   title: "CATEGORY",
-      //   width: 160,
-      //   render: (r) => (
-      //     <div className="text-sm text-gray-600">{r.category}</div>
-      //   ),
-      // },
+      {
+        accessor: "homeCollection",
+        title: "HOME",
+        width: 70,
+        render: (r) => (
+          <Badge
+            size="sm"
+            variant="light"
+            color={r.homeCollection ? "green" : "gray"}
+          >
+            {r.homeCollection ? "Yes" : "No"}
+          </Badge>
+        ),
+      },
       {
         accessor: "action",
         title: <div className="text-right">ACTION</div>,
-        width: 130,
+        width: 100,
         render: (r) => (
           <div className="flex items-center justify-end gap-2">
             <button
-              className="text-blue-600 text-sm"
+              className="text-blue-600 text-sm hover:text-blue-800"
               onClick={() => onEdit(r)}
               aria-label={`Edit ${r.name}`}
             >
@@ -107,7 +162,7 @@ const TestTable: React.FC<TestTableProps> = ({
             </button>
 
             <button
-              className="text-gray-600 text-sm"
+              className="text-gray-600 text-sm hover:text-gray-800"
               onClick={() => onView(r)}
               aria-label={`View ${r.name}`}
             >
@@ -122,7 +177,6 @@ const TestTable: React.FC<TestTableProps> = ({
               </Popover.Target>
               <Popover.Dropdown>
                 <div className="flex flex-col gap-2 min-w-max">
-                  {/* Add more actions here */}
                   <Button variant="subtle" color="red" size="xs">
                     Remove
                   </Button>

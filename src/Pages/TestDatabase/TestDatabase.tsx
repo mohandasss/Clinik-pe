@@ -83,15 +83,19 @@ const TestDatabase: React.FC = () => {
           const testRows: TestRow[] = (resp.data.tests as LabTest[]).map(
             (test) => ({
               id: test.uid,
-              order: Number(test.order) || 0,
               name: test.name,
               shortName: test.short_name,
+              displayName: test.display_name || "",
               category:
                 categories.find((c) => c.id === test.category_id)?.name ||
                 test.category_id,
               price: test.price || "",
+              mrp: test.mrp || "",
               type: test.type || "",
+              sampleType: test.sample_type || "",
+              gender: test.gender || "",
               optional: test.optional === "1",
+              homeCollection: test.home_collection_possible === "1",
             })
           );
           setTests(testRows);

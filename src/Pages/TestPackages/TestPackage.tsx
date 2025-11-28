@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
 import { Button, Popover, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
@@ -7,15 +8,12 @@ import { IconDots, IconPencil } from "@tabler/icons-react";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 
-import type {
-  TestPackageRow,
-  TestPackageUpdatePayload,
-} from "../../APis/Types";
+import type { TestPackageRow } from "../../APis/Types";
 
-import EditPackageDrawer from "./Components/EditPackageDrawer";
 import DeleteConfirm from "./Components/DeleteConfirm";
 
 const TestPackage: React.FC = () => {
+  const navigate = useNavigate();
   const { organizationDetails } = useAuthStore();
 
   const [page, setPage] = useState(1);
@@ -26,11 +24,7 @@ const TestPackage: React.FC = () => {
   const [packages, setPackages] = useState<TestPackageRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const [editingRow, setEditingRow] = useState<TestPackageRow | null>(null);
-  const [editingOpen, setEditingOpen] = useState(false);
 
   const [deletingRow, setDeletingRow] = useState<TestPackageRow | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -41,105 +35,6 @@ const TestPackage: React.FC = () => {
   // rows = packages (server returns the requested page)
   const rows = packages;
   const total = totalRecords;
-
-  // ---------------------------------------
-  // Save (create/update)
-  // ---------------------------------------
-  const handleSavePackage = async (
-    row: TestPackageRow,
-    removeTests?: string[],
-    removePanels?: string[]
-  ) => {
-    setSaving(true);
-
-    try {
-      const price = Number(row.price || row.fee || 0);
-      const tests =
-        row.tests?.map((t) => (typeof t === "string" ? { test_id: t } : t)) ||
-        [];
-      const panels =
-        row.panels?.map((p) => (typeof p === "string" ? { panel_id: p } : p)) ||
-        [];
-
-      const payload = {
-        name: row.name,
-        price,
-        bill_only_for_gender: (
-          row.bill_only_for_gender ||
-          row.gender ||
-          "both"
-        ).toLowerCase() as "male" | "female" | "both",
-
-        tests,
-        panels,
-      };
-
-      const id = row.uid || row.id;
-
-      if (packages.some((p) => (p.uid || p.id) === id)) {
-        // update
-        const orgId = organizationDetails?.organization_id;
-        const centerId = organizationDetails?.center_id;
-
-        if (!orgId || !centerId) throw new Error("Organization not found");
-
-        const updatePayload: TestPackageUpdatePayload = {
-          name: payload.name,
-          price: payload.price,
-          bill_only_for_gender: payload.bill_only_for_gender,
-          tests: tests,
-          panels: panels,
-          remove_tests: removeTests || [],
-          remove_panels: removePanels || [],
-        };
-        await apis.UpdateTestPackage(orgId, centerId, id!, updatePayload);
-        // After update, refetch packages to get fresh data from server
-        await fetchPackages();
-
-        notifications.show({
-          title: "Updated",
-          message: "Package updated successfully.",
-          color: "green",
-        });
-      } else {
-        // create
-        const orgId = organizationDetails?.organization_id;
-        const centerId = organizationDetails?.center_id;
-
-        if (!orgId || !centerId) throw new Error("Organization not found");
-
-        await apis.AddTestPackage(orgId, centerId, payload);
-
-        // After creation, re-fetch packages to avoid adding any mock/local-only row
-        await fetchPackages();
-
-        notifications.show({
-          title: "Saved",
-          message: "Package added successfully.",
-          color: "green",
-        });
-      }
-    } catch (err) {
-      console.error(err);
-
-      notifications.show({
-        title: "Error",
-        message: "Failed to save package. Changes not applied.",
-        color: "red",
-      });
-
-      // fallback local update - do not add new mock rows; update only if package exists locally
-      const id = row.uid || row.id;
-      setPackages((prev) => {
-        const exists = prev.some((p) => (p.uid || p.id) === id);
-        return exists
-          ? prev.map((p) => ((p.uid || p.id) === id ? row : p))
-          : prev;
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   // ---------------------------------------
   // Delete
@@ -299,10 +194,9 @@ const TestPackage: React.FC = () => {
       render: (r) => (
         <div className="flex items-center gap-2">
           <button
-            className="text-blue-600"
+            className="text-blue-600 hover:text-blue-800"
             onClick={() => {
-              setEditingRow(r);
-              setEditingOpen(true);
+              navigate("/test-packages/edit", { state: { row: r } });
             }}
           >
             <IconPencil size={16} />
@@ -358,8 +252,7 @@ const TestPackage: React.FC = () => {
             variant="filled"
             color="blue"
             onClick={() => {
-              setEditingRow(null);
-              setEditingOpen(true);
+              navigate("/test-packages/add");
             }}
             disabled={loading}
           >
@@ -375,18 +268,6 @@ const TestPackage: React.FC = () => {
         highlightOnHover
         className="text-sm"
         idAccessor="id"
-      />
-
-      {/* Edit Drawer */}
-      <EditPackageDrawer
-        opened={editingOpen}
-        onClose={() => {
-          setEditingOpen(false);
-          setEditingRow(null);
-        }}
-        row={editingRow}
-        onSave={handleSavePackage}
-        loading={saving}
       />
 
       {/* Delete Modal */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Paper,
@@ -8,7 +8,6 @@ import {
   Anchor,
   MultiSelect,
   Select,
-  Textarea,
   Tabs,
 } from "@mantine/core";
 import Notification from "../../../components/Global/Notification";
@@ -16,8 +15,10 @@ import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../../APis/Api";
 import useAuthStore from "../../../GlobalStore/store";
 import RichEditor from "../../../components/Global/RichEditor";
-import DisplayTabs from "../../../components/Global/DisplayTabs";
-import type { OtherTestPanelRow, LabTestItem } from "../../../APis/Types";
+import DisplayTabs, {
+  type DisplayTabsData,
+} from "../../../components/Global/DisplayTabs";
+import type { OtherTestPanelRow } from "../../../APis/Types";
 
 interface LocationState {
   row?: OtherTestPanelRow;
@@ -63,6 +64,15 @@ const EditOtherTestPanel: React.FC = () => {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<string | null>("core");
+
+  // Display tab data
+  const [displayData, setDisplayData] = useState<DisplayTabsData | null>(null);
+
+  // Memoized callback to prevent infinite loops
+  const handleDisplayDataChange = useCallback((data: DisplayTabsData) => {
+    setDisplayData(data);
+  }, []);
 
   useEffect(() => {
     if (row) {
@@ -160,6 +170,10 @@ const EditOtherTestPanel: React.FC = () => {
 
     setSaving(true);
     try {
+      // Build images array - send only image IDs
+      const imagesPayload =
+        displayData?.uploadedImages?.map((img) => img.target_id) || [];
+
       if (row) {
         // Edit mode - calculate removed tests
         const removedTests = initialTestUids.filter(
@@ -174,9 +188,30 @@ const EditOtherTestPanel: React.FC = () => {
           status: form.status,
           tests: form.tests.map((testId) => ({ test_id: testId })),
           remove_tests: removedTests.map((test_id) => ({ test_id })),
+          // Display tab fields
+          tags: {
+            organ: displayData?.organs || [],
+            top_rated: displayData?.topRated || false,
+            top_selling: displayData?.topSelling || false,
+          },
+          display_name: displayData?.displayName || "",
+          short_about: displayData?.shortAbout || "",
+          long_about: displayData?.longAbout || "",
+          sample_type: displayData?.sampleType || "",
+          gender: displayData?.gender || "any",
+          age_range: displayData?.ageRange || "",
+          images: imagesPayload,
+          preparation: displayData?.preparation || "",
+          mrp: displayData?.mrp || "",
+          faq: displayData?.faqs
+            ? JSON.stringify(displayData.faqs.filter((f) => f.question.trim()))
+            : "",
+          home_collection_possible:
+            displayData?.homeCollectionPossible || false,
+          home_collection_fee: displayData?.homeCollectionFee || "",
+          machine_based: displayData?.machineBased || false,
         };
 
-        // @ts-expect-error: allow UpdateOtherTestPanels
         const response = await apis.UpdateOtherTestPanels(
           payload,
           "radiology",
@@ -207,8 +242,29 @@ const EditOtherTestPanel: React.FC = () => {
           data: typeof form.data === "string" ? form.data.trim() : "",
           status: form.status,
           tests: form.tests.map((testId) => ({ test_id: testId })),
+          // Display tab fields
+          tags: {
+            organ: displayData?.organs || [],
+            top_rated: displayData?.topRated || false,
+            top_selling: displayData?.topSelling || false,
+          },
+          display_name: displayData?.displayName || "",
+          short_about: displayData?.shortAbout || "",
+          long_about: displayData?.longAbout || "",
+          sample_type: displayData?.sampleType || "",
+          gender: displayData?.gender || "any",
+          age_range: displayData?.ageRange || "",
+          images: imagesPayload,
+          preparation: displayData?.preparation || "",
+          mrp: displayData?.mrp || "",
+          faq: displayData?.faqs
+            ? JSON.stringify(displayData.faqs.filter((f) => f.question.trim()))
+            : "",
+          home_collection_possible:
+            displayData?.homeCollectionPossible || false,
+          home_collection_fee: displayData?.homeCollectionFee || "",
+          machine_based: displayData?.machineBased || false,
         };
-        // @ts-expect-error: allow AddOtherTestPanel
         const response = await apis.AddOtherTestPanels(
           payload,
           "radiology",
@@ -276,121 +332,120 @@ const EditOtherTestPanel: React.FC = () => {
       </div>
 
       <Paper withBorder radius="md" className="p-6">
-        <Tabs defaultValue="core" className="mb-4">
+        <Tabs value={activeTab} onChange={setActiveTab} className="mb-4">
           <Tabs.List grow>
             <Tabs.Tab value="core">Core</Tabs.Tab>
             <Tabs.Tab value="display">Display</Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="core" pt="md">
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <div className="text-sm font-medium mb-3">Panel Details</div>
+            <div className="mb-4">
+              <div className="text-sm font-medium mb-3">Panel Details</div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Panel Name *
-                    </Text>
-                    <TextInput
-                      placeholder="e.g., Chest X-Ray"
-                      value={form.name}
-                      onChange={(e) =>
-                        handleChange("name", e.currentTarget.value)
-                      }
-                      error={formErrors.name}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Price *
-                    </Text>
-                    <TextInput
-                      placeholder="e.g., 500"
-                      type="number"
-                      value={form.price}
-                      onChange={(e) =>
-                        handleChange("price", e.currentTarget.value)
-                      }
-                      error={formErrors.price}
-                      required
-                    />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Panel Name *
+                  </Text>
+                  <TextInput
+                    placeholder="e.g., Chest X-Ray"
+                    value={form.name}
+                    onChange={(e) =>
+                      handleChange("name", e.currentTarget.value)
+                    }
+                    error={formErrors.name}
+                    required
+                  />
+                </div>
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Price *
+                  </Text>
+                  <TextInput
+                    placeholder="e.g., 500"
+                    type="number"
+                    value={form.price}
+                    onChange={(e) =>
+                      handleChange("price", e.currentTarget.value)
+                    }
+                    error={formErrors.price}
+                    required
+                  />
+                </div>
 
-                  <div className="md:col-span-2">
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Description
-                    </Text>
-                    <RichEditor
-                      value={form.description}
-                      onChange={(content) =>
-                        handleChange("description", content)
-                      }
-                    />
-                  </div>
+                <div className="md:col-span-2">
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Description
+                  </Text>
+                  <RichEditor
+                    value={form.description}
+                    onChange={(content) => handleChange("description", content)}
+                  />
+                </div>
 
-                  {/* <div className="md:col-span-2">
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Additional Data
-                </Text>
-                <Textarea
-                  placeholder="Enter any additional data or notes"
-                  value={form.data}
-                  onChange={(e) => handleChange("data", e.currentTarget.value)}
-                  rows={3}
-                />
-              </div> */}
-
-                  <div className="">
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Tests *
-                    </Text>
-                    <MultiSelect
-                      placeholder="Select tests"
-                      data={availableTests}
-                      value={form.tests}
-                      onChange={(val) => handleChange("tests", val)}
-                      searchable
-                      clearable
-                      error={formErrors.tests}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Status
-                    </Text>
-                    <Select
-                      placeholder="Select status"
-                      data={[
-                        { value: "active", label: "Active" },
-                        { value: "inactive", label: "Inactive" },
-                      ]}
-                      value={form.status}
-                      onChange={(v) => handleChange("status", v ?? "active")}
-                    />
-                  </div>
+                <div className="">
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Tests *
+                  </Text>
+                  <MultiSelect
+                    placeholder="Select tests"
+                    data={availableTests}
+                    value={form.tests}
+                    onChange={(val) => handleChange("tests", val)}
+                    searchable
+                    clearable
+                    error={formErrors.tests}
+                    required
+                  />
+                </div>
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Status
+                  </Text>
+                  <Select
+                    placeholder="Select status"
+                    data={[
+                      { value: "active", label: "Active" },
+                      { value: "inactive", label: "Inactive" },
+                    ]}
+                    value={form.status}
+                    onChange={(v) => handleChange("status", v ?? "active")}
+                  />
                 </div>
               </div>
-
-              <div className="mt-6">
-                <Button
-                  type="submit"
-                  style={{ backgroundColor: "#0b5ed7" }}
-                  loading={saving}
-                >
-                  {row ? "Update Panel" : "Add Panel"}
-                </Button>
-              </div>
-            </form>
+            </div>
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs />
+            <DisplayTabs onDataChange={handleDisplayDataChange} />
           </Tabs.Panel>
         </Tabs>
       </Paper>
+
+      {/* Sticky Footer Section */}
+      <div className="sticky -bottom-4 bg-white z-10 mt-6 px-4 pt-4 pb-4 rounded-xl border border-gray-200 shadow-sm flex justify-end gap-4">
+        <Button variant="light" onClick={() => navigate(-1)}>
+          Cancel
+        </Button>
+
+        {activeTab === "core" ? (
+          <Button
+            style={{ backgroundColor: "#0b5ed7" }}
+            onClick={() => setActiveTab("display")}
+          >
+            Next
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            style={{ backgroundColor: "#0b5ed7" }}
+            loading={saving}
+            onClick={handleSubmit}
+          >
+            {row ? "Update Panel" : "Save Panel"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Paper,
@@ -7,7 +7,6 @@ import {
   Text,
   Anchor,
   Select,
-  Textarea,
   Checkbox,
   NumberInput,
   Tabs,
@@ -18,7 +17,9 @@ import useAuthStore from "../../GlobalStore/store";
 import type { CreateTestPayload } from "../../APis/Types";
 import { notifications } from "@mantine/notifications";
 import RichEditor from "../../components/Global/RichEditor";
-import DisplayTabs from "../../components/Global/DisplayTabs";
+import DisplayTabs, {
+  type DisplayTabsData,
+} from "../../components/Global/DisplayTabs";
 
 const AddDocumentTestPage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +27,13 @@ const AddDocumentTestPage: React.FC = () => {
     []
   );
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<string | null>("core");
+  const [displayData, setDisplayData] = useState<DisplayTabsData | null>(null);
+
+  // Memoized callback to prevent infinite loops
+  const handleDisplayDataChange = useCallback((data: DisplayTabsData) => {
+    setDisplayData(data);
+  }, []);
 
   type DocumentForm = {
     name: string;
@@ -160,6 +168,10 @@ const AddDocumentTestPage: React.FC = () => {
 
   // Helper: build the payload object for a document test using the fields in UI
   const buildPayload = (): CreateTestPayload => {
+    // Build images array - send only image IDs in simple format: ["id1", "id2", "id3"]
+    const imagesPayload =
+      displayData?.uploadedImages?.map((img) => img.target_id) || [];
+
     const p: Partial<CreateTestPayload> = {
       type: "document",
       name: form.name,
@@ -178,6 +190,29 @@ const AddDocumentTestPage: React.FC = () => {
     pRecord["interpretation"] = form.defaultResult || "";
     pRecord["notes"] = form.notes || "";
     pRecord["comments"] = form.comments || "";
+
+    // Add display tab fields
+    pRecord["tags"] = {
+      organ: displayData?.organs || [],
+      top_rated: displayData?.topRated || false,
+      top_selling: displayData?.topSelling || false,
+    };
+    pRecord["display_name"] = displayData?.displayName || "";
+    pRecord["short_about"] = displayData?.shortAbout || "";
+    pRecord["long_about"] = displayData?.longAbout || "";
+    pRecord["sample_type"] = displayData?.sampleType || "";
+    pRecord["gender"] = displayData?.gender || "any";
+    pRecord["age_range"] = displayData?.ageRange || "";
+    pRecord["images"] = imagesPayload;
+    pRecord["preparation"] = displayData?.preparation || "";
+    pRecord["mrp"] = displayData?.mrp || "";
+    pRecord["faq"] = displayData?.faqs
+      ? JSON.stringify(displayData.faqs.filter((f) => f.question.trim()))
+      : "";
+    pRecord["home_collection_possible"] =
+      displayData?.homeCollectionPossible || false;
+    pRecord["home_collection_fee"] = displayData?.homeCollectionFee || "";
+    pRecord["machine_based"] = displayData?.machineBased || false;
 
     // Optional fields (add only if present and non-empty)
     const optionalFields: (keyof DocumentForm)[] = [
@@ -235,7 +270,7 @@ const AddDocumentTestPage: React.FC = () => {
       </div>
 
       <Paper withBorder radius="md" className="p-6">
-        <Tabs defaultValue="core" className="mb-4">
+        <Tabs value={activeTab} onChange={setActiveTab} className="mb-4">
           <Tabs.List grow>
             <Tabs.Tab value="core">Core</Tabs.Tab>
             <Tabs.Tab value="display">Display</Tabs.Tab>
@@ -329,26 +364,39 @@ const AddDocumentTestPage: React.FC = () => {
                   not modified reports.
                 </div>
               </div>
-
-              <div className="flex gap-3 justify-end mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/test-database")}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" loading={loading}>
-                  Save
-                </Button>
-              </div>
             </form>
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs />
+            <DisplayTabs onDataChange={handleDisplayDataChange} />
           </Tabs.Panel>
         </Tabs>
       </Paper>
+
+      {/* Sticky Footer Section */}
+      <div className="sticky -bottom-4 bg-white z-10 mt-6 px-4 pt-4 pb-4 rounded-xl border border-gray-200 shadow-sm flex justify-end gap-4">
+        <Button variant="light" onClick={() => navigate(-1)}>
+          Cancel
+        </Button>
+
+        {activeTab === "core" ? (
+          <Button
+            style={{ backgroundColor: "#0b5ed7" }}
+            onClick={() => setActiveTab("display")}
+          >
+            Next
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            style={{ backgroundColor: "#0b5ed7" }}
+            loading={loading}
+            onClick={handleSubmit}
+          >
+            Save Test
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

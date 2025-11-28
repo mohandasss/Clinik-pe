@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Button,
   TextInput,
@@ -18,7 +18,9 @@ import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 import { notifications } from "@mantine/notifications";
 import RichEditor from "../../components/Global/RichEditor";
-import DisplayTabs from "../../components/Global/DisplayTabs";
+import DisplayTabs, {
+  type DisplayTabsData,
+} from "../../components/Global/DisplayTabs";
 
 interface ChildParameter {
   id: string; // temp id for UI
@@ -51,6 +53,15 @@ interface AddMultipleNestedTestPageState {
 
 const AddMultipleNestedTestPage: React.FC = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<string | null>("core");
+  const [displayData, setDisplayData] = useState<DisplayTabsData | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Memoized callback to prevent infinite loops
+  const handleDisplayDataChange = useCallback((data: DisplayTabsData) => {
+    setDisplayData(data);
+  }, []);
+
   const [form, setForm] = useState<AddMultipleNestedTestPageState>({
     name: "",
     shortName: "",
@@ -218,6 +229,10 @@ const AddMultipleNestedTestPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleNextTab = () => {
+    setActiveTab("display");
+  };
+
   const handleSubmit = async () => {
     if (!validateForm()) {
       notifications.show({
@@ -228,7 +243,13 @@ const AddMultipleNestedTestPage: React.FC = () => {
       return;
     }
 
-    // Build payload
+    setLoading(true);
+
+    // Build images array - send only image IDs in simple format: ["id1", "id2", "id3"]
+    const imagesPayload =
+      displayData?.uploadedImages?.map((img) => img.target_id) || [];
+
+    // Build payload with display data
     const payload = {
       type: "multiple_nested",
       name: form.name,
@@ -240,6 +261,28 @@ const AddMultipleNestedTestPage: React.FC = () => {
       interpretation: form.interpretation || "",
       notes: form.notes || "",
       comments: form.comments || "",
+      // Display tab fields
+      tags: {
+        organ: displayData?.organs || [],
+        top_rated: displayData?.topRated || false,
+        top_selling: displayData?.topSelling || false,
+      },
+      display_name: displayData?.displayName || "",
+      short_about: displayData?.shortAbout || "",
+      long_about: displayData?.longAbout || "",
+      sample_type: displayData?.sampleType || "",
+      gender: displayData?.gender || "any",
+      age_range: displayData?.ageRange || "",
+      images: imagesPayload,
+      preparation: displayData?.preparation || "",
+      mrp: displayData?.mrp || "",
+      faq: displayData?.faqs
+        ? JSON.stringify(displayData.faqs.filter((f) => f.question.trim()))
+        : "",
+      home_collection_possible: displayData?.homeCollectionPossible || false,
+      home_collection_fee: displayData?.homeCollectionFee || "",
+      machine_based: displayData?.machineBased || false,
+      // Children for nested type
       children: form.children.map((child) => ({
         order: child.order,
         name: child.name,
@@ -249,10 +292,6 @@ const AddMultipleNestedTestPage: React.FC = () => {
         optional: child.optional,
         group_by: child.group_by,
       })),
-      format_options: {
-        always_bold: form.formatOptions.alwaysBold,
-        print_line_after: form.formatOptions.printLineAfter,
-      },
     };
 
     console.log(JSON.stringify(payload, null, 2));
@@ -284,6 +323,8 @@ const AddMultipleNestedTestPage: React.FC = () => {
         message: "Failed to create test",
         color: "red",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -317,7 +358,7 @@ const AddMultipleNestedTestPage: React.FC = () => {
         </p>
       </div>
       <Paper withBorder radius="md" className="p-6">
-        <Tabs defaultValue="core" className="mb-4">
+        <Tabs value={activeTab} onChange={setActiveTab} className="mb-4">
           <Tabs.List grow>
             <Tabs.Tab value="core">Core</Tabs.Tab>
             <Tabs.Tab value="display">Display</Tabs.Tab>
@@ -614,25 +655,39 @@ const AddMultipleNestedTestPage: React.FC = () => {
                   </Tabs.Panel>
                 </Tabs>
               </div>
-
-              {/* Submit Button */}
-              <div className="flex gap-3 justify-end mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/test-database")}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">Save Test</Button>
-              </div>
             </form>
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs />
+            <DisplayTabs onDataChange={handleDisplayDataChange} />
           </Tabs.Panel>
         </Tabs>
       </Paper>
+
+      {/* Sticky Footer Section */}
+      <div className="sticky -bottom-4 bg-white z-10 mt-6 px-4 pt-4 pb-4 rounded-xl border border-gray-200 shadow-sm flex justify-end gap-4">
+        <Button variant="light" onClick={() => navigate(-1)}>
+          Cancel
+        </Button>
+
+        {activeTab === "core" ? (
+          <Button
+            style={{ backgroundColor: "#0b5ed7" }}
+            onClick={handleNextTab}
+          >
+            Next
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            style={{ backgroundColor: "#0b5ed7" }}
+            loading={loading}
+            onClick={handleSubmit}
+          >
+            Save Test
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

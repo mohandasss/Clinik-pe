@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Button, TextInput, Select, Checkbox } from "@mantine/core";
-import { DatePickerInput } from "@mantine/dates";
+import { Button, TextInput, Select } from "@mantine/core";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import BillsTable from "./Components/BillsTable";
@@ -78,14 +77,6 @@ const DiagnosticBillsPage: React.FC = () => {
     { value: "ref-1", label: "Dr. John Doe" },
     { value: "ref-2", label: "Dr. M. Smith" },
   ]);
-  const [collectionCentreOptions] = useState([
-    { value: "main", label: "Main" },
-    { value: "east", label: "East Centre" },
-  ]);
-  const [sampleAgentOptions] = useState([
-    { value: "agent-1", label: "Agent One" },
-    { value: "agent-2", label: "Agent Two" },
-  ]);
 
   return (
     <div className="space-y-6 p-0">
@@ -103,14 +94,9 @@ const DiagnosticBillsPage: React.FC = () => {
       </div>
       {/* Filters Section */}
       <div className="bg-white rounded-lg shadow-sm p-6 ring-1 ring-gray-100">
-        {/*
-          On small screens: 1 column
-          On small/medium screens: 2 columns
-          On large screens: 4 columns (max two rows with up to 4 items per row)
-        */}
-        <div className="flex items-center gap-2 mb-2 overflow-x-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           {/* Duration */}
-          <div className="flex-shrink-0 w-48">
+          <div className="w-full">
             <label className="text-xs font-medium text-gray-600 mb-2 flex items-center gap-1">
               Duration
               <span
@@ -130,30 +116,8 @@ const DiagnosticBillsPage: React.FC = () => {
             />
           </div>
 
-          {/* Date Range (visible only when 'custom' duration selected) */}
-          {filters.duration === "custom" && (
-            <div className="flex-shrink-0 w-96">
-              <label className="text-xs font-medium text-gray-600 mb-2 block">
-                Date Range
-              </label>
-              <DatePickerInput
-                type="range"
-                value={filters.dateRange}
-                onChange={(value) =>
-                  handleFilterChange(
-                    "dateRange",
-                    value as [Date | null, Date | null]
-                  )
-                }
-                placeholder="Select date range"
-              />
-            </div>
-          )}
-
-          {/* Reg. no. */}
-
           {/* Patient first name */}
-          <div className="flex-shrink-0 w-56">
+          <div className="w-full">
             <label className="text-xs font-medium text-gray-600 mb-2 block">
               Patient first name
             </label>
@@ -166,64 +130,44 @@ const DiagnosticBillsPage: React.FC = () => {
             />
           </div>
 
-          {/* Referred by */}
-          <div className="flex-shrink-0 w-56">
-            <label className="text-xs font-medium text-gray-600 mb-2 block">
+          {/* Referred by + Action Buttons */}
+          <div className="w-full flex flex-col gap-2">
+            <label className="text-xs font-medium text-gray-600 block">
               Referred by
             </label>
-            <Select
-              data={referredByOptions}
-              value={filters.referredBy}
-              onChange={(value) =>
-                handleFilterChange("referredBy", value || "")
-              }
-              placeholder="Select referrer"
-              searchable
-            />
-          </div>
-
-          {/* <div className="col-span-1">
-            <Checkbox
-              label="Has due"
-              checked={filters.hasDue}
-              onChange={(e) => handleFilterChange("hasDue", e.target.checked)}
-            />
-          </div>
-          <div className="flex-shrink-0 w-28">
-            <Checkbox
-              label="Cancelled"
-              checked={filters.cancelled}
-              onChange={(e) =>
-                handleFilterChange("cancelled", e.target.checked)
-              }
-            />
-          </div> */}
-          <div className="flex items-center mt-6 gap-2">
-            <div className="flex-shrink-0 mt- w-28">
-              <Button
-                leftSection={<IconSearch size={16} />}
-                onClick={handleSearch}
-                variant="filled"
-                color="blue"
-              >
-                Search
-              </Button>
-            </div>
-            <div className="col-span-1">
-              <Button
-                leftSection={<IconX size={16} />}
-                onClick={handleClear}
-                variant="default"
-              >
-                Clear
-              </Button>
+            <div className="flex gap-2">
+              <Select
+                data={referredByOptions}
+                value={filters.referredBy}
+                onChange={(value) =>
+                  handleFilterChange("referredBy", value || "")
+                }
+                placeholder="Select referrer"
+                searchable
+                className="flex-1"
+              />
+              <div className="flex gap-2">
+                <Button
+                  leftSection={<IconSearch size={16} />}
+                  onClick={handleSearch}
+                  variant="filled"
+                  color="blue"
+                  size="sm"
+                >
+                  Search
+                </Button>
+                <Button
+                  leftSection={<IconX size={16} />}
+                  onClick={handleClear}
+                  variant="default"
+                  size="sm"
+                >
+                  Clear
+                </Button>
+              </div>
             </div>
           </div>
-
-          {/* All filters are inline */}
         </div>
-
-        {/* Second row: compact checkboxes + action buttons */}
       </div>
       {/* Bills Table */}
       <BillsTable

@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Paper,
   TextInput,
-  Textarea,
   Button,
   Text,
   Select,
@@ -16,7 +15,9 @@ import apis from "../../../APis/Api";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { Anchor } from "@mantine/core";
 import RichEditor from "../../../components/Global/RichEditor";
-import DisplayTabs from "../../../components/Global/DisplayTabs";
+import DisplayTabs, {
+  type DisplayTabsData,
+} from "../../../components/Global/DisplayTabs";
 
 interface LocationState {
   isEdit?: boolean;
@@ -46,7 +47,7 @@ const AddTestPage: React.FC = () => {
   const [description, setDescription] = useState(testData?.description ?? "");
   const [price, setPrice] = useState(testData?.price ?? "");
   const [status, setStatus] = useState(testData?.status === "active");
-  const [data, setData] = useState("");
+  const [data] = useState("");
   const [category, setCategory] = useState<string | null>(
     testData?.category ?? null
   );
@@ -55,6 +56,15 @@ const AddTestPage: React.FC = () => {
     []
   );
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<string | null>("core");
+
+  // Display tab data
+  const [displayData, setDisplayData] = useState<DisplayTabsData | null>(null);
+
+  // Memoized callback to prevent infinite loops
+  const handleDisplayDataChange = useCallback((data: DisplayTabsData) => {
+    setDisplayData(data);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -82,8 +92,8 @@ const AddTestPage: React.FC = () => {
     };
   }, [organizationId, centerId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!name.trim()) {
       notifications.show({
         title: "Error",
@@ -103,14 +113,41 @@ const AddTestPage: React.FC = () => {
 
     setLoading(true);
     try {
-      // Build payload
+      // Build images array - send only image IDs
+      const imagesPayload =
+        displayData?.uploadedImages?.map((img) => img.target_id) || [];
+
+      // Build payload with all fields including display data
       const payload = {
         name: name.trim(),
         description: description || "",
         price: price || "0",
         data: data || "",
         category_id: category,
+        // Display tab fields
+        tags: {
+          organ: displayData?.organs || [],
+          top_rated: displayData?.topRated || false,
+          top_selling: displayData?.topSelling || false,
+        },
+        display_name: displayData?.displayName || "",
+        short_about: displayData?.shortAbout || "",
+        long_about: displayData?.longAbout || "",
+        sample_type: displayData?.sampleType || "",
+        gender: displayData?.gender || "any",
+        age_range: displayData?.ageRange || "",
+        images: imagesPayload,
+        preparation: displayData?.preparation || "",
+        mrp: displayData?.mrp || "",
+        faq: displayData?.faqs
+          ? JSON.stringify(displayData.faqs.filter((f) => f.question.trim()))
+          : "",
+        home_collection_possible: displayData?.homeCollectionPossible || false,
+        home_collection_fee: displayData?.homeCollectionFee || "",
+        machine_based: displayData?.machineBased || false,
       };
+
+      console.log("Payload:", JSON.stringify(payload, null, 2));
 
       let response;
       if (isEdit && testData?.id) {
@@ -169,6 +206,10 @@ const AddTestPage: React.FC = () => {
     }
   };
 
+  const handleNextTab = () => {
+    setActiveTab("display");
+  };
+
   return (
     <div className="p-0">
       <div className="mb-4">
@@ -196,90 +237,94 @@ const AddTestPage: React.FC = () => {
       </div>
 
       <Paper withBorder radius="md" className="p-6">
-        <Tabs defaultValue="core" className="mb-4">
+        <Tabs value={activeTab} onChange={setActiveTab} className="mb-4">
           <Tabs.List grow>
             <Tabs.Tab value="core">Core</Tabs.Tab>
             <Tabs.Tab value="display">Display</Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="core" pt="md">
-            <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <TextInput
-                    label="Name"
-                    placeholder="Test name"
-                    value={name}
-                    onChange={(e) => setName(e.currentTarget.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <TextInput
-                    label="Price"
-                    placeholder="Price"
-                    value={price}
-                    onChange={(e) => setPrice(e.currentTarget.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <Text size="xs" className="text-gray-600 mb-2">
-                  Description
-                </Text>
-                <RichEditor
-                  value={description}
-                  onChange={(content) => setDescription(content)}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <TextInput
+                  label="Name"
+                  placeholder="Test name"
+                  value={name}
+                  onChange={(e) => setName(e.currentTarget.value)}
+                  required
                 />
               </div>
-
-              <div className="mb-4">
-                <Select
-                  label="Category"
-                  placeholder="Select category"
-                  data={categories.map((c) => ({ value: c.id, label: c.name }))}
-                  value={category}
-                  onChange={(v) => setCategory(v)}
+              <div>
+                <TextInput
+                  label="Price"
+                  placeholder="Price"
+                  value={price}
+                  onChange={(e) => setPrice(e.currentTarget.value)}
                 />
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {/* <div>
-              <TextInput
-                label="Data"
-                placeholder="Additional data"
-                value={data}
-                onChange={(e) => setData(e.currentTarget.value)}
+            <div className="mb-4">
+              <Text size="xs" className="text-gray-600 mb-2">
+                Description
+              </Text>
+              <RichEditor
+                value={description}
+                onChange={(content) => setDescription(content)}
               />
-            </div> */}
-                <div className="flex items-center gap-2">
-                  <Switch
-                    label="Active"
-                    checked={status}
-                    onChange={(e) => setStatus(e.currentTarget.checked)}
-                  />
-                </div>
-              </div>
+            </div>
 
-              <div className="flex justify-start">
-                <Button
-                  type="submit"
-                  variant="filled"
-                  color="blue"
-                  loading={loading}
-                >
-                  {isEdit ? "Update Test" : "Create Test"}
-                </Button>
+            <div className="mb-4">
+              <Select
+                label="Category"
+                placeholder="Select category"
+                data={categories.map((c) => ({ value: c.id, label: c.name }))}
+                value={category}
+                onChange={(v) => setCategory(v)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  label="Active"
+                  checked={status}
+                  onChange={(e) => setStatus(e.currentTarget.checked)}
+                />
               </div>
-            </form>
+            </div>
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs />
+            <DisplayTabs onDataChange={handleDisplayDataChange} />
           </Tabs.Panel>
         </Tabs>
       </Paper>
+
+      {/* Sticky Footer Section */}
+      <div className="sticky -bottom-4 bg-white z-10 mt-6 px-4 pt-4 pb-4 rounded-xl border border-gray-200 shadow-sm flex justify-end gap-4">
+        <Button variant="light" onClick={() => navigate(-1)}>
+          Cancel
+        </Button>
+
+        {activeTab === "core" ? (
+          <Button
+            style={{ backgroundColor: "#0b5ed7" }}
+            onClick={handleNextTab}
+          >
+            Next
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            style={{ backgroundColor: "#0b5ed7" }}
+            loading={loading}
+            onClick={handleSubmit}
+          >
+            {isEdit ? "Update Test" : "Save Test"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

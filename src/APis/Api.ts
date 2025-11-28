@@ -19,6 +19,7 @@ import type {
   QualificationResponse,
   SpecialityResponse,
   FileUploadResponse,
+  TestImageUploadResponse,
   ProviderDetails,
   ProviderListResponse,
   SwitchOrganizationResponse,
@@ -319,6 +320,27 @@ class Apis {
       .form(payload)
       .execute();
     return response.data as FileUploadResponse
+  }
+
+  async UploadTestImage(
+    organizationId: string,
+    centerId: string,
+    file: File,
+    type: "icon" | "image",
+    purpose?: string
+  ): Promise<TestImageUploadResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("file_type", type);
+    if (purpose) {
+      formData.append("purpose", purpose);
+    }
+    const response = await apiAgent
+      .path(`/organizations/${organizationId}/centers/${centerId}/diagnostics/tests/images`)
+      .method("POST")
+      .form(formData)
+      .execute();
+    return response.data as TestImageUploadResponse;
   }
 
   async AddProvider(
@@ -1466,7 +1488,7 @@ class Apis {
     pageSize?: number,
     search?: string
   ): Promise<OtherPanelsResponse> {
-    const response = await apiAgent 
+    const response = await apiAgent
       .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/${page}/panels`)
       .method("GET")
       .query({ pageNumber, pageSize, search })

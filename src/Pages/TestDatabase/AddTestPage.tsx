@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Paper,
@@ -17,7 +17,9 @@ import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 import { notifications } from "@mantine/notifications";
 import type { TestCategory, Unit } from "../../APis/Types";
-import DisplayTabs from "../../components/Global/DisplayTabs";
+import DisplayTabs, {
+  type DisplayTabsData,
+} from "../../components/Global/DisplayTabs";
 import RichEditor from "../../components/Global/RichEditor";
 
 const AddTestPage: React.FC = () => {
@@ -26,6 +28,7 @@ const AddTestPage: React.FC = () => {
   const [categories, setCategories] = useState<TestCategory[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<string | null>("core");
 
   const [form, setForm] = useState({
     name: "",
@@ -44,6 +47,14 @@ const AddTestPage: React.FC = () => {
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Display tab data
+  const [displayData, setDisplayData] = useState<DisplayTabsData | null>(null);
+
+  // Memoized callback to prevent infinite loops
+  const handleDisplayDataChange = useCallback((data: DisplayTabsData) => {
+    setDisplayData(data);
+  }, []);
 
   // Load categories and units on mount
   const organizationId = useAuthStore(
@@ -98,11 +109,12 @@ const AddTestPage: React.FC = () => {
 
     setLoading(true);
     try {
-      // TODO: Wire to actual API endpoint when available
-      // For now, just show success message
-      // Build payload for console logging (map to expected API keys)
+      // Build images array - send only image IDs in simple format: ["id1", "id2", "id3"]
+      const imagesPayload =
+        displayData?.uploadedImages?.map((img) => img.target_id) || [];
+
+      // Build payload with all fields - for single type, don't send children
       const payload = {
-        // Result type is not required now; default to single parameter
         type: "single",
         name: form.name,
         short_name: form.shortName,
@@ -117,7 +129,28 @@ const AddTestPage: React.FC = () => {
         interpretation: form.interpretation,
         notes: form.notes,
         comments: form.comments,
-      } as const;
+        tags: {
+          organ: displayData?.organs || [],
+          top_rated: displayData?.topRated || false,
+          top_selling: displayData?.topSelling || false,
+        },
+        display_name: displayData?.displayName || "",
+        short_about: displayData?.shortAbout || "",
+        long_about: displayData?.longAbout || "",
+        sample_type: displayData?.sampleType || "",
+        gender: displayData?.gender || "any",
+        age_range: displayData?.ageRange || "",
+        images: imagesPayload,
+        preparation: displayData?.preparation || "",
+        mrp: displayData?.mrp || "",
+        faq: displayData?.faqs
+          ? JSON.stringify(displayData.faqs.filter((f) => f.question.trim()))
+          : "",
+        home_collection_possible: displayData?.homeCollectionPossible || false,
+        home_collection_fee: displayData?.homeCollectionFee || "",
+        machine_based: displayData?.machineBased || false,
+        // For single type, don't send children key
+      };
 
       // Log payload as requested
       console.log(JSON.stringify(payload, null, 2));
@@ -168,6 +201,10 @@ const AddTestPage: React.FC = () => {
 
   // Result type options removed: field no longer shown in the form
 
+  const handleNextTab = () => {
+    setActiveTab("display");
+  };
+
   return (
     <div className="p-0">
       <div className="mb-4">
@@ -193,279 +230,276 @@ const AddTestPage: React.FC = () => {
       </div>
 
       <Paper withBorder radius="md" className="p-6">
-        <Tabs defaultValue="core" className="mb-4">
+        <Tabs value={activeTab} onChange={setActiveTab} className="mb-4">
           <Tabs.List grow>
             <Tabs.Tab value="core">Core</Tabs.Tab>
             <Tabs.Tab value="display">Display</Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="core" pt="md">
-            <form onSubmit={handleSubmit}>
-              {/* Test Details Section */}
-              <div className="mb-4">
-                <div className="text-sm font-medium mb-3">Test details</div>
-                <p className="text-xs text-gray-500 mb-4">
-                  Detailed entry will be created for this test automatically.
-                </p>
+            {/* Test Details Section */}
+            <div className="mb-4">
+              <div className="text-sm font-medium mb-3">Test details</div>
+              <p className="text-xs text-gray-500 mb-4">
+                Detailed entry will be created for this test automatically.
+              </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Name
-                    </Text>
-                    <TextInput
-                      placeholder="e.g., Serum Phosphorus"
-                      value={form.name}
-                      onChange={(e) =>
-                        handleChange("name", e.currentTarget.value)
-                      }
-                      error={formErrors.name}
-                    />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Name
+                  </Text>
+                  <TextInput
+                    placeholder="e.g., Serum Phosphorus"
+                    value={form.name}
+                    onChange={(e) =>
+                      handleChange("name", e.currentTarget.value)
+                    }
+                    error={formErrors.name}
+                  />
+                </div>
 
-                  <div>
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Short name
-                    </Text>
-                    <TextInput
-                      placeholder="e.g., Phos"
-                      value={form.shortName}
-                      onChange={(e) =>
-                        handleChange("shortName", e.currentTarget.value)
-                      }
-                      error={formErrors.shortName}
-                    />
-                  </div>
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Short name
+                  </Text>
+                  <TextInput
+                    placeholder="e.g., Phos"
+                    value={form.shortName}
+                    onChange={(e) =>
+                      handleChange("shortName", e.currentTarget.value)
+                    }
+                    error={formErrors.shortName}
+                  />
+                </div>
 
-                  <div>
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Category
-                    </Text>
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Category
+                  </Text>
+                  <Select
+                    placeholder="Select category"
+                    data={categoryOptions}
+                    value={form.category}
+                    onChange={(v) => handleChange("category", v || "")}
+                    error={formErrors.category}
+                    searchable
+                  />
+                </div>
+
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Unit
+                  </Text>
+                  <div className="flex items-center gap-2">
                     <Select
-                      placeholder="Select category"
-                      data={categoryOptions}
-                      value={form.category}
-                      onChange={(v) => handleChange("category", v || "")}
-                      error={formErrors.category}
+                      placeholder="Select unit"
+                      data={unitOptions}
+                      value={form.unit}
+                      onChange={(v) => handleChange("unit", v || "")}
+                      error={formErrors.unit}
                       searchable
+                      className="flex-1"
                     />
+                    <Anchor
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate("/units");
+                      }}
+                      className="text-blue-600 text-xs whitespace-nowrap hover:underline"
+                    >
+                      Add new
+                    </Anchor>
                   </div>
+                </div>
 
-                  <div>
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Unit
-                    </Text>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        placeholder="Select unit"
-                        data={unitOptions}
-                        value={form.unit}
-                        onChange={(v) => handleChange("unit", v || "")}
-                        error={formErrors.unit}
-                        searchable
-                        className="flex-1"
-                      />
-                      <Anchor
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate("/units");
-                        }}
-                        className="text-blue-600 text-xs whitespace-nowrap hover:underline"
-                      >
-                        Add new
-                      </Anchor>
-                    </div>
-                  </div>
+                {/* Result type removed — default 'single' used */}
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Input type
+                  </Text>
+                  <Select
+                    placeholder="Select input type"
+                    data={[
+                      { value: "single-line", label: "Single Line" },
+                      { value: "numeric", label: "Numeric" },
+                      { value: "paragraph", label: "Paragraph" },
+                    ]}
+                    value={form.inputType}
+                    onChange={(v) => handleChange("inputType", v || "numeric")}
+                  />
+                </div>
 
-                  {/* Result type removed — default 'single' used */}
-                  <div>
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Input type
-                    </Text>
-                    <Select
-                      placeholder="Select input type"
-                      data={[
-                        { value: "single-line", label: "Single Line" },
-                        { value: "numeric", label: "Numeric" },
-                        { value: "paragraph", label: "Paragraph" },
-                      ]}
-                      value={form.inputType}
-                      onChange={(v) =>
-                        handleChange("inputType", v || "numeric")
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Default result
+                  </Text>
+                  <TextInput
+                    placeholder="e.g., Normal"
+                    value={form.defaultResult}
+                    onChange={(e) =>
+                      handleChange("defaultResult", e.currentTarget.value)
+                    }
+                  />
+                </div>
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    &nbsp;
+                  </Text>
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      label="Optional"
+                      checked={Boolean(form.optional)}
+                      onChange={(e) =>
+                        handleChange("optional", e.currentTarget.checked)
                       }
+                      size="xs"
+                    />
+                    <NumberInput
+                      placeholder="Price"
+                      value={form.price ? Number(form.price) : undefined}
+                      onChange={(v) => handleChange("price", String(v || ""))}
+                      className="w-full"
                     />
                   </div>
+                </div>
+              </div>
+            </div>
 
+            {/* More details Section */}
+            <Tabs defaultValue="method">
+              <Tabs.List>
+                <Tabs.Tab value="method">More Details</Tabs.Tab>
+                <Tabs.Tab value="format">Format Options</Tabs.Tab>
+              </Tabs.List>
+
+              {/* --- Method & Instrument Tab --- */}
+              <Tabs.Panel value="method" pt="xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
                     <Text size="xs" className="text-gray-600 mb-2">
-                      Default result
+                      Method
                     </Text>
                     <TextInput
-                      placeholder="e.g., Normal"
-                      value={form.defaultResult}
+                      placeholder="Method"
+                      value={form.method}
                       onChange={(e) =>
-                        handleChange("defaultResult", e.currentTarget.value)
+                        handleChange("method", e.currentTarget.value)
                       }
                     />
                   </div>
+
                   <div>
                     <Text size="xs" className="text-gray-600 mb-2">
-                      &nbsp;
+                      Instrument
                     </Text>
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        label="Optional"
-                        checked={Boolean(form.optional)}
-                        onChange={(e) =>
-                          handleChange("optional", e.currentTarget.checked)
-                        }
-                        size="xs"
-                      />
-                      <NumberInput
-                        placeholder="Price"
-                        value={form.price ? Number(form.price) : undefined}
-                        onChange={(v) => handleChange("price", String(v || ""))}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* More details Section */}
-              <Tabs defaultValue="method">
-                <Tabs.List>
-                  <Tabs.Tab value="method">More Details</Tabs.Tab>
-                  <Tabs.Tab value="format">Format Options</Tabs.Tab>
-                </Tabs.List>
-
-                {/* --- Method & Instrument Tab --- */}
-                <Tabs.Panel value="method" pt="xs">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <Text size="xs" className="text-gray-600 mb-2">
-                        Method
-                      </Text>
-                      <TextInput
-                        placeholder="Method"
-                        value={form.method}
-                        onChange={(e) =>
-                          handleChange("method", e.currentTarget.value)
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <Text size="xs" className="text-gray-600 mb-2">
-                        Instrument
-                      </Text>
-                      <TextInput
-                        placeholder="Instrument"
-                        value={form.instrument}
-                        onChange={(e) =>
-                          handleChange("instrument", e.currentTarget.value)
-                        }
-                      />
-                    </div>
-                  </div>
-                </Tabs.Panel>
-
-                {/* --- Format Options Tab --- */}
-                <Tabs.Panel value="format" pt="xs" mb={8}>
-                  <div className="mt-4">
-                    <div className="flex items-center gap-3">
-                      <Checkbox label="Always bold" />
-                      <Checkbox label="Print line after" />
-                    </div>
-
-                    <div className="mt-3 text-xs text-gray-500">
-                      Won’t print line for panels.
-                    </div>
-                  </div>
-                </Tabs.Panel>
-              </Tabs>
-
-              {/* Interpretation Section - Always Visible */}
-              <div className=" mt-4 mb-4">
-                <div className="text-sm font-medium mb-3">Interpretation</div>
-                <div className="flex items-start gap-4 mb-3">
-                  <div className="flex-1">
-                    <RichEditor
-                      value={form.interpretation}
-                      onChange={(content) =>
-                        handleChange("interpretation", content)
+                    <TextInput
+                      placeholder="Instrument"
+                      value={form.instrument}
+                      onChange={(e) =>
+                        handleChange("instrument", e.currentTarget.value)
                       }
                     />
                   </div>
                 </div>
-              </div>
+              </Tabs.Panel>
 
-              {/* Notes and Comments - Always Visible */}
-              <div className="mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Notes
-                    </Text>
-                    <Textarea
-                      placeholder="Enter notes..."
-                      value={form.notes}
-                      onChange={(e) =>
-                        handleChange("notes", e.currentTarget.value)
-                      }
-                      minRows={3}
-                      classNames={{ input: "text-sm" }}
-                    />
+              {/* --- Format Options Tab --- */}
+              <Tabs.Panel value="format" pt="xs" mb={8}>
+                <div className="mt-4">
+                  <div className="flex items-center gap-3">
+                    <Checkbox label="Always bold" />
+                    <Checkbox label="Print line after" />
                   </div>
-                  <div>
-                    <Text size="xs" className="text-gray-600 mb-2">
-                      Comments
-                    </Text>
-                    <Textarea
-                      placeholder="Enter comments..."
-                      value={form.comments}
-                      onChange={(e) =>
-                        handleChange("comments", e.currentTarget.value)
-                      }
-                      minRows={3}
-                      classNames={{ input: "text-sm" }}
-                    />
+
+                  <div className="mt-3 text-xs text-gray-500">
+                    Won’t print line for panels.
                   </div>
                 </div>
-              </div>
+              </Tabs.Panel>
+            </Tabs>
 
-              {/* Submit Button */}
-              <div className="mt-6">
-                <Button
-                  type="submit"
-                  style={{ backgroundColor: "#0b5ed7" }}
-                  loading={loading}
-                >
-                  Save Test
-                </Button>
+            {/* Interpretation Section - Always Visible */}
+            <div className=" mt-4 mb-4">
+              <div className="text-sm font-medium mb-3">Interpretation</div>
+              <div className="flex items-start gap-4 mb-3">
+                <div className="flex-1">
+                  <RichEditor
+                    value={form.interpretation}
+                    onChange={(content) =>
+                      handleChange("interpretation", content)
+                    }
+                  />
+                </div>
               </div>
-            </form>
+            </div>
+
+            {/* Notes and Comments - Always Visible */}
+            <div className="mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Notes
+                  </Text>
+                  <Textarea
+                    placeholder="Enter notes..."
+                    value={form.notes}
+                    onChange={(e) =>
+                      handleChange("notes", e.currentTarget.value)
+                    }
+                    minRows={3}
+                    classNames={{ input: "text-sm" }}
+                  />
+                </div>
+                <div>
+                  <Text size="xs" className="text-gray-600 mb-2">
+                    Comments
+                  </Text>
+                  <Textarea
+                    placeholder="Enter comments..."
+                    value={form.comments}
+                    onChange={(e) =>
+                      handleChange("comments", e.currentTarget.value)
+                    }
+                    minRows={3}
+                    classNames={{ input: "text-sm" }}
+                  />
+                </div>
+              </div>
+            </div>
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs
-              onOrgansChange={(selected) =>
-                console.log("Selected organs:", selected)
-              }
-              onCategoriesChange={(selected) =>
-                console.log("Selected categories:", selected)
-              }
-              onTopRatingChange={(checked) =>
-                console.log("Top rating:", checked)
-              }
-              onTopSellingChange={(checked) =>
-                console.log("Top selling:", checked)
-              }
-            />
+            <DisplayTabs onDataChange={handleDisplayDataChange} />
           </Tabs.Panel>
         </Tabs>
       </Paper>
+
+      {/* Sticky Footer Section */}
+      <div className="sticky -bottom-4 bg-white z-10 mt-6 px-4 pt-4 pb-4 rounded-xl border border-gray-200 shadow-sm flex justify-end gap-4">
+        <Button variant="light" onClick={() => navigate(-1)}>
+          Cancel
+        </Button>
+
+        {activeTab === "core" ? (
+          <Button
+            style={{ backgroundColor: "#0b5ed7" }}
+            onClick={handleNextTab}
+          >
+            Next
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            style={{ backgroundColor: "#0b5ed7" }}
+            loading={loading}
+            onClick={handleSubmit}
+          >
+            Save Test
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

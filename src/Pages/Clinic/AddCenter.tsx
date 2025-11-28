@@ -160,7 +160,22 @@ const AddCenter: React.FC = () => {
 
     const payload = {
       name: form.centerName.trim(),
-      address: form.address.trim(),
+      address: {
+        address: form.address.trim(),
+        lat: "",
+        lng: "",
+        postalCode: "",
+        line_1: "",
+        line_2: "",
+        country: "",
+        state_or_province: "",
+        district: "",
+        city: "",
+        village: "",
+        town: "",
+        land_mark: "",
+        instruction: "",
+      },
       email: form.emailAddress.trim(),
       primary_contact: `+91${form.phoneNumber.trim()}`,
       secondary_contact: form.secondaryPhone.trim()
@@ -590,3 +605,4 @@ const AddCenter: React.FC = () => {
 };
 
 export default AddCenter;
+

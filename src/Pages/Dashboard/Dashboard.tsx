@@ -7,8 +7,11 @@ import {
   Title,
   Loader,
   MultiSelect,
+  Popover,
+  ActionIcon,
 } from "@mantine/core";
 import { DatePickerInput, type DatesRangeValue } from "@mantine/dates";
+import { IconSettings, IconX } from "@tabler/icons-react";
 import {
   LineChart,
   Line,
@@ -18,9 +21,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
@@ -55,11 +55,14 @@ const Dashboard = () => {
     null
   );
   const [loading, setLoading] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const organizationDetails = useAuthStore((s) => s.organizationDetails);
 
-  // Form state
+  // Default: appointments, users, patients | last 7 days | day | 1
   const [selectedTopics, setSelectedTopics] = useState<string[]>([
     "appointments",
+    "users",
+    "patients",
   ]);
   const [dateRange, setDateRange] = useState<DatesRangeValue>([
     new Date(new Date().setDate(new Date().getDate() - 7)),
@@ -174,122 +177,150 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="p-2 bg-gray-50 min-h-screen">
-      {/* Controls Section */}
-      <Card shadow="sm" padding="md" radius="md" mb="md">
-        <div className="space-y-3">
-          <Title order={4}>Dashboard</Title>
+    <div className="p-2 bg-gray-50 min-h-screen relative">
+      {/* Header with Settings Icon */}
+      <div className="flex justify-between items-center mb-4">
+        <Title order={3}>Dashboard</Title>
+        <Popover
+          opened={filterOpen}
+          onChange={setFilterOpen}
+          position="bottom-end"
+          width={360}
+          shadow="lg"
+          closeOnClickOutside={false}
+          trapFocus
+        >
+          <Popover.Target>
+            <ActionIcon
+              variant="light"
+              size="lg"
+              radius="md"
+              onClick={() => setFilterOpen((o) => !o)}
+              className="!bg-blue-100 hover:!bg-blue-200"
+            >
+              <IconSettings size={20} className="text-blue-600" />
+            </ActionIcon>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <div className="space-y-3">
+              {/* Header */}
+              <div className="flex justify-between items-center border-b pb-2">
+                <Text fw={600} size="sm">
+                  Filter Settings
+                </Text>
+                <ActionIcon
+                  variant="subtle"
+                  size="sm"
+                  onClick={() => setFilterOpen(false)}
+                >
+                  <IconX size={16} />
+                </ActionIcon>
+              </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-            <div className="col-span-2">
+              {/* Topics */}
               <MultiSelect
                 label="Topics"
                 placeholder="Select topics"
                 data={TOPIC_OPTIONS}
                 value={selectedTopics}
                 onChange={setSelectedTopics}
-                size="sm"
+                size="xs"
               />
-            </div>
 
-            <div className="col-span-2">
+              {/* Date Range */}
               <DatePickerInput
                 type="range"
                 label="Date Range"
                 placeholder="Select dates"
                 value={dateRange}
                 onChange={setDateRange}
-                size="sm"
+                size="xs"
               />
-            </div>
 
-            <div>
-              <Select
-                label="Period Unit"
-                placeholder="Unit"
-                data={PERIOD_UNIT_OPTIONS}
-                value={periodUnit}
-                onChange={(value) => setPeriodUnit(value || "day")}
-                size="sm"
-              />
-            </div>
+              {/* Period Unit & Value */}
+              <div className="grid grid-cols-2 gap-2">
+                <Select
+                  label="Period Unit"
+                  placeholder="Unit"
+                  data={PERIOD_UNIT_OPTIONS}
+                  value={periodUnit}
+                  onChange={(value) => setPeriodUnit(value || "day")}
+                  size="xs"
+                />
+                <Select
+                  label="Period Value"
+                  placeholder="Value"
+                  data={["1", "2", "3", "4", "5", "7", "10", "15", "30"]}
+                  value={periodValue}
+                  onChange={(value) => setPeriodValue(value || "1")}
+                  size="xs"
+                />
+              </div>
 
-            <div>
-              <Select
-                label="Period Value"
-                placeholder="Value"
-                data={["1", "2", "3", "4", "5", "7", "10", "15", "30"]}
-                value={periodValue}
-                onChange={(value) => setPeriodValue(value || "1")}
-                size="sm"
-              />
-            </div>
+              {/* Status Filters */}
+              <div className="grid grid-cols-2 gap-2">
+                <Select
+                  label="Active"
+                  data={[
+                    { value: "true", label: "Yes" },
+                    { value: "false", label: "No" },
+                  ]}
+                  value={activeStatus}
+                  onChange={(value) => setActiveStatus(value || "true")}
+                  size="xs"
+                />
+                <Select
+                  label="Inactive"
+                  data={[
+                    { value: "true", label: "Yes" },
+                    { value: "false", label: "No" },
+                  ]}
+                  value={inactiveStatus}
+                  onChange={(value) => setInactiveStatus(value || "false")}
+                  size="xs"
+                />
+              </div>
 
-            <div>
-              <Select
-                label="Active"
-                data={[
-                  { value: "true", label: "Yes" },
-                  { value: "false", label: "No" },
-                ]}
-                value={activeStatus}
-                onChange={(value) => setActiveStatus(value || "true")}
-                size="sm"
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Select
+                  label="Cancelled"
+                  data={[
+                    { value: "true", label: "Yes" },
+                    { value: "false", label: "No" },
+                  ]}
+                  value={cancelledStatus}
+                  onChange={(value) => setCancelledStatus(value || "false")}
+                  size="xs"
+                />
+                <Select
+                  label="Rescheduled"
+                  data={[
+                    { value: "true", label: "Yes" },
+                    { value: "false", label: "No" },
+                  ]}
+                  value={rescheduledStatus}
+                  onChange={(value) => setRescheduledStatus(value || "false")}
+                  size="xs"
+                />
+              </div>
 
-            <div>
-              <Select
-                label="Inactive"
-                data={[
-                  { value: "true", label: "Yes" },
-                  { value: "false", label: "No" },
-                ]}
-                value={inactiveStatus}
-                onChange={(value) => setInactiveStatus(value || "false")}
-                size="sm"
-              />
-            </div>
-
-            <div>
-              <Select
-                label="Cancelled"
-                data={[
-                  { value: "true", label: "Yes" },
-                  { value: "false", label: "No" },
-                ]}
-                value={cancelledStatus}
-                onChange={(value) => setCancelledStatus(value || "false")}
-                size="sm"
-              />
-            </div>
-
-            <div>
-              <Select
-                label="Rescheduled"
-                data={[
-                  { value: "true", label: "Yes" },
-                  { value: "false", label: "No" },
-                ]}
-                value={rescheduledStatus}
-                onChange={(value) => setRescheduledStatus(value || "false")}
-                size="sm"
-              />
-            </div>
-
-            <div className="flex items-end">
+              {/* Apply Button */}
               <Button
-                onClick={fetchDashboardData}
+                onClick={() => {
+                  fetchDashboardData();
+                  setFilterOpen(false);
+                }}
                 loading={loading}
-                size="sm"
-                className="!bg-[#0D52AF] w-full"
+                size="xs"
+                fullWidth
+                className="!bg-[#0D52AF] mt-2"
               >
-                Search
+                Apply Filters
               </Button>
             </div>
-          </div>
-        </div>
-      </Card>
+          </Popover.Dropdown>
+        </Popover>
+      </div>
 
       {/* Loading State */}
       {loading && (

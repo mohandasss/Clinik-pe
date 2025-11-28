@@ -17,13 +17,45 @@ import {
   Card,
   Grid,
   MultiSelect,
+  Loader,
 } from "@mantine/core";
 import { IconUpload, IconX, IconPlus } from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
 import RichEditor from "./RichEditor";
+import apis from "../../APis/Api";
+import useAuthStore from "../../GlobalStore/store";
 
 interface FAQ {
   question: string;
   answer: string;
+}
+
+export interface UploadedImage {
+  type: "icon" | "image";
+  target_type: string;
+  target_id: string;
+}
+
+export interface DisplayTabsData {
+  organs: string[];
+  categories: string[];
+  topRated: boolean;
+  topSelling: boolean;
+  displayName: string;
+  shortAbout: string;
+  longAbout: string;
+  sampleType: string;
+  gender: string;
+  ageRange: string;
+  icon: File | null;
+  images: File[];
+  uploadedImages: UploadedImage[];
+  preparation: string;
+  mrp: string;
+  faqs: FAQ[];
+  homeCollectionPossible: boolean;
+  homeCollectionFee: string;
+  machineBased: boolean;
 }
 
 interface DisplayTabsProps {
@@ -31,7 +63,7 @@ interface DisplayTabsProps {
   onCategoriesChange?: (selected: string[]) => void;
   onTopRatingChange?: (checked: boolean) => void;
   onTopSellingChange?: (checked: boolean) => void;
-  onDataChange?: (data: any) => void;
+  onDataChange?: (data: DisplayTabsData) => void;
 }
 
 const DisplayTabs: React.FC<DisplayTabsProps> = ({
@@ -63,6 +95,16 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
     number | undefined
   >(undefined);
   const [machineBased, setMachineBased] = useState(false);
+
+  // Uploaded image IDs from API
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+
+  const organizationId = useAuthStore(
+    (s) => s.organizationDetails?.organization_id ?? ""
+  );
+  const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
 
   const organs = [
     "Heart",
@@ -129,19 +171,183 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
     setFaqs(newFaqs);
   };
 
-  const handleImageUpload = (files: File[]) => {
-    setImages([...images, ...files]);
+  // Upload icon to API
+  const handleIconUpload = async (file: File | null) => {
+    setIcon(file);
+    if (!file) {
+      // Remove icon from uploaded images
+      setUploadedImages((prev) => prev.filter((img) => img.type !== "icon"));
+      return;
+    }
+
+    setUploadingIcon(true);
+    try {
+      const response = await apis.UploadTestImage(
+        organizationId,
+        centerId,
+        file,
+        "icon"
+      );
+      if (response?.success && response?.data?.image_id) {
+        // Remove any existing icon and add new one
+        setUploadedImages((prev) => [
+          ...prev.filter((img) => img.type !== "icon"),
+          {
+            type: "icon",
+            target_type: "test",
+            target_id: response.data.image_id,
+          },
+        ]);
+        notifications.show({
+          title: "Success",
+          message: "Icon uploaded successfully",
+          color: "green",
+        });
+      } else {
+        notifications.show({
+          title: "Error",
+          message: response?.message || "Failed to upload icon",
+          color: "red",
+        });
+        setIcon(null);
+      }
+    } catch (error) {
+      console.error("Icon upload error:", error);
+      notifications.show({
+        title: "Error",
+        message: "Failed to upload icon",
+        color: "red",
+      });
+      setIcon(null);
+    } finally {
+      setUploadingIcon(false);
+    }
+  };
+
+  // Upload multiple images to API one by one
+  const handleImageUpload = async (files: File[]) => {
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const newImages = [...images];
+    const newUploadedImages = [...uploadedImages];
+
+    for (const file of files) {
+      try {
+        const response = await apis.UploadTestImage(
+          organizationId,
+          centerId,
+          file,
+          "image"
+        );
+        if (response?.success && response?.data?.image_id) {
+          newImages.push(file);
+          newUploadedImages.push({
+            type: "image",
+            target_type: "test",
+            target_id: response.data.image_id,
+          });
+        } else {
+          notifications.show({
+            title: "Error",
+            message: `Failed to upload ${file.name}`,
+            color: "red",
+          });
+        }
+      } catch (error) {
+        console.error("Image upload error:", error);
+        notifications.show({
+          title: "Error",
+          message: `Failed to upload ${file.name}`,
+          color: "red",
+        });
+      }
+    }
+
+    setImages(newImages);
+    setUploadedImages(newUploadedImages);
+    setUploadingImages(false);
+
+    if (newImages.length > images.length) {
+      notifications.show({
+        title: "Success",
+        message: `${
+          newImages.length - images.length
+        } image(s) uploaded successfully`,
+        color: "green",
+      });
+    }
   };
 
   const removeImage = (index: number) => {
+    // Find the corresponding uploaded image (skip icon, count only images)
+    const imageUploadedIndices = uploadedImages
+      .map((img, idx) => (img.type === "image" ? idx : -1))
+      .filter((idx) => idx !== -1);
+
+    if (imageUploadedIndices[index] !== undefined) {
+      setUploadedImages((prev) =>
+        prev.filter((_, idx) => idx !== imageUploadedIndices[index])
+      );
+    }
     setImages(images.filter((_, i) => i !== index));
   };
+
+  // Collect all data and pass to parent
+  const getDisplayData = React.useCallback(
+    (): DisplayTabsData => ({
+      organs: selectedOrgans.map((o) => o.toLowerCase()),
+      categories: selectedCategories,
+      topRated: topRating,
+      topSelling: topSelling,
+      displayName,
+      shortAbout,
+      longAbout,
+      sampleType,
+      gender: genderRestriction,
+      ageRange: `${ageRange[0]}-${ageRange[1]}`,
+      icon,
+      images,
+      uploadedImages,
+      preparation,
+      mrp: mrp ? String(mrp) : "",
+      faqs,
+      homeCollectionPossible,
+      homeCollectionFee: homeCollectionFee ? String(homeCollectionFee) : "",
+      machineBased,
+    }),
+    [
+      selectedOrgans,
+      selectedCategories,
+      topRating,
+      topSelling,
+      displayName,
+      shortAbout,
+      longAbout,
+      sampleType,
+      genderRestriction,
+      ageRange,
+      icon,
+      images,
+      uploadedImages,
+      preparation,
+      mrp,
+      faqs,
+      homeCollectionPossible,
+      homeCollectionFee,
+      machineBased,
+    ]
+  );
+
+  // Call onDataChange whenever any field changes
+  React.useEffect(() => {
+    onDataChange?.(getDisplayData());
+  }, [getDisplayData, onDataChange]);
 
   return (
     <div className="space-y-4">
       {/* Organs Section */}
       <Paper withBorder radius="md" className="p-4">
-        
         <Grid gutter="md">
           <Grid.Col span={{ base: 12, md: 6 }}>
             <TextInput
@@ -230,14 +436,6 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
           onChange={handleCategoriesChange}
           placeholder="Search and select categories"
           searchable
-          creatable
-          getCreateLabel={(query) => `+ Create "${query}"`}
-          onCreate={(query) => {
-            const item = query;
-            setSelectedCategories([...selectedCategories, item]);
-            onCategoriesChange?.([...selectedCategories, item]);
-            return item;
-          }}
           size="sm"
           clearable
           styles={{
@@ -353,12 +551,15 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
           <Grid.Col span={{ base: 12, md: 6 }}>
             <FileInput
               label="Icon"
-              placeholder="Upload icon"
+              placeholder={uploadingIcon ? "Uploading..." : "Upload icon"}
               accept="image/*"
               value={icon}
-              onChange={setIcon}
-              leftSection={<IconUpload size={16} />}
+              onChange={handleIconUpload}
+              leftSection={
+                uploadingIcon ? <Loader size={16} /> : <IconUpload size={16} />
+              }
               size="sm"
+              disabled={uploadingIcon}
             />
             {icon && (
               <div className="mt-2">
@@ -373,7 +574,7 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
                       size="xs"
                       color="red"
                       variant="filled"
-                      onClick={() => setIcon(null)}
+                      onClick={() => handleIconUpload(null)}
                     >
                       <IconX size={12} />
                     </ActionIcon>
@@ -387,46 +588,74 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
               Images (Multiple)
             </Text>
             <FileInput
-              placeholder="Upload multiple images"
+              placeholder={
+                uploadingImages ? "Uploading..." : "Upload multiple images"
+              }
               accept="image/*"
               multiple
+              value={[]}
               onChange={handleImageUpload}
-              leftSection={<IconUpload size={16} />}
+              leftSection={
+                uploadingImages ? (
+                  <Loader size={16} />
+                ) : (
+                  <IconUpload size={16} />
+                )
+              }
               size="sm"
-              clearable={images.length > 0}
-              onClear={() => setImages([])}
+              disabled={uploadingImages}
             />
             {images.length > 0 && (
-              <div className="mt-3 flex gap-2 flex-wrap">
-                {images.slice(0, 3).map((img, index) => (
-                  <div
-                    key={`preview-${index}`}
-                    className="relative group rounded overflow-hidden border border-gray-200 bg-white flex-shrink-0"
+              <div className="mt-3">
+                <div className="flex justify-between items-center mb-2">
+                  <Text size="xs" c="dimmed">
+                    {images.length} image(s) uploaded
+                  </Text>
+                  <ActionIcon
+                    size="xs"
+                    color="red"
+                    variant="subtle"
+                    onClick={() => {
+                      setImages([]);
+                      setUploadedImages((prev) =>
+                        prev.filter((img) => img.type !== "image")
+                      );
+                    }}
                   >
-                    <img
-                      src={URL.createObjectURL(img)}
-                      alt={`Preview ${index + 1}`}
-                      className="w-16 h-16 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <ActionIcon
-                        size="xs"
-                        color="red"
-                        variant="filled"
-                        onClick={() => removeImage(index)}
-                      >
-                        <IconX size={12} />
-                      </ActionIcon>
+                    <IconX size={12} />
+                  </ActionIcon>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {images.slice(0, 3).map((img, index) => (
+                    <div
+                      key={`preview-${index}`}
+                      className="relative group rounded overflow-hidden border border-gray-200 bg-white flex-shrink-0"
+                    >
+                      <img
+                        src={URL.createObjectURL(img)}
+                        alt={`Preview ${index + 1}`}
+                        className="w-16 h-16 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <ActionIcon
+                          size="xs"
+                          color="red"
+                          variant="filled"
+                          onClick={() => removeImage(index)}
+                        >
+                          <IconX size={12} />
+                        </ActionIcon>
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {images.length > 3 && (
-                  <div className="w-16 h-16 rounded border-2 border-gray-300 bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <Text size="sm" fw={600} c="gray">
-                      +{images.length - 3}
-                    </Text>
-                  </div>
-                )}
+                  ))}
+                  {images.length > 3 && (
+                    <div className="w-16 h-16 rounded border-2 border-gray-300 bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Text size="sm" fw={600} c="gray">
+                        +{images.length - 3}
+                      </Text>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </Grid.Col>

@@ -43,6 +43,7 @@ import GeneralSettings from "./Pages/GeneralSettings/GeneralSettings";
 import BookingPage from "./Pages/PatientShedule/BookingPage";
 
 import TestPackage from "./Pages/TestPackages/TestPackage";
+import EditPackagePage from "./Pages/TestPackages/EditPackagePage";
 import TestPanels from "./Pages/TestPanels/TestPanels";
 import EditPanelPage from "./Pages/TestPanels/EditPanelPage";
 import TestPanelsDetails from "./Pages/TestPanels/TestPanelsDetails";
@@ -76,7 +77,10 @@ import OtherTestDatabaseDetails from "./Pages/Radiology/OtherTest/OtherTestDatab
 import OtherTestPanelDetails from "./Pages/Radiology/OtherTestPanel/OtherTestPanelDetails";
 import Dashboard from "./Pages/Dashboard/Dashboard";
 import OtherTestPackage from "./Pages/Radiology/OtherTestPackage";
+import { AddTestPackage } from "./Pages/Radiology/OtherTestPackage";
 import OtherTestPackageDetailPage from "./Pages/Radiology/OtherTestPackage/OtherTestPackageDetailPage";
+import TestAvailibility from "./Pages/TestAvailibility/TestAvailibility";
+import AddTestAvailibility from "./Pages/TestAvailibility/AddTestAvailibility";
 
 function AppContents() {
   const CLinic = "clinic";
@@ -146,10 +150,13 @@ function AppContents() {
 
         <Route path="/appointments" element={<BookingPage />} />
 
-        {/* Test Panels */}
+        {/* Test Packages & Panels */}
         <Route path="/test-packages" element={<TestPackage />} />
+        <Route path="/test-packages/add" element={<EditPackagePage />} />
+        <Route path="/test-packages/edit" element={<EditPackagePage />} />
         <Route path="/test-panels" element={<TestPanels />} />
         <Route path="/test-panels/:id" element={<TestPanelsDetails />} />
+        <Route path="/test-panels/add" element={<EditPanelPage />} />
         <Route path="/test-panels/edit" element={<EditPanelPage />} />
 
         {/* Test Categories & Database */}
@@ -209,6 +216,14 @@ function AppContents() {
           element={<OtherTestPackage />}
         />
         <Route
+          path="/:department/test-packages/add"
+          element={<AddTestPackage />}
+        />
+        <Route
+          path="/:department/test-packages/edit"
+          element={<AddTestPackage />}
+        />
+        <Route
           path="/radiology/test-packages/:id"
           element={<OtherTestPackageDetailPage />}
         />
@@ -219,6 +234,12 @@ function AppContents() {
         <Route
           path="/:department/test-categories"
           element={<OtherTestCategory />}
+        />
+        <Route path="/test-availibility" element={<TestAvailibility />} />
+        <Route path="/test-availability" element={<TestAvailibility />} />
+        <Route
+          path="/test-availability/add"
+          element={<AddTestAvailibility />}
         />
       </Route>
 

@@ -244,9 +244,10 @@ const OtherTestPackage: React.FC = () => {
       accessor: "description",
       title: "Description",
       render: (r) => (
-        <div className="text-sm text-gray-600 max-w-xs truncate">
-          {r.description || "—"}
-        </div>
+        <div
+          className="text-sm text-gray-600 max-w-xs truncate"
+          dangerouslySetInnerHTML={{ __html: r.description || "—" }}
+        />
       ),
     },
     {
@@ -296,8 +297,9 @@ const OtherTestPackage: React.FC = () => {
             className="text-blue-600"
             onClick={(e) => {
               e.stopPropagation();
-              setEditingRow(r);
-              setEditingOpen(true);
+              navigate(`/${department || "radiology"}/test-packages/edit`, {
+                state: { isEdit: true, packageData: r },
+              });
             }}
           >
             <IconPencil size={16} />
@@ -362,8 +364,7 @@ const OtherTestPackage: React.FC = () => {
             variant="filled"
             color="blue"
             onClick={() => {
-              setEditingRow(null);
-              setEditingOpen(true);
+              navigate(`/${department || "radiology"}/test-packages/add`);
             }}
             disabled={loading}
           >

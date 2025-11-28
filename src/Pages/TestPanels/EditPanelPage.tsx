@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Paper,
@@ -9,7 +9,6 @@ import {
   MultiSelect,
   Select,
   Checkbox,
-  Textarea,
   Tabs,
 } from "@mantine/core";
 import Notification from "../../components/Global/Notification";
@@ -17,14 +16,10 @@ import { IconArrowLeft } from "@tabler/icons-react";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 import RichEditor from "../../components/Global/RichEditor";
-import DisplayTabs from "../../components/Global/DisplayTabs";
-import type {
-  TestPanelRow,
-  CreatePanelPayload,
-  UpdatePanelPayload,
-  TestCategory,
-  LabTestItem,
-} from "../../APis/Types";
+import DisplayTabs, {
+  type DisplayTabsData,
+} from "../../components/Global/DisplayTabs";
+import type { TestPanelRow, TestCategory } from "../../APis/Types";
 
 interface LocationState {
   row?: TestPanelRow;
@@ -43,6 +38,14 @@ const EditPanelPage: React.FC = () => {
     open: false,
     data: { success: true, message: "" },
   });
+
+  const [activeTab, setActiveTab] = useState<string | null>("core");
+  const [displayData, setDisplayData] = useState<DisplayTabsData | null>(null);
+
+  // Memoized callback to prevent infinite loops
+  const handleDisplayDataChange = useCallback((data: DisplayTabsData) => {
+    setDisplayData(data);
+  }, []);
 
   interface FormState {
     name: string;
@@ -227,11 +230,14 @@ const EditPanelPage: React.FC = () => {
 
     setSaving(true);
     try {
+      // Build images array - send only image IDs in simple format: ["id1", "id2", "id3"]
+      const imagesPayload =
+        displayData?.uploadedImages?.map((img) => img.target_id) || [];
+
       if (row) {
         // Edit mode: use UpdateTestPanels (new API signature) & compute remove_tests
-        const payload: UpdatePanelPayload = {
+        const payload: Record<string, unknown> = {
           name: form.name.trim(),
-          // @ts-expect-error: allow category_id
           category_id: form.categoryId,
           price: Number(form.price),
           interpretation: form.interpretation.trim(),
@@ -242,6 +248,28 @@ const EditPanelPage: React.FC = () => {
             individual_test_method: form.hideMethod ? "true" : "false",
           },
           tests: form.tests.map((testId) => ({ test_id: testId })),
+          // Display tab fields
+          tags: {
+            organ: displayData?.organs || [],
+            top_rated: displayData?.topRated || false,
+            top_selling: displayData?.topSelling || false,
+          },
+          display_name: displayData?.displayName || "",
+          short_about: displayData?.shortAbout || "",
+          long_about: displayData?.longAbout || "",
+          sample_type: displayData?.sampleType || "",
+          gender: displayData?.gender || "any",
+          age_range: displayData?.ageRange || "",
+          images: imagesPayload,
+          preparation: displayData?.preparation || "",
+          mrp: displayData?.mrp || "",
+          faq: displayData?.faqs
+            ? JSON.stringify(displayData.faqs.filter((f) => f.question.trim()))
+            : "",
+          home_collection_possible:
+            displayData?.homeCollectionPossible || false,
+          home_collection_fee: displayData?.homeCollectionFee || "",
+          machine_based: displayData?.machineBased || false,
         };
 
         // compute remove_tests: tests that were in initialTestUids but not in current form.tests
@@ -252,7 +280,7 @@ const EditPanelPage: React.FC = () => {
           payload.remove_tests = removed.map((testId) => ({ test_id: testId }));
 
         const response = await apis.UpdateTestPanels(
-          payload,
+          payload as any,
           organizationDetails?.organization_id ?? "",
           organizationDetails?.center_id ?? "",
           row.id
@@ -273,9 +301,8 @@ const EditPanelPage: React.FC = () => {
         }
       } else {
         // Add mode: use AddTestPanels with new payload structure
-        const payload: CreatePanelPayload = {
+        const payload: Record<string, unknown> = {
           name: form.name.trim(),
-          // @ts-expect-error: allow category_id
           category_id: form.categoryId,
           price: Number(form.price),
           interpretation: form.interpretation.trim(),
@@ -286,9 +313,34 @@ const EditPanelPage: React.FC = () => {
             "individual_test method": form.hideMethod ? "true" : "",
           },
           tests: form.tests.map((testId) => ({ test_id: testId })),
+          // Display tab fields
+          tags: {
+            organ: displayData?.organs || [],
+            top_rated: displayData?.topRated || false,
+            top_selling: displayData?.topSelling || false,
+          },
+          display_name: displayData?.displayName || "",
+          short_about: displayData?.shortAbout || "",
+          long_about: displayData?.longAbout || "",
+          sample_type: displayData?.sampleType || "",
+          gender: displayData?.gender || "any",
+          age_range: displayData?.ageRange || "",
+          images: imagesPayload,
+          preparation: displayData?.preparation || "",
+          mrp: displayData?.mrp || "",
+          faq: displayData?.faqs
+            ? JSON.stringify(displayData.faqs.filter((f) => f.question.trim()))
+            : "",
+          home_collection_possible:
+            displayData?.homeCollectionPossible || false,
+          home_collection_fee: displayData?.homeCollectionFee || "",
+          machine_based: displayData?.machineBased || false,
         };
+
+        console.log("Create Panel Payload:", JSON.stringify(payload, null, 2));
+
         const response = await apis.AddTestPanels(
-          payload,
+          payload as any,
           organizationDetails?.organization_id ?? "",
           organizationDetails?.center_id ?? ""
         );
@@ -318,6 +370,10 @@ const EditPanelPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleNextTab = () => {
+    setActiveTab("display");
   };
 
   return (
@@ -353,7 +409,7 @@ const EditPanelPage: React.FC = () => {
       </div>
 
       <Paper withBorder radius="md" className="p-6">
-        <Tabs defaultValue="core" className="mb-4">
+        <Tabs value={activeTab} onChange={setActiveTab} className="mb-4">
           <Tabs.List grow>
             <Tabs.Tab value="core">Core</Tabs.Tab>
             <Tabs.Tab value="display">Display</Tabs.Tab>
@@ -430,7 +486,7 @@ const EditPanelPage: React.FC = () => {
                       error={formErrors.tests}
                     />
                   </div>
-                  <div className="mt-2 border p-3 rounded-md flex  gap-2">
+                  <div className="mt-2 col-span-2 border p-3 rounded-md flex  gap-16">
                     <Checkbox
                       label="Hide individual test interpretation, notes, comments from report."
                       checked={form.hideInterpretation}
@@ -461,24 +517,39 @@ const EditPanelPage: React.FC = () => {
                   }
                 />
               </div>
-
-              <div className="mt-4">
-                <Button
-                  type="submit"
-                  style={{ backgroundColor: "#0b5ed7" }}
-                  loading={saving}
-                >
-                  {row ? "Update Panel" : "Add Test"}
-                </Button>
-              </div>
             </form>
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs />
+            <DisplayTabs onDataChange={handleDisplayDataChange} />
           </Tabs.Panel>
         </Tabs>
       </Paper>
+
+      {/* Sticky Footer Section */}
+      <div className="sticky -bottom-4 bg-white z-10 mt-6 px-4 pt-4 pb-4 rounded-xl border border-gray-200 shadow-sm flex justify-end gap-4">
+        <Button variant="light" onClick={() => navigate(-1)}>
+          Cancel
+        </Button>
+
+        {activeTab === "core" ? (
+          <Button
+            style={{ backgroundColor: "#0b5ed7" }}
+            onClick={handleNextTab}
+          >
+            Next
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            style={{ backgroundColor: "#0b5ed7" }}
+            loading={saving}
+            onClick={handleSubmit}
+          >
+            {row ? "Update Panel" : "Save Panel"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

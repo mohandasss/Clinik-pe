@@ -24,7 +24,10 @@ const SortableRow: React.FC<{
         <div className="font-medium text-gray-900">{row.name}</div>
       </td>
       <td className="border-b border-gray-200 px-4 py-3">
-        <div className="text-sm text-gray-600">{row.description}</div>
+        <div
+          className="text-sm text-gray-600"
+          dangerouslySetInnerHTML={{ __html: row.description || "" }}
+        />
       </td>
       <td className="border-b border-gray-200 px-4 py-3">
         <div className="text-sm text-gray-600">{row.price}</div>

@@ -59,7 +59,10 @@ const OtherTestTable: React.FC<OtherTestTableProps> = ({
         title: "DESCRIPTION",
         width: 160,
         render: (r) => (
-          <div className="text-sm text-gray-600">{r.description}</div>
+          <div
+            className="text-sm text-gray-600"
+            dangerouslySetInnerHTML={{ __html: r.description || "" }}
+          />
         ),
       },
       {

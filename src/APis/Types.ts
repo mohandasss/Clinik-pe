@@ -304,6 +304,21 @@ export interface FileUploadResponse {
   data: UploadData;
 }
 
+export interface TestImageUploadResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    image_id: string;
+  };
+}
+
+export interface UploadedTestImage {
+  type: "icon" | "image";
+  target_type: string;
+  target_id: string;
+}
+
 export type DoctorExperience = {
   speciality_id: string;
   years_of_experience: string;
@@ -1280,16 +1295,31 @@ export interface LabTest {
   price: string;
   optional: "0" | "1";
   parent_id: string | null;
+  department_id: string;
   type: string;
   group_by: string;
   status: string;
   created_by: string;
   updated_by: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at: string | null;
   organization_id: string;
   central_account_id: string;
   center_id: string;
+  tags: string | null;
+  display_name: string | null;
+  short_about: string | null;
+  long_about: string | null;
+  sample_type: string | null;
+  gender: string | null;
+  age_range: string | null;
+  images: string | null;
+  preparation: string | null;
+  mrp: string | null;
+  faq: string | null;
+  home_collection_possible: "0" | "1";
+  home_collection_fee: string | null;
+  machine_based: string | null;
 }
 
 export type TestPackageUpdatePayload = {
@@ -1901,6 +1931,7 @@ export interface OtherPanelsData {
 export interface OtherPanelItem {
   id: string;
   uid: string;
+  panel_id?: string;
   order: number;
   name: string;
   description: string;
@@ -2167,4 +2198,79 @@ export interface PackageDetailsResponse {
   httpStatus: number;
   message: string;
   data: PackageDetailsData;
+}
+
+// Test Availability Types
+export interface TestAvailabilityWorkingHours {
+  monday: { enabled: boolean; start: string; end: string };
+  tuesday: { enabled: boolean; start: string; end: string };
+  wednesday: { enabled: boolean; start: string; end: string };
+  thursday: { enabled: boolean; start: string; end: string };
+  friday: { enabled: boolean; start: string; end: string };
+  saturday: { enabled: boolean; start: string; end: string };
+  sunday: { enabled: boolean; start: string; end: string };
+}
+
+export interface TestAvailabilityItem {
+  id: string;
+  uid: string;
+  department_id: string;
+  department_name: string;
+  category_id: string;
+  category_name: string;
+  item_type: 'test' | 'panel' | 'package' | 'special_package';
+  item_id: string;
+  item_name: string;
+  purpose: 'test' | 'home_collection';
+  principal_type: 'home_collection_agent' | 'technician' | 'machine';
+  principal_id: string;
+  principal_name: string;
+  capacity: number;
+  period_value: number;
+  period_unit: 'day' | 'week' | 'month' | 'year';
+  slot_duration: number;
+  start_time: string;
+  end_time: string;
+  is_24x7: boolean;
+  week_days: string[];
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestAvailabilityListResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    availabilities: TestAvailabilityItem[];
+    pagination: Pagination;
+  };
+}
+
+export interface TestAvailabilityPayload {
+  department_id: string;
+  category_id: string;
+  item_type: 'test' | 'panel' | 'package' | 'special_package';
+  item_id: string;
+  purpose: 'test' | 'home_collection';
+  principal_type: 'home_collection_agent' | 'technician' | 'machine';
+  principal_id: string;
+  capacity: number;
+  period_value: number;
+  period_unit: 'day' | 'week' | 'month' | 'year';
+  slot_duration: number;
+  start_time: string;
+  end_time: string;
+  is_24x7: boolean;
+  week_days: string[];
+}
+
+export interface TestAvailabilityResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    availability_id: string;
+  };
 }
