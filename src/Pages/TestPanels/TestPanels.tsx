@@ -22,6 +22,33 @@ import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 import type { TestPanelRow, TestItem } from "../../APis/Types";
 import { IconPencil, IconEye } from "@tabler/icons-react";
+
+// Helper function to parse tags string like "organ=heart;kidney,top_rated"
+const parseTagsString = (tagString: string): Record<string, any> => {
+  const tags: Record<string, any> = {
+    organ: [],
+    top_rated: false,
+    top_selling: false,
+  };
+
+  if (!tagString) return tags;
+
+  const parts = tagString.split(",");
+  parts.forEach((part) => {
+    const trimmed = part.trim();
+    if (trimmed.startsWith("organ=")) {
+      const organs = trimmed.replace("organ=", "").split(";");
+      tags.organ = organs.map((o) => o.trim()).filter(Boolean);
+    } else if (trimmed === "top_rated") {
+      tags.top_rated = true;
+    } else if (trimmed === "top_selling") {
+      tags.top_selling = true;
+    }
+  });
+
+  return tags;
+};
+
 // Inline SVG for chevrons up/down (replaces IconGripVertical)
 const ChevronsUpDown: React.FC<
   React.SVGProps<SVGSVGElement> & { size?: number }
@@ -170,6 +197,7 @@ const TestPanels: React.FC = () => {
               name: p.name,
               category: p.category_name || "",
               categoryId: p.category_id || "",
+              display_category_id: p.display_category_id || "",
               tests: (p.tests?.list || []).map((t: TestItem) => t.test_name),
               ratelistEntries: p.price,
               price: p.price,
@@ -191,6 +219,33 @@ const TestPanels: React.FC = () => {
                       p.hide_individual[k] === "true"
                   )
               ),
+              // Display tab fields
+              displayName: p.display_name || "",
+              shortAbout: p.short_about || "",
+              longAbout: p.long_about || "",
+              sampleType: p.sample_type || "",
+              gender: p.gender || "any",
+              ageRange: p.age_range || "",
+              preparation: p.preparation || "",
+              mrp: p.mrp || "",
+              faq: p.faq || "",
+              homeCollectionPossible:
+                p.home_collection_possible === "1" ||
+                p.home_collection_possible === true,
+              homeCollectionFee: p.home_collection_fee || "",
+              machineBased: p.machine_based === "1" || p.machine_based === true,
+              tags: p.tags
+                ? typeof p.tags === "string"
+                  ? parseTagsString(p.tags)
+                  : p.tags
+                : {},
+              images: p.images
+                ? typeof p.images === "string"
+                  ? JSON.parse(p.images)
+                  : p.images
+                : [],
+              status: p.status || "",
+              createdAt: p.created_at || "",
             }));
             setPanels(
               [...mapped].sort((a, b) => Number(a.order) - Number(b.order))

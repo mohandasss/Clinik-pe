@@ -13,7 +13,7 @@ import {
   Text,
 } from "@mantine/core";
 import { IconArrowLeft, IconTrash, IconPlus } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 import { notifications } from "@mantine/notifications";
@@ -21,6 +21,31 @@ import RichEditor from "../../components/Global/RichEditor";
 import DisplayTabs, {
   type DisplayTabsData,
 } from "../../components/Global/DisplayTabs";
+import type { TestRow } from "./Components/TestTable";
+
+// Helper function to extract organs from tags
+const extractOrgansFromTags = (tags?: Record<string, any>): string[] => {
+  if (!tags) return [];
+  if (Array.isArray(tags.organ)) {
+    return tags.organ.map((o: string) => o.toLowerCase());
+  }
+  return [];
+};
+
+// Helper function to extract boolean flags from tags
+const extractTagsFromTags = (
+  tags?: Record<string, any>
+): { topRated: boolean; topSelling: boolean } => {
+  if (!tags) return { topRated: false, topSelling: false };
+  return {
+    topRated: Boolean(tags.top_rated),
+    topSelling: Boolean(tags.top_selling),
+  };
+};
+
+interface LocationState {
+  row?: TestRow;
+}
 
 interface ChildParameter {
   id: string; // temp id for UI
@@ -53,6 +78,10 @@ interface AddMultipleNestedTestPageState {
 
 const AddMultipleNestedTestPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { row } = (location.state as LocationState) || {};
+  const isEditMode = Boolean(row);
+
   const [activeTab, setActiveTab] = useState<string | null>("core");
   const [displayData, setDisplayData] = useState<DisplayTabsData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -98,6 +127,104 @@ const AddMultipleNestedTestPage: React.FC = () => {
     (s) => s.organizationDetails?.organization_id ?? ""
   );
   const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (!row) {
+      setForm({
+        name: "",
+        shortName: "",
+        category: "",
+        price: "",
+        method: "",
+        instrument: "",
+        interpretation: "",
+        notes: "",
+        comments: "",
+        formatOptions: { alwaysBold: false, printLineAfter: false },
+        children: [
+          {
+            id: `child_${Date.now()}`,
+            order: "1",
+            name: "",
+            unit_id: "",
+            input_type: "numeric",
+            default_result: "",
+            optional: false,
+            group_by: "",
+          },
+        ],
+      });
+      setDisplayData(null);
+      return;
+    }
+
+    // Pre-fill form with row data
+    setForm({
+      name: row.name || "",
+      shortName: row.shortName || "",
+      category: row.categoryId || "",
+      price: row.price || "",
+      method: row.method || "",
+      instrument: row.instrument || "",
+      interpretation: row.interpretation || "",
+      notes: row.notes || "",
+      comments: row.comments || "",
+      formatOptions: { alwaysBold: false, printLineAfter: false },
+      children: [
+        {
+          id: `child_${Date.now()}`,
+          order: "1",
+          name: "",
+          unit_id: "",
+          input_type: "numeric",
+          default_result: "",
+          optional: false,
+          group_by: "",
+        },
+      ],
+    });
+
+    // Initialize displayData for display tab prefill
+    const tagFlags = extractTagsFromTags(row.tags);
+    setDisplayData({
+      organs: extractOrgansFromTags(row.tags),
+      categories: [],
+      displayCategoryId: row.displayCategoryId || "",
+      topRated: tagFlags.topRated,
+      topSelling: tagFlags.topSelling,
+      displayName: row.displayName || "",
+      shortAbout: row.shortAbout || "",
+      longAbout: row.longAbout || "",
+      sampleType: row.sampleType || "",
+      gender: row.gender || "any",
+      ageRange: row.ageRange || "",
+      icon: null,
+      images: [],
+      uploadedImages: (row.images || []).map((img) => ({
+        type: img.type as "icon" | "image",
+        target_type: img.target_type,
+        target_id: img.target_id,
+      })),
+      preparation: row.preparation || "",
+      mrp: row.mrp || "",
+      faqs: row.faq
+        ? (() => {
+            try {
+              const parsed = JSON.parse(row.faq);
+              return Array.isArray(parsed)
+                ? parsed
+                : [{ question: "", answer: "" }];
+            } catch (e) {
+              return [{ question: "", answer: "" }];
+            }
+          })()
+        : [{ question: "", answer: "" }],
+      homeCollectionPossible: row.homeCollection || false,
+      homeCollectionFee: row.homeCollectionFee || "",
+      machineBased: row.machineBased === "1" || row.machineBased === true,
+    });
+  }, [row]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -267,6 +394,7 @@ const AddMultipleNestedTestPage: React.FC = () => {
         top_rated: displayData?.topRated || false,
         top_selling: displayData?.topSelling || false,
       },
+      display_category_id: displayData?.displayCategoryId || "",
       display_name: displayData?.displayName || "",
       short_about: displayData?.shortAbout || "",
       long_about: displayData?.longAbout || "",
@@ -297,30 +425,45 @@ const AddMultipleNestedTestPage: React.FC = () => {
     console.log(JSON.stringify(payload, null, 2));
 
     try {
-      const response = await apis.AddTestToLabDatabase(
-        organizationId,
-        centerId,
-        payload
-      );
+      let response;
+      if (row) {
+        // Update existing test
+        response = await apis.UpdateTestInLabDatabase(
+          organizationId,
+          centerId,
+          row.id,
+          payload
+        );
+      } else {
+        // Create new test
+        response = await apis.AddTestToLabDatabase(
+          organizationId,
+          centerId,
+          payload
+        );
+      }
       if (response?.success) {
         notifications.show({
           title: "Success",
-          message: response.message || "Test created successfully",
+          message:
+            response.message ||
+            `Test ${row ? "updated" : "created"} successfully`,
           color: "green",
         });
         setTimeout(() => navigate("/test-database"), 1500);
       } else {
         notifications.show({
           title: "Error",
-          message: response?.message || "Failed to create test",
+          message:
+            response?.message || `Failed to ${row ? "update" : "create"} test`,
           color: "red",
         });
       }
     } catch (err) {
-      console.error("Error creating test:", err);
+      console.error("Error saving test:", err);
       notifications.show({
         title: "Error",
-        message: "Failed to create test",
+        message: `Failed to ${row ? "update" : "create"} test`,
         color: "red",
       });
     } finally {
@@ -351,10 +494,14 @@ const AddMultipleNestedTestPage: React.FC = () => {
       </div>
       <div className="mb-6">
         <h2 className="text-xl font-semibold">
-          Add New Test (Nested Parameters)
+          {isEditMode
+            ? "Edit Test (Nested Parameters)"
+            : "Add New Test (Nested Parameters)"}
         </h2>
         <p className="text-sm text-gray-600">
-          Enter test information to create a new test with nested parameters.
+          {isEditMode
+            ? "Update test information"
+            : "Enter test information to create a new test with nested parameters."}
         </p>
       </div>
       <Paper withBorder radius="md" className="p-6">
@@ -659,7 +806,10 @@ const AddMultipleNestedTestPage: React.FC = () => {
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs onDataChange={handleDisplayDataChange} />
+            <DisplayTabs
+              onDataChange={handleDisplayDataChange}
+              initialData={displayData || undefined}
+            />
           </Tabs.Panel>
         </Tabs>
       </Paper>

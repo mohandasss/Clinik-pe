@@ -9,6 +9,8 @@ export interface TestRow {
   shortName?: string;
   displayName?: string;
   category?: string;
+  categoryId?: string;
+  displayCategoryId?: string;
   price?: string;
   mrp?: string;
   type?: string;
@@ -16,6 +18,25 @@ export interface TestRow {
   gender?: string;
   optional?: boolean;
   homeCollection?: boolean;
+  // Additional fields for edit
+  unitId?: string;
+  inputType?: string;
+  defaultResult?: string;
+  method?: string;
+  instrument?: string;
+  interpretation?: string;
+  notes?: string;
+  comments?: string;
+  // Display tab fields
+  shortAbout?: string;
+  longAbout?: string;
+  ageRange?: string;
+  preparation?: string;
+  faq?: string;
+  homeCollectionFee?: string;
+  machineBased?: boolean | string;
+  tags?: Record<string, any>;
+  images?: { type: string; target_type: string; target_id: string }[];
 }
 
 interface TestTableProps {

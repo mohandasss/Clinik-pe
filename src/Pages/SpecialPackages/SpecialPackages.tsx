@@ -1,196 +1,57 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { DataTable, type DataTableColumn } from "mantine-datatable";
 import { Button, Popover, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconDots, IconPencil } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 
-import apis from "../../../APis/Api";
-import useAuthStore from "../../../GlobalStore/store";
-import type { OtherTestPackageRow } from "../../../APis/Types";
+import apis from "../../APis/Api";
+import useAuthStore from "../../GlobalStore/store";
+import type { OtherTestPackageRow } from "../../APis/Types";
+import DeleteConfirm from "../TestPackages/Components/DeleteConfirm";
 
-import EditOtherPackageDrawer from "./Components/EditOtherPackageDrawer";
-import DeleteConfirm from "../../TestPackages/Components/DeleteConfirm";
-import { useParams } from "react-router-dom";
-const OtherTestPackage: React.FC = () => {
-  const { department } = useParams();
+const SpecialPackages: React.FC = () => {
   const { organizationDetails } = useAuthStore();
   const navigate = useNavigate();
 
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(5);
+  const [pageSize] = useState(10);
   const [query, setQuery] = useState("");
 
   const [packages, setPackages] = useState<OtherTestPackageRow[]>([]);
-  const [loading] = useState(false);
-
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const [editingRow, setEditingRow] = useState<OtherTestPackageRow | null>(
-    null
-  );
-  const [editingOpen, setEditingOpen] = useState(false);
 
   const [deletingRow, setDeletingRow] = useState<OtherTestPackageRow | null>(
     null
   );
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  // ---------------------------------------
-  // Local state management (no API calls)
-  // ---------------------------------------
+  // Filter packages by search query
   const rows = packages.filter((pkg) =>
     pkg.name.toLowerCase().includes(query.toLowerCase())
   );
   const total = rows.length;
 
-  // ---------------------------------------
-  // Save (create/update)
-  // ---------------------------------------
-  const handleSavePackage = async (
-    row: OtherTestPackageRow,
-    removeTests?: string[],
-    removePanels?: string[]
-  ) => {
-    setSaving(true);
-
-    try {
-      const orgId = organizationDetails?.organization_id;
-      const centerId = organizationDetails?.center_id;
-
-      if (!orgId || !centerId) {
-        throw new Error("Organization or center not found");
-      }
-
-      // Format payload to match exact API structure
-      const payload: any = {
-        name: row.name,
-        price: Number(row.price) || 0,
-        status: row.status,
-        tests: Array.isArray(row.tests)
-          ? row.tests.map((t: any) => ({
-              test_id: typeof t === "string" ? t : t.uid || t.test_id,
-            }))
-          : [],
-        panels: Array.isArray(row.panels)
-          ? row.panels.map((p: any) => ({
-              panel_id: typeof p === "string" ? p : p.uid || p.panel_id,
-            }))
-          : [],
-      };
-
-      // Add optional fields
-      payload.description = row.description?.trim() || "";
-      payload.data = row.data?.trim() || "";
-
-      const id = row.uid || row.id;
-      const isUpdate = packages.some((p) => p.uid === id);
-
-      if (isUpdate) {
-        // Add remove arrays for update
-        payload.remove_tests = removeTests
-          ? removeTests.map((test_id) => ({ test_id }))
-          : [];
-        payload.remove_panels = removePanels
-          ? removePanels.map((panel_id) => ({ panel_id }))
-          : [];
-
-        // Update existing package
-        await apis.UpdateOtherTestPackage(
-          department,
-          orgId,
-          centerId,
-          id!,
-          payload
-        );
-
-        notifications.show({
-          title: "Updated",
-          message: "Package updated successfully.",
-          color: "green",
-        });
-      } else {
-        // Create new package (no remove arrays needed)
-        await apis.AddOtherTestPackage("radiology", payload, orgId, centerId);
-
-        notifications.show({
-          title: "Saved",
-          message: "Package added successfully.",
-          color: "green",
-        });
-      }
-
-      // Refresh list after creation/update
-      await fetchPackages();
-    } catch (err: any) {
-      notifications.show({
-        title: "Error",
-        message: err?.message || "Failed to save package.",
-        color: "red",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ---------------------------------------
-  // Delete
-  // ---------------------------------------
-  const handleDeleteConfirm = async (id: string) => {
-    setDeleting(true);
-
-    try {
-      const orgId = organizationDetails?.organization_id;
-      const centerId = organizationDetails?.center_id;
-
-      if (!orgId || !centerId) {
-        throw new Error("Organization or center not found");
-      }
-
-      await apis.DeleteOtherTestPackage(department, orgId, centerId, id);
-
-      notifications.show({
-        title: "Deleted",
-        message: "Package removed successfully.",
-        color: "green",
-      });
-
-      // Refresh list after deletion
-      await fetchPackages();
-    } catch (err: any) {
-      notifications.show({
-        title: "Error",
-        message: err?.message || "Failed to delete package.",
-        color: "red",
-      });
-    } finally {
-      setDeletingRow(null);
-      setDeleteModalOpen(false);
-      setDeleting(false);
-    }
-  };
-
-  // ---------------------------------------
-  // Initial load - Fetch from API
-  // ---------------------------------------
-  const fetchPackages = React.useCallback(async () => {
+  // Fetch packages from API
+  const fetchPackages = useCallback(async () => {
     try {
       const orgId = organizationDetails?.organization_id;
       const centerId = organizationDetails?.center_id;
 
       if (!orgId || !centerId) return;
 
+      setLoading(true);
+      // Using "special" as the department for special packages
       const response = await apis.GetOtherTestPackage(
-        department,
-        page,
-        pageSize,
+        "special",
+        1,
+        100,
         orgId,
         centerId
       );
 
       if (response?.data?.packages && Array.isArray(response.data.packages)) {
-        // Map API response to OtherTestPackageRow format
         const mappedPackages: OtherTestPackageRow[] =
           response.data.packages.map((pkg: any) => ({
             uid: pkg.uid,
@@ -223,11 +84,13 @@ const OtherTestPackage: React.FC = () => {
     } catch (err: any) {
       notifications.show({
         title: "Error",
-        message: err?.message || "Failed to load packages",
+        message: err?.message || "Failed to load special packages",
         color: "red",
       });
+    } finally {
+      setLoading(false);
     }
-  }, [organizationDetails, page, pageSize]);
+  }, [organizationDetails]);
 
   useEffect(() => {
     fetchPackages();
@@ -239,9 +102,42 @@ const OtherTestPackage: React.FC = () => {
     if (page > totalPages) setPage(totalPages);
   }, [total, page, pageSize]);
 
-  // ---------------------------------------
-  // Table Columns
-  // ---------------------------------------
+  // Handle delete
+  const handleDeleteConfirm = async (id: string) => {
+    setDeleting(true);
+
+    try {
+      const orgId = organizationDetails?.organization_id;
+      const centerId = organizationDetails?.center_id;
+
+      if (!orgId || !centerId) {
+        throw new Error("Organization or center not found");
+      }
+
+      await apis.DeleteOtherTestPackage("special", orgId, centerId, id);
+
+      notifications.show({
+        title: "Deleted",
+        message: "Special package removed successfully.",
+        color: "green",
+      });
+
+      // Refresh list after deletion
+      await fetchPackages();
+    } catch (err: any) {
+      notifications.show({
+        title: "Error",
+        message: err?.message || "Failed to delete special package.",
+        color: "red",
+      });
+    } finally {
+      setDeletingRow(null);
+      setDeleteModalOpen(false);
+      setDeleting(false);
+    }
+  };
+
+  // Table columns
   const columns: DataTableColumn<OtherTestPackageRow>[] = [
     {
       accessor: "sno",
@@ -270,7 +166,7 @@ const OtherTestPackage: React.FC = () => {
       accessor: "price",
       title: "Price",
       width: 90,
-      render: (r) => <div>{r.price}</div>,
+      render: (r) => <div>₹{r.price}</div>,
     },
     {
       accessor: "status",
@@ -313,7 +209,7 @@ const OtherTestPackage: React.FC = () => {
             className="text-blue-600"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/${department || "radiology"}/test-packages/edit`, {
+              navigate("/special-packages/edit", {
                 state: { isEdit: true, packageData: r },
               });
             }}
@@ -354,20 +250,17 @@ const OtherTestPackage: React.FC = () => {
   // Paginate rows
   const paginatedRows = rows.slice((page - 1) * pageSize, page * pageSize);
 
-  // ---------------------------------------
-  // Render
-  // ---------------------------------------
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 ring-1 ring-gray-100">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-800">
-          Radiology Test Packages
+          Special Packages
         </h2>
 
         <div className="flex items-center gap-3">
           <TextInput
-            placeholder="Search in page"
+            placeholder="Search packages..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -380,7 +273,7 @@ const OtherTestPackage: React.FC = () => {
             variant="filled"
             color="blue"
             onClick={() => {
-              navigate(`/${department || "radiology"}/test-packages/add`);
+              navigate("/special-packages/add");
             }}
             disabled={loading}
           >
@@ -396,24 +289,13 @@ const OtherTestPackage: React.FC = () => {
         highlightOnHover
         className="text-sm"
         idAccessor="uid"
-        onRowClick={(row) => {
-          if (row.uid) {
-            navigate(`/radiology/test-packages/${row.uid}`);
+        fetching={loading}
+        onRowClick={({ record }) => {
+          if (record.uid) {
+            navigate(`/special-packages/${record.uid}`);
           }
         }}
         style={{ cursor: "pointer" }}
-      />
-
-      {/* Edit Drawer */}
-      <EditOtherPackageDrawer
-        opened={editingOpen}
-        onClose={() => {
-          setEditingOpen(false);
-          setEditingRow(null);
-        }}
-        row={editingRow}
-        onSave={handleSavePackage}
-        loading={saving}
       />
 
       {/* Delete Modal */}
@@ -436,7 +318,7 @@ const OtherTestPackage: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <button
-            className="px-3 py-1 border rounded text-gray-600"
+            className="px-3 py-1 border rounded text-gray-600 disabled:opacity-50"
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
           >
@@ -461,7 +343,7 @@ const OtherTestPackage: React.FC = () => {
           </div>
 
           <button
-            className="px-3 py-1 border rounded text-gray-600"
+            className="px-3 py-1 border rounded text-gray-600 disabled:opacity-50"
             disabled={page >= Math.ceil(total / pageSize)}
             onClick={() => setPage(page + 1)}
           >
@@ -473,4 +355,4 @@ const OtherTestPackage: React.FC = () => {
   );
 };
 
-export default OtherTestPackage;
+export default SpecialPackages;

@@ -12,6 +12,32 @@ import type { TestPackageRow } from "../../APis/Types";
 
 import DeleteConfirm from "./Components/DeleteConfirm";
 
+// Helper function to parse tags string like "organ=heart;kidney,top_rated"
+const parseTagsString = (tagString: string): Record<string, any> => {
+  const tags: Record<string, any> = {
+    organ: [],
+    top_rated: false,
+    top_selling: false,
+  };
+
+  if (!tagString) return tags;
+
+  const parts = tagString.split(",");
+  parts.forEach((part) => {
+    const trimmed = part.trim();
+    if (trimmed.startsWith("organ=")) {
+      const organs = trimmed.replace("organ=", "").split(";");
+      tags.organ = organs.map((o) => o.trim()).filter(Boolean);
+    } else if (trimmed === "top_rated") {
+      tags.top_rated = true;
+    } else if (trimmed === "top_selling") {
+      tags.top_selling = true;
+    }
+  });
+
+  return tags;
+};
+
 const TestPackage: React.FC = () => {
   const navigate = useNavigate();
   const { organizationDetails } = useAuthStore();
@@ -91,7 +117,45 @@ const TestPackage: React.FC = () => {
         centerId
       );
       if (resp?.data?.packages) {
-        setPackages(resp.data.packages);
+        // Map API response to include all display tab fields
+        const mappedPackages: TestPackageRow[] = resp.data.packages.map(
+          (p: any) => ({
+            uid: p.uid || p.id,
+            id: p.id || p.uid,
+            name: p.name,
+            price: p.price,
+            fee: p.fee,
+            bill_only_for_gender: p.bill_only_for_gender,
+            gender: p.gender,
+            included: p.included,
+            status: p.status,
+            tests: p.tests,
+            panels: p.panels,
+            // Display tab fields
+            category_id: p.category_id || "",
+            display_category_id: p.display_category_id || "",
+            displayName: p.display_name || "",
+            shortAbout: p.short_about || "",
+            longAbout: p.long_about || "",
+            sampleType: p.sample_type || "",
+            ageRange: p.age_range || "",
+            preparation: p.preparation || "",
+            mrp: p.mrp || "",
+            faq: p.faq || "",
+            homeCollectionPossible:
+              p.home_collection_possible === "1" ||
+              p.home_collection_possible === true,
+            homeCollectionFee: p.home_collection_fee || "",
+            machineBased: p.machine_based === "1" || p.machine_based === true,
+            tags: p.tags
+              ? typeof p.tags === "string"
+                ? parseTagsString(p.tags)
+                : p.tags
+              : {},
+            images: p.images || [],
+          })
+        );
+        setPackages(mappedPackages);
         const totalFromResp =
           resp.data.pagination?.totalRecords ?? resp.data.packages?.length ?? 0;
         setTotalRecords(totalFromResp);

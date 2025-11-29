@@ -112,9 +112,10 @@ const InterpretationTable: React.FC<InterpretationTableProps> = ({
       accessor: "interpretation",
       title: "INTERPRETATION",
       render: (r) => (
-        <div className="text-gray-600 max-w-xs truncate">
-          {r.interpretation || "—"}
-        </div>
+        <div
+          className="text-gray-600 max-w-xs truncate"
+          dangerouslySetInnerHTML={{ __html: r.interpretation || "—" }}
+        />
       ),
     },
     {

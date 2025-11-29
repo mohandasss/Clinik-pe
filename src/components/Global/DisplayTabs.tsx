@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Paper,
   Chip,
@@ -39,6 +39,7 @@ export interface UploadedImage {
 export interface DisplayTabsData {
   organs: string[];
   categories: string[];
+  displayCategoryId?: string; // For display category selection
   topRated: boolean;
   topSelling: boolean;
   displayName: string;
@@ -53,6 +54,7 @@ export interface DisplayTabsData {
   preparation: string;
   mrp: string;
   faqs: FAQ[];
+  faq?: string; // Raw FAQ string from API for parsing
   homeCollectionPossible: boolean;
   homeCollectionFee: string;
   machineBased: boolean;
@@ -64,7 +66,36 @@ interface DisplayTabsProps {
   onTopRatingChange?: (checked: boolean) => void;
   onTopSellingChange?: (checked: boolean) => void;
   onDataChange?: (data: DisplayTabsData) => void;
+  initialData?: Partial<DisplayTabsData>;
 }
+
+// Helper function to parse age range string like "49-100" to [49, 100]
+const parseAgeRange = (ageRangeStr: string): [number, number] => {
+  if (!ageRangeStr) return [0, 100];
+  const parts = ageRangeStr.split("-");
+  if (parts.length === 2) {
+    const start = parseInt(parts[0], 10);
+    const end = parseInt(parts[1], 10);
+    if (!isNaN(start) && !isNaN(end)) {
+      return [start, end];
+    }
+  }
+  return [0, 100];
+};
+
+// Helper function to parse FAQ JSON string
+const parseFaqs = (faqStr: string): FAQ[] => {
+  if (!faqStr) return [{ question: "", answer: "" }];
+  try {
+    const parsed = JSON.parse(faqStr);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed;
+    }
+  } catch (e) {
+    // JSON parse failed
+  }
+  return [{ question: "", answer: "" }];
+};
 
 const DisplayTabs: React.FC<DisplayTabsProps> = ({
   onOrgansChange,
@@ -72,34 +103,135 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
   onTopRatingChange,
   onTopSellingChange,
   onDataChange,
+  initialData,
 }) => {
-  const [selectedOrgans, setSelectedOrgans] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [topRating, setTopRating] = useState(false);
-  const [topSelling, setTopSelling] = useState(false);
+  const [selectedOrgans, setSelectedOrgans] = useState<string[]>(
+    initialData?.organs || []
+  );
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    initialData?.categories || []
+  );
+  const [displayCategoryId, setDisplayCategoryId] = useState<string>(
+    initialData?.displayCategoryId || ""
+  );
+  const [topRating, setTopRating] = useState(initialData?.topRated || false);
+  const [topSelling, setTopSelling] = useState(
+    initialData?.topSelling || false
+  );
 
   // Display fields
-  const [displayName, setDisplayName] = useState("");
-  const [shortAbout, setShortAbout] = useState("");
-  const [longAbout, setLongAbout] = useState("");
-  const [sampleType, setSampleType] = useState("");
-  const [genderRestriction, setGenderRestriction] = useState("both");
-  const [ageRange, setAgeRange] = useState<[number, number]>([0, 100]);
+  const [displayName, setDisplayName] = useState(
+    initialData?.displayName || ""
+  );
+  const [shortAbout, setShortAbout] = useState(initialData?.shortAbout || "");
+  const [longAbout, setLongAbout] = useState(initialData?.longAbout || "");
+  const [sampleType, setSampleType] = useState(initialData?.sampleType || "");
+  const [genderRestriction, setGenderRestriction] = useState(
+    initialData?.gender || "any"
+  );
+  const [ageRange, setAgeRange] = useState<[number, number]>(
+    initialData?.ageRange ? parseAgeRange(initialData.ageRange) : [0, 100]
+  );
   const [icon, setIcon] = useState<File | null>(null);
   const [images, setImages] = useState<File[]>([]);
-  const [preparation, setPreparation] = useState("");
-  const [mrp, setMrp] = useState<number | undefined>(undefined);
-  const [faqs, setFaqs] = useState<FAQ[]>([{ question: "", answer: "" }]);
-  const [homeCollectionPossible, setHomeCollectionPossible] = useState(false);
+  const [preparation, setPreparation] = useState(
+    initialData?.preparation || ""
+  );
+  const [mrp, setMrp] = useState<number | undefined>(
+    initialData?.mrp ? Number(initialData.mrp) : undefined
+  );
+  const [faqs, setFaqs] = useState<FAQ[]>(
+    initialData?.faqs ||
+      ((initialData as any)?.faq
+        ? parseFaqs((initialData as any).faq)
+        : [{ question: "", answer: "" }])
+  );
+  const [homeCollectionPossible, setHomeCollectionPossible] = useState(
+    initialData?.homeCollectionPossible || false
+  );
   const [homeCollectionFee, setHomeCollectionFee] = useState<
     number | undefined
-  >(undefined);
-  const [machineBased, setMachineBased] = useState(false);
+  >(
+    initialData?.homeCollectionFee
+      ? Number(initialData.homeCollectionFee)
+      : undefined
+  );
+  const [machineBased, setMachineBased] = useState(
+    initialData?.machineBased || false
+  );
 
   // Uploaded image IDs from API
-  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>(
+    initialData?.uploadedImages || []
+  );
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+
+  // Track the last initialized data key to detect new edits
+  const [lastInitializedKey, setLastInitializedKey] = useState<string>("");
+
+  // Helper to capitalize first letter
+  const capitalize = (s: string) =>
+    s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+  // Generate a key from initialData to detect changes
+  const getInitialDataKey = (data?: Partial<DisplayTabsData>): string => {
+    if (!data) return "";
+    // Create a unique key based on meaningful data fields
+    return `${data.displayName || ""}-${data.shortAbout || ""}-${(
+      data.organs || []
+    ).join(",")}-${data.displayCategoryId || ""}`;
+  };
+
+  // Update states when initialData changes (for edit mode)
+  useEffect(() => {
+    const currentKey = getInitialDataKey(initialData);
+    // Initialize if we have initialData with content and haven't initialized with this specific data
+    const hasContent =
+      initialData &&
+      (initialData.displayName ||
+        initialData.shortAbout ||
+        initialData.longAbout ||
+        (initialData.organs && initialData.organs.length > 0) ||
+        initialData.topRated ||
+        initialData.topSelling ||
+        initialData.displayCategoryId);
+
+    if (hasContent && currentKey !== lastInitializedKey) {
+      // Capitalize organs to match the chip labels
+      const capitalizedOrgans = (initialData.organs || []).map(capitalize);
+      setSelectedOrgans(capitalizedOrgans);
+      setSelectedCategories(initialData.categories || []);
+      setDisplayCategoryId(initialData.displayCategoryId || "");
+      setTopRating(initialData.topRated || false);
+      setTopSelling(initialData.topSelling || false);
+      setDisplayName(initialData.displayName || "");
+      setShortAbout(initialData.shortAbout || "");
+      setLongAbout(initialData.longAbout || "");
+      setSampleType(initialData.sampleType || "");
+      setGenderRestriction(initialData.gender || "any");
+      setAgeRange(
+        initialData.ageRange ? parseAgeRange(initialData.ageRange) : [0, 100]
+      );
+      setPreparation(initialData.preparation || "");
+      setMrp(initialData.mrp ? Number(initialData.mrp) : undefined);
+      setFaqs(
+        initialData.faqs ||
+          ((initialData as any).faq
+            ? parseFaqs((initialData as any).faq)
+            : [{ question: "", answer: "" }])
+      );
+      setHomeCollectionPossible(initialData.homeCollectionPossible || false);
+      setHomeCollectionFee(
+        initialData.homeCollectionFee
+          ? Number(initialData.homeCollectionFee)
+          : undefined
+      );
+      setMachineBased(initialData.machineBased || false);
+      setUploadedImages(initialData.uploadedImages || []);
+      setLastInitializedKey(currentKey);
+    }
+  }, [initialData, lastInitializedKey]);
 
   const organizationId = useAuthStore(
     (s) => s.organizationDetails?.organization_id ?? ""
@@ -298,6 +430,7 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
     (): DisplayTabsData => ({
       organs: selectedOrgans.map((o) => o.toLowerCase()),
       categories: selectedCategories,
+      displayCategoryId,
       topRated: topRating,
       topSelling: topSelling,
       displayName,
@@ -319,6 +452,7 @@ const DisplayTabs: React.FC<DisplayTabsProps> = ({
     [
       selectedOrgans,
       selectedCategories,
+      displayCategoryId,
       topRating,
       topSelling,
       displayName,

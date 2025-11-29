@@ -124,25 +124,8 @@ const AddAvailabilityModal: React.FC<Props> = ({
   };
 
   const compressDays = (days: string[]): string[] => {
-    if (days.length === 0) return [""];
-
-    const indices = days
-      .map((d) => DAYS.indexOf(d))
-      .filter((i) => i >= 0)
-      .sort((a, b) => a - b);
-
-    if (indices.length === 0) return [days.join(", ")];
-
-    const isContiguous = indices.every(
-      (idx, i) => i === 0 || idx === indices[i - 1] + 1
-    );
-
-    if (isContiguous && indices.length > 1) {
-      return [`${DAYS[indices[0]]} - ${DAYS[indices[indices.length - 1]]}`];
-    }
-
-    // join with a space before comma to match API expectation "Wednesday , Friday"
-    return [days.join(" , ")];
+    // Return each day individually instead of compressing into ranges
+    return days.length === 0 ? [""] : days;
   };
 
   const buildPayload = (): DoctorAvailabilityInput => {
@@ -153,7 +136,7 @@ const AddAvailabilityModal: React.FC<Props> = ({
           start: formatTime(startTime),
           end: formatTime(endTime),
           wait_time: waitTime,
-          time_slot_interval: duration,
+          duration: duration,
         },
       ],
       appointment_type: type.toLowerCase().replace(/\s+/g, "-"),

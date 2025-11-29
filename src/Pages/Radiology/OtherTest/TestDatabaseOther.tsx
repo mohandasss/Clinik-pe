@@ -92,6 +92,22 @@ const TestDatabaseOther: React.FC = () => {
             category: test.category_id,
             price: test.price,
             status: test.status,
+            // Display fields
+            tags: test.tags,
+            display_name: test.display_name,
+            display_category_id: test.display_category_id,
+            short_about: test.short_about,
+            long_about: test.long_about,
+            sample_type: test.sample_type,
+            gender: test.gender,
+            age_range: test.age_range,
+            images: test.images,
+            preparation: test.preparation,
+            mrp: test.mrp,
+            faq: test.faq,
+            home_collection_possible: test.home_collection_possible,
+            home_collection_fee: test.home_collection_fee,
+            machine_based: test.machine_based,
           }));
           setTests(testRows);
         }

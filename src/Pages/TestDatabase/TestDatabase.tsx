@@ -9,6 +9,32 @@ import AddTestTypeModal from "./Components/AddTestTypeModal";
 import { useNavigate } from "react-router-dom";
 import type { LabTest } from "../../APis/Types";
 
+// Helper function to parse tags string like "organ=heart;kidney,top_rated"
+const parseTagsString = (tagString: string): Record<string, any> => {
+  const tags: Record<string, any> = {
+    organ: [],
+    top_rated: false,
+    top_selling: false,
+  };
+
+  if (!tagString) return tags;
+
+  const parts = tagString.split(",");
+  parts.forEach((part) => {
+    const trimmed = part.trim();
+    if (trimmed.startsWith("organ=")) {
+      const organs = trimmed.replace("organ=", "").split(";");
+      tags.organ = organs.map((o) => o.trim()).filter(Boolean);
+    } else if (trimmed === "top_rated") {
+      tags.top_rated = true;
+    } else if (trimmed === "top_selling") {
+      tags.top_selling = true;
+    }
+  });
+
+  return tags;
+};
+
 const TestDatabase: React.FC = () => {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     []
@@ -89,6 +115,8 @@ const TestDatabase: React.FC = () => {
               category:
                 categories.find((c) => c.id === test.category_id)?.name ||
                 test.category_id,
+              categoryId: test.category_id || "",
+              displayCategoryId: test.display_category_id || "",
               price: test.price || "",
               mrp: test.mrp || "",
               type: test.type || "",
@@ -96,6 +124,33 @@ const TestDatabase: React.FC = () => {
               gender: test.gender || "",
               optional: test.optional === "1",
               homeCollection: test.home_collection_possible === "1",
+              // Additional fields for edit
+              unitId: test.unit_id || "",
+              inputType: test.input_type || "",
+              defaultResult: test.default_result || "",
+              method: test.method || "",
+              instrument: test.instrument || "",
+              interpretation: test.interpretation || "",
+              notes: test.notes || "",
+              comments: test.comments || "",
+              // Display tab fields
+              shortAbout: test.short_about || "",
+              longAbout: test.long_about || "",
+              ageRange: test.age_range || "",
+              preparation: test.preparation || "",
+              faq: test.faq || "",
+              homeCollectionFee: test.home_collection_fee || "",
+              machineBased: test.machine_based === "1",
+              tags: test.tags
+                ? typeof test.tags === "string"
+                  ? parseTagsString(test.tags)
+                  : test.tags
+                : {},
+              images: test.images
+                ? typeof test.images === "string"
+                  ? JSON.parse(test.images)
+                  : test.images
+                : [],
             })
           );
           setTests(testRows);
@@ -136,8 +191,19 @@ const TestDatabase: React.FC = () => {
   const rows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const handleEdit = (row: TestRow) => {
-    // TODO: implement edit drawer
-    console.log("edit", row);
+    // Navigate to appropriate edit page based on test type
+    if (row.type === "single") {
+      navigate("/test-database/edit", { state: { row } });
+    } else if (row.type === "multiple") {
+      navigate("/test-database/edit-multiple", { state: { row } });
+    } else if (row.type === "nested") {
+      navigate("/test-database/edit-nested", { state: { row } });
+    } else if (row.type === "document") {
+      navigate("/test-database/edit-document", { state: { row } });
+    } else {
+      // Default to single type edit if type is unknown
+      navigate("/test-database/edit", { state: { row } });
+    }
   };
 
   const handleView = (row: TestRow) => {

@@ -23,6 +23,49 @@ interface LocationState {
   row?: TestPackageRow;
 }
 
+// Helper function to parse tags to extract organs
+const extractOrgansFromTags = (
+  tags: Record<string, any> | string | undefined
+): string[] => {
+  if (!tags) return [];
+  if (typeof tags === "string") {
+    // Parse string like "organ=heart;kidney,top_rated"
+    const parts = tags.split(",");
+    for (const part of parts) {
+      if (part.trim().startsWith("organ=")) {
+        const organs = part.trim().replace("organ=", "").split(";");
+        return organs.map((o) => o.trim()).filter(Boolean);
+      }
+    }
+  } else if (typeof tags === "object" && tags.organ) {
+    return tags.organ;
+  }
+  return [];
+};
+
+// Helper function to extract tags
+const extractTagsFromTags = (
+  tags: Record<string, any> | string | undefined
+) => {
+  if (!tags) {
+    return {
+      topRated: false,
+      topSelling: false,
+    };
+  }
+  if (typeof tags === "string") {
+    const parts = tags.split(",");
+    return {
+      topRated: parts.some((p) => p.trim() === "top_rated"),
+      topSelling: parts.some((p) => p.trim() === "top_selling"),
+    };
+  }
+  return {
+    topRated: tags.top_rated || false,
+    topSelling: tags.top_selling || false,
+  };
+};
+
 const EditPackagePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -139,6 +182,7 @@ const EditPackagePage: React.FC = () => {
       });
       setOriginalTests([]);
       setOriginalPanels([]);
+      setDisplayData(null);
       return;
     }
 
@@ -162,6 +206,48 @@ const EditPackagePage: React.FC = () => {
       gender: g,
       tests: testIds,
       panels: panelIds,
+    });
+
+    // Initialize displayData for display tab prefill
+    const tagFlags = extractTagsFromTags(row.tags);
+    setDisplayData({
+      organs: extractOrgansFromTags(row.tags),
+      categories: [],
+      displayCategoryId: row.display_category_id || "",
+      topRated: tagFlags.topRated,
+      topSelling: tagFlags.topSelling,
+      displayName: row.displayName || "",
+      shortAbout: row.shortAbout || "",
+      longAbout: row.longAbout || "",
+      sampleType: row.sampleType || "",
+      gender: row.bill_only_for_gender || row.gender?.toLowerCase() || "any",
+      ageRange: row.ageRange || "",
+      icon: null,
+      images: [],
+      uploadedImages: (row.images || []).map((img) => ({
+        type: img.type as "icon" | "image",
+        target_type: img.target_type,
+        target_id: img.target_id,
+      })),
+      preparation: row.preparation || "",
+      mrp: row.mrp || "",
+      faqs: row.faq
+        ? (() => {
+            try {
+              const parsed = JSON.parse(row.faq);
+              return Array.isArray(parsed)
+                ? parsed
+                : [{ question: "", answer: "" }];
+            } catch (e) {
+              return [{ question: "", answer: "" }];
+            }
+          })()
+        : [{ question: "", answer: "" }],
+      homeCollectionPossible:
+        row.homeCollectionPossible === "1" ||
+        row.homeCollectionPossible === true,
+      homeCollectionFee: row.homeCollectionFee || "",
+      machineBased: row.machineBased === "1" || row.machineBased === true,
     });
 
     // Store original state for calculating removals
@@ -235,6 +321,7 @@ const EditPackagePage: React.FC = () => {
             top_rated: displayData?.topRated || false,
             top_selling: displayData?.topSelling || false,
           },
+          display_category_id: displayData?.displayCategoryId || "",
           display_name: displayData?.displayName || "",
           short_about: displayData?.shortAbout || "",
           long_about: displayData?.longAbout || "",
@@ -288,6 +375,7 @@ const EditPackagePage: React.FC = () => {
             top_rated: displayData?.topRated || false,
             top_selling: displayData?.topSelling || false,
           },
+          display_category_id: displayData?.displayCategoryId || "",
           display_name: displayData?.displayName || "",
           short_about: displayData?.shortAbout || "",
           long_about: displayData?.longAbout || "",
@@ -474,7 +562,10 @@ const EditPackagePage: React.FC = () => {
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs onDataChange={handleDisplayDataChange} />
+            <DisplayTabs
+              onDataChange={handleDisplayDataChange}
+              initialData={displayData || undefined}
+            />
           </Tabs.Panel>
         </Tabs>
       </Paper>

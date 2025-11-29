@@ -1,11 +1,16 @@
-export type GlobalAPIResponse = {
+export interface GlobalAPIResponse<T = any> {
   success: boolean;
   httpStatus: number;
   message: string;
-  data: any;
-
+  data: T;
 }
 
+// Uploaded Image Interface for Display Tabs
+export interface UploadedImage {
+  type: "icon" | "image";
+  target_type: string;
+  target_id: string;
+}
 
 export type OrganizationRegistrationPayload = {
   name: string;
@@ -819,6 +824,22 @@ export interface TestPackageRow {
   status?: string;
   tests?: { test_id: string; test_name?: string }[]; // object array from API
   panels?: { panel_id: string; panel_name?: string }[]; // object array from API
+  // Display tab fields
+  category_id?: string;
+  display_category_id?: string;
+  displayName?: string;
+  shortAbout?: string;
+  longAbout?: string;
+  sampleType?: string;
+  ageRange?: string;
+  preparation?: string;
+  mrp?: string;
+  faq?: string;
+  homeCollectionPossible?: boolean | string;
+  homeCollectionFee?: string;
+  machineBased?: boolean | string;
+  tags?: Record<string, any>;
+  images?: UploadedImage[];
 }
 
 export type TestPackagePayload = {
@@ -867,11 +888,29 @@ export interface TestPanelRow {
   tests: string[];
   ratelistEntries?: string;
   categoryId?: string;
+  display_category_id?: string;
   price?: string;
   hide_individual?: Record<string, string>;
   interpretation?: string;
   hideInterpretation?: boolean;
   hideMethod?: boolean;
+  // Display tab fields
+  displayName?: string;
+  shortAbout?: string;
+  longAbout?: string;
+  sampleType?: string;
+  gender?: string;
+  ageRange?: string;
+  preparation?: string;
+  mrp?: string;
+  faq?: string;
+  homeCollectionPossible?: boolean | string;
+  homeCollectionFee?: string;
+  machineBased?: boolean | string;
+  tags?: Record<string, any>;
+  status?: string;
+  createdAt?: string;
+  images?: UploadedImage[];
 }
 
 export type TestPanelPayload = {
@@ -1283,6 +1322,7 @@ export interface LabTest {
   name: string;
   short_name: string;
   category_id: string;
+  display_category_id?: string;
   unit_id: string | null;
   input_type: string;
   default_result: string;
@@ -1528,6 +1568,22 @@ export interface OtherTestPanelRow {
   data: string;
   tests: string[];
   hide_individual?: Record<string, string>;
+  // Display fields
+  tags?: string | { organ?: string[]; top_rated?: boolean; top_selling?: boolean };
+  display_name?: string;
+  display_category_id?: string;
+  short_about?: string;
+  long_about?: string;
+  sample_type?: string;
+  gender?: string;
+  age_range?: string;
+  images?: any[];
+  preparation?: string;
+  mrp?: string;
+  faq?: string | { question: string; answer: string }[];
+  home_collection_possible?: boolean;
+  home_collection_fee?: string;
+  machine_based?: boolean;
 }
 
 // Display type for Radiology Test Panels (converted from OtherPanelItem)
@@ -1539,8 +1595,24 @@ export interface RadiologyTestPanel {
   description: string;
   price: string | number;
   status: string;
-  data: string;
+  data: any; // Stores the full API response object
   tests: string[];
+  // Display fields
+  tags?: string | { organ?: string[]; top_rated?: boolean; top_selling?: boolean };
+  display_name?: string;
+  display_category_id?: string;
+  short_about?: string;
+  long_about?: string;
+  sample_type?: string;
+  gender?: string;
+  age_range?: string;
+  images?: any[];
+  preparation?: string;
+  mrp?: string;
+  faq?: string | { question: string; answer: string }[];
+  home_collection_possible?: boolean;
+  home_collection_fee?: string;
+  machine_based?: boolean;
 }
 
 export interface CreateOtherTestPanelPayload {
@@ -1567,6 +1639,22 @@ export interface OtherTestPackageRow {
   data?: string;
   tests?: Array<{ test_id: string; name?: string }> | string[];
   panels?: Array<{ panel_id: string; name?: string }> | string[];
+  // Display fields
+  tags?: string | { organ?: string[]; top_rated?: boolean; top_selling?: boolean };
+  display_name?: string;
+  display_category_id?: string;
+  short_about?: string;
+  long_about?: string;
+  sample_type?: string;
+  gender?: string;
+  age_range?: string;
+  images?: any[];
+  preparation?: string;
+  mrp?: string;
+  faq?: string | { question: string; answer: string }[];
+  home_collection_possible?: boolean;
+  home_collection_fee?: string;
+  machine_based?: boolean;
 }
 
 // Doctor Login Types
@@ -2272,5 +2360,158 @@ export interface TestAvailabilityResponse {
   message: string;
   data: {
     availability_id: string;
+  };
+}
+
+export interface CreateTestAvailibilityPayload {
+  weekday: string[];
+  department_id: string;
+  category_id: string;
+  type: string,
+  reference: string;
+  purpose: string;
+  principal_type: string;
+  principal_id: string;
+  capacity: number;
+  period: string;
+  period_unit: string;
+  slot_duration: number;
+  time_start: string;
+  time_end: string;
+  duration: string;
+  is_24hrs: boolean;
+}
+
+
+
+export interface AvailabilityItem {
+  id: string;
+  uid: string;
+  central_account_id: string;
+  organization_id: string;
+  center_id: string;
+
+  weekday: string; // "monday, sunday"
+  department_id: string;
+  category_id: string;
+
+  type: string;
+  reference: string;
+  purpose: string;
+
+  principal_type: string;
+  principal_id: string;
+
+  capacity: string;
+  period: string;
+  period_unit: string;
+  slot_duration: string;
+
+  time_start: string;
+  time_end: string;
+  duration: string;
+  is_24hrs: string; // "0" or "1"
+
+  status: string;
+
+  created_at: string;
+  created_by: string | null;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+// =========================
+// Pagination
+// =========================
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+// =========================
+// Final Response
+// =========================
+export type AvailabilityListResponse = GlobalAPIResponse<{
+  tests: AvailabilityItem[];
+  pagination: Pagination;
+}>;
+
+
+export interface AvailabilityTypeItem {
+  id: string;
+  uid: string;
+  name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+export interface AvailabilityTypeResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    avaliablity_type: AvailabilityTypeItem[];
+    pagination: Pagination;
+  };
+}
+export interface AvailabilityPurposeItem {
+  id: string;
+  uid: string;
+  name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+export interface AvailabilityPurposeResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    avaliablity_purpose: AvailabilityPurposeItem[];
+    pagination: Pagination;
+  };
+}
+
+export interface AvailabilityPrincipalItem {
+  id: string;
+  uid: string;
+  name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Pagination {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+export interface AvailabilityPrincipalResponse {
+  success: boolean;
+  httpStatus: number;
+  message: string;
+  data: {
+    avaliablity_principal: AvailabilityPrincipalItem[];
+    pagination: Pagination;
   };
 }

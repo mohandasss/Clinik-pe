@@ -8,76 +8,24 @@ import { Popover } from "@mantine/core";
 import apis from "../../APis/Api";
 import useAuthStore from "../../GlobalStore/store";
 import useDropdownStore from "../../GlobalStore/useDropdownStore";
-import type { Department } from "../../APis/Types";
+import type { Department, AvailabilityItem } from "../../APis/Types";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type AvailabilityDisplayItem = {
-  id: string;
-  departmentName: string;
-  categoryName: string;
-  itemType: string;
-  itemName: string;
-  purpose: string;
-  principalType: string;
-  principalName: string;
-  capacity: number;
-  period: string;
-  slotDuration: string;
-  timeRange: string;
-  weekDays: string;
-  is24x7: boolean;
-  status: "Active" | "Inactive";
+type AvailabilityDisplayItem = AvailabilityItem & {
+  departmentName?: string;
+  categoryName?: string;
+  itemName?: string;
+  principalName?: string;
 };
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const PAGE_SIZE = 10;
-
-// ============================================================================
-// Mock Data (Replace with API when available)
-// ============================================================================
-
-const mockAvailabilities: AvailabilityDisplayItem[] = [
-  {
-    id: "1",
-    departmentName: "Radiology",
-    categoryName: "X-Ray",
-    itemType: "Test",
-    itemName: "Chest X-Ray",
-    purpose: "Test",
-    principalType: "Technician",
-    principalName: "John Doe",
-    capacity: 20,
-    period: "1 Day",
-    slotDuration: "15 mins",
-    timeRange: "09:00 AM - 05:00 PM",
-    weekDays: "Mon - Fri",
-    is24x7: false,
-    status: "Active",
-  },
-  {
-    id: "2",
-    departmentName: "Laboratory",
-    categoryName: "Blood Tests",
-    itemType: "Panel",
-    itemName: "Complete Blood Count",
-    purpose: "Home Collection",
-    principalType: "Home Collection Agent",
-    principalName: "Jane Smith",
-    capacity: 10,
-    period: "1 Week",
-    slotDuration: "30 mins",
-    timeRange: "24/7",
-    weekDays: "All Days",
-    is24x7: true,
-    status: "Active",
-  },
-];
+const PAGE_SIZE = 5;
 
 // ============================================================================
 // Main Component
@@ -93,10 +41,12 @@ const TestAvailibility = () => {
     "all"
   );
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [items] = useState<AvailabilityDisplayItem[]>(mockAvailabilities);
-  const [isLoading] = useState(false);
+  const [items, setItems] = useState<AvailabilityDisplayItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [popoverOpenId, setPopoverOpenId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
   const organizationDetails = useAuthStore(
     (state) => state.organizationDetails
@@ -130,6 +80,43 @@ const TestAvailibility = () => {
     fetchDepartments();
   }, [orgId, centerId]);
 
+  // Fetch test availability
+  useEffect(() => {
+    const fetchTestAvailability = async () => {
+      if (!orgId || !centerId) return;
+
+      setIsLoading(true);
+      try {
+        const response = await apis.GetTestAvailability(orgId, centerId);
+        if (response?.success && response?.data?.tests) {
+          // Map API response to display format
+          const displayItems: AvailabilityDisplayItem[] =
+            response.data.tests.map((item: AvailabilityItem) => ({
+              ...item,
+              departmentName: item.department_id || "-",
+              categoryName: item.category_id || "-",
+              itemName: item.reference || "-",
+              principalName: item.principal_id || "-",
+            }));
+          setItems(displayItems);
+          setTotalRecords(response.data.pagination?.totalRecords || 0);
+          setPageSize(response.data.pagination?.pageSize || 10);
+        }
+      } catch (error) {
+        console.error("Failed to fetch test availability:", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load test availability",
+          color: "red",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTestAvailability();
+  }, [orgId, centerId]);
+
   // Filter items based on status and department
   const filteredItems = useMemo(() => {
     let filtered = items;
@@ -139,14 +126,13 @@ const TestAvailibility = () => {
     }
 
     if (selectedDepartment && selectedDepartment !== "all") {
-      const dept = departments.find((d) => d.uid === selectedDepartment);
-      if (dept) {
-        filtered = filtered.filter((item) => item.departmentName === dept.name);
-      }
+      filtered = filtered.filter(
+        (item) => item.department_id === selectedDepartment
+      );
     }
 
     return filtered;
-  }, [items, selectedStatus, selectedDepartment, departments]);
+  }, [items, selectedStatus, selectedDepartment]);
 
   const toggleRow = (id: string) => {
     setSelected((prev) =>
@@ -200,18 +186,18 @@ const TestAvailibility = () => {
       ),
     },
     {
-      accessor: "itemType",
+      accessor: "type",
       title: "Type",
       render: (r) => (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {r.itemType}
+          {r.type}
         </span>
       ),
     },
     {
-      accessor: "itemName",
+      accessor: "reference",
       title: "Item Name",
-      render: (r) => <div className="text-gray-800">{r.itemName}</div>,
+      render: (r) => <div className="text-gray-800">{r.reference || "-"}</div>,
     },
     {
       accessor: "purpose",
@@ -229,12 +215,14 @@ const TestAvailibility = () => {
       ),
     },
     {
-      accessor: "principalName",
+      accessor: "principal_id",
       title: "Assigned To",
       render: (r) => (
         <div>
-          <div className="text-gray-800 font-medium">{r.principalName}</div>
-          <div className="text-gray-500 text-xs">{r.principalType}</div>
+          <div className="text-gray-800 font-medium">
+            {r.principal_id || "-"}
+          </div>
+          <div className="text-gray-500 text-xs">{r.principal_type || "-"}</div>
         </div>
       ),
     },
@@ -243,34 +231,42 @@ const TestAvailibility = () => {
       title: "Capacity",
       render: (r) => (
         <div className="text-gray-600">
-          {r.capacity} / {r.period}
+          {r.capacity} / {r.period || "-"}
         </div>
       ),
     },
     {
-      accessor: "slotDuration",
+      accessor: "slot_duration",
       title: "Slot Duration",
-      render: (r) => <div className="text-gray-600">{r.slotDuration}</div>,
+      render: (r) => (
+        <div className="text-gray-600">{r.slot_duration || "-"} mins</div>
+      ),
     },
     {
-      accessor: "timeRange",
+      accessor: "time_start",
       title: "Time",
       render: (r) => (
         <div>
-          {r.is24x7 ? (
+          {r.is_24hrs === "1" ? (
             <span className="inline-flex items-center px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-medium">
               24/7 Available
             </span>
           ) : (
-            <div className="text-gray-600 text-sm">{r.timeRange}</div>
+            <div className="text-gray-600 text-sm">
+              {r.time_start} - {r.time_end}
+            </div>
           )}
         </div>
       ),
     },
     {
-      accessor: "weekDays",
+      accessor: "weekday",
       title: "Days",
-      render: (r) => <div className="text-gray-600 text-sm">{r.weekDays}</div>,
+      render: (r) => (
+        <div className="text-gray-600 text-sm capitalize">
+          {r.weekday || "-"}
+        </div>
+      ),
     },
     {
       accessor: "status",
@@ -324,7 +320,9 @@ const TestAvailibility = () => {
     },
   ];
 
-  const pageCount = Math.ceil(filteredItems.length / PAGE_SIZE);
+  const pageCount =
+    Math.ceil(totalRecords / pageSize) ||
+    Math.ceil(filteredItems.length / PAGE_SIZE);
   const paginatedItems = filteredItems.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE

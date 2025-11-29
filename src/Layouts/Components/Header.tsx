@@ -394,12 +394,12 @@ const Header: React.FC<HeaderProps> = ({ isSmall, setIsSmall }) => {
 
         {/* Bell and profile */}
         <div className="flex items-center gap-4">
-          <div className="relative">
+          {/* <div className="relative">
             <ActionIcon variant="subtle" color="gray" size={35}>
               <IconBell size={18} />
             </ActionIcon>
             <span className="absolute top-1 -right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
-          </div>
+          </div> */}
 
           <Menu withinPortal>
             <Menu.Target>

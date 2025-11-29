@@ -41,7 +41,7 @@ const BillsCard: React.FC<BillsCardProps> = ({ booking, currency = "₹" }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 p-4 mb-2">
-      <div className="flex items-center justify-between gap-3 relative h-16">
+      <div className="flex items-center justify-between gap-3 relative h-20">
         {/* Left Side: Patient Image & Details */}
         <div className="flex items-center gap-2 min-w-0 flex-1 pr-16">
           <Avatar
@@ -80,19 +80,38 @@ const BillsCard: React.FC<BillsCardProps> = ({ booking, currency = "₹" }) => {
         </div>
 
         {/* Middle: Test Names (centered) - only show if tests exist */}
-        {((booking as any).test_name?.length ?? 0) > 0 && (
+        {((booking as any).test_items?.length ?? 0) > 0 && (
           <div className="flex flex-col items-center justify-center gap-1 px-3 min-w-max w-40 absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
             <div className="text-center">
               <Text size="xs" c="dimmed" className="uppercase tracking-wide">
                 Tests
               </Text>
-              <div className="text-xs text-gray-900 font-medium">
+              <div className="flex flex-wrap justify-center gap-1 mt-1">
                 {(() => {
-                  const arr = (booking as any).test_name || [];
-                  const names = arr.map((t: any) => t?.name || "");
-                  const primary = names.slice(0, 2).join(", ");
-                  const extra = Math.max(0, names.length - 2);
-                  return extra > 0 ? `${primary} +${extra}` : primary;
+                  const arr = (booking as any).test_items || [];
+                  const displayItems = arr.slice(0, 3); // Show max 3 badges
+                  const extra = Math.max(0, arr.length - 3);
+
+                  return (
+                    <>
+                      {displayItems.map((t: any, index: number) => (
+                        <Badge
+                          key={index}
+                          size="xs"
+                          variant="light"
+                          color="blue"
+                          className="text-xs"
+                        >
+                          {t?.name || ""}
+                        </Badge>
+                      ))}
+                      {extra > 0 && (
+                        <Badge size="xs" variant="light" color="gray">
+                          +{extra}
+                        </Badge>
+                      )}
+                    </>
+                  );
                 })()}
               </div>
             </div>
@@ -101,11 +120,30 @@ const BillsCard: React.FC<BillsCardProps> = ({ booking, currency = "₹" }) => {
 
         {/* Right Side: Additional Info */}
         <div className="flex flex-col items-end justify-start gap-1 min-w-max pl-16">
+          {/* Main Payable Amount - Highlighted */}
+          {booking.payable_amount && (
+            <div className="text-right">
+              <Text size="sm" fw={700} c="blue" className="text-lg">
+                {currency} {booking.payable_amount}
+              </Text>
+              <Text size="xs" c="dimmed">
+                Amount to Pay
+              </Text>
+            </div>
+          )}
+
+          {/* Original Amount (Discount) */}
           {booking.total_amount && booking.payable_amount && (
             <div className="text-right">
               <Text size="xs" c="dimmed" className="line-through">
                 {currency} {booking.total_amount}
               </Text>
+            </div>
+          )}
+
+          {/* Savings */}
+          {booking.total_amount && booking.payable_amount && (
+            <div className="text-right">
               <Text size="xs" fw={500} c="green">
                 Save {currency}{" "}
                 {(
@@ -115,14 +153,7 @@ const BillsCard: React.FC<BillsCardProps> = ({ booking, currency = "₹" }) => {
               </Text>
             </div>
           )}
-          {booking.discount_value && (
-            <Badge color="red" size="sm" variant="light">
-              Discount:{" "}
-              {booking.discount_unit === "percentage"
-                ? `${booking.discount_value}%`
-                : `${currency} ${booking.discount_value}`}
-            </Badge>
-          )}
+
           {booking.doctor_name && (
             <Text size="xs" c="dimmed" className="text-right">
               <span className="text-gray-600">Referred by:</span>{" "}

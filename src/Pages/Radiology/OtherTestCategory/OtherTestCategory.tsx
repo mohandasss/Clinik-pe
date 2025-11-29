@@ -176,10 +176,10 @@ const OtherTestCategory: React.FC = () => {
         categoryId
       );
       if (response.success) {
-        showSuccessNotification(response.message || "Category deleted");
+        showSuccessNotification(response.message);
         await loadCategories();
       } else {
-        showWarningNotification(response.message || "Category deleted locally");
+        showWarningNotification(response.message);
         removeCategoryLocally(categoryId);
       }
       closeDeleteModal();

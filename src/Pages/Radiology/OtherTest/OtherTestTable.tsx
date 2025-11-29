@@ -12,6 +12,24 @@ export interface OtherTestRow {
   price?: string;
   status?: string;
   optional?: boolean | string;
+  // Display fields
+  tags?:
+    | string
+    | { organ?: string[]; top_rated?: boolean; top_selling?: boolean };
+  display_name?: string;
+  display_category_id?: string;
+  short_about?: string;
+  long_about?: string;
+  sample_type?: string;
+  gender?: string;
+  age_range?: string;
+  images?: any[];
+  preparation?: string;
+  mrp?: string;
+  faq?: string | { question: string; answer: string }[];
+  home_collection_possible?: boolean;
+  home_collection_fee?: string;
+  machine_based?: boolean;
 }
 
 interface OtherTestTableProps {

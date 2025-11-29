@@ -98,6 +98,11 @@ import type {
   ReportResponse,
   PackagesListResponse,
   PackageDetailsResponse,
+  CreateTestAvailibilityPayload,
+  AvailabilityListResponse,
+  AvailabilityTypeResponse,
+  AvailabilityPurposeResponse,
+  AvailabilityPrincipalResponse,
 } from "./Types";
 import apiAgent from "./apiAgents";
 
@@ -966,6 +971,15 @@ class Apis {
     return response.data as CreateLabTestResponse;
   }
 
+  async UpdateTestInLabDatabase(organization_id: string, center_id: string, test_id: string, payload: CreateTestPayload): Promise<CreateLabTestResponse> {
+    const response = await apiAgent
+      .path(`/organizations/${organization_id}/centers/${center_id}/diagnostics/lab/test/${test_id}`)
+      .method("PATCH")
+      .json(payload)
+      .execute();
+    return response.data as CreateLabTestResponse;
+  }
+
   // async GetLabTests(
   //   search?: string,
   //   categoryId?: string,
@@ -1640,6 +1654,102 @@ class Apis {
       .query({ pageNumber, pageSize, search })
       .execute();
     return response.data as TestCategoryListResponse;
+  }
+
+  //test availibility
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/QMhgPMlJ/diagnostics/availability
+
+  //{{clinicPeBaseUrl}}test/avaliablity-type
+  async getAvailabilityTypes(): Promise<AvailabilityTypeResponse> {
+    const response = await apiAgent
+      .path(`test/avaliablity-type`)
+      .method("GET")
+      .execute();
+    return response.data as AvailabilityTypeResponse;
+  }
+
+  //{{clinicPeBaseUrl}}test/avaliablity-purpose
+
+  async getAvailabilityPurposes(): Promise<AvailabilityPurposeResponse> {
+    const response = await apiAgent
+      .path(`test/avaliablity-purpose`)
+      .method("GET")
+      .execute();
+    return response.data as AvailabilityPurposeResponse;
+  }
+
+  //{{clinicPeBaseUrl}}test/avaliablity-principal
+  async getAvailabilityPrincipals(): Promise<AvailabilityPrincipalResponse> {
+    const response = await apiAgent
+      .path(`test/avaliablity-principal`)
+      .method("GET")
+      .execute();
+    return response.data as AvailabilityPrincipalResponse;
+  }
+
+  async AddTestAvailability(
+    organization_id: string,
+    center_id: string,
+    payload: CreateTestAvailibilityPayload
+  ): Promise<GlobalAPIResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/availability`)
+      .method("POST").json(payload)
+      .execute();
+    return response.data as GlobalAPIResponse;
+  }
+
+  async GetTestAvailability(
+    organization_id: string,
+    center_id: string
+  ): Promise<AvailabilityListResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/availability`)
+      .method("GET")
+      .execute();
+    return response.data as AvailabilityListResponse;
+  }
+
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/QMhgPMlJ/diagnostics/availability/ub9lEXAJ
+  async UpdateTestAvailability(
+    organization_id: string,
+    center_id: string,
+    availability_id: string,
+    payload: CreateTestAvailibilityPayload
+  ): Promise<GlobalAPIResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/availability/${availability_id}`)
+      .method("PATCH").json(payload)
+      .execute();
+    return response.data as GlobalAPIResponse;
+  }
+
+
+  async DeleteTestAvailability(
+    organization_id: string,
+    center_id: string,
+    availability_id: string,
+    payload: CreateTestAvailibilityPayload
+  ): Promise<GlobalAPIResponse> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/availability/${availability_id}`)
+      .method("DELETE").json(payload)
+      .execute();
+    return response.data as GlobalAPIResponse;
+  }
+
+  //{{clinicPeBaseUrl}}organizations/2gSpFH5v/centers/QMhgPMlJ/diagnostics/availability/ub9lEXAJ
+  async getTestAvailabilityById(
+    organization_id: string,
+    center_id: string,
+    availability_id: string
+  ): Promise<any> {
+    const response = await apiAgent
+      .path(`organizations/${organization_id}/centers/${center_id}/diagnostics/availability/${availability_id}`)
+      .method("GET")
+      .execute();
+    return response.data as any;
   }
 
 

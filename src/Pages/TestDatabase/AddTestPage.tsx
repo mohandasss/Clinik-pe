@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Paper,
   TextInput,
@@ -21,9 +21,59 @@ import DisplayTabs, {
   type DisplayTabsData,
 } from "../../components/Global/DisplayTabs";
 import RichEditor from "../../components/Global/RichEditor";
+import type { TestRow } from "./Components/TestTable";
+
+interface LocationState {
+  row?: TestRow;
+}
+
+// Helper function to parse tags to extract organs
+const extractOrgansFromTags = (
+  tags: Record<string, any> | string | undefined
+): string[] => {
+  if (!tags) return [];
+  if (typeof tags === "string") {
+    const parts = tags.split(",");
+    for (const part of parts) {
+      if (part.trim().startsWith("organ=")) {
+        const organs = part.trim().replace("organ=", "").split(";");
+        return organs.map((o) => o.trim()).filter(Boolean);
+      }
+    }
+  } else if (typeof tags === "object" && tags.organ) {
+    return tags.organ;
+  }
+  return [];
+};
+
+// Helper function to extract tags
+const extractTagsFromTags = (
+  tags: Record<string, any> | string | undefined
+) => {
+  if (!tags) {
+    return {
+      topRated: false,
+      topSelling: false,
+    };
+  }
+  if (typeof tags === "string") {
+    const parts = tags.split(",");
+    return {
+      topRated: parts.some((p) => p.trim() === "top_rated"),
+      topSelling: parts.some((p) => p.trim() === "top_selling"),
+    };
+  }
+  return {
+    topRated: tags.top_rated || false,
+    topSelling: tags.top_selling || false,
+  };
+};
 
 const AddTestPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as LocationState | undefined;
+  const row = state?.row;
 
   const [categories, setCategories] = useState<TestCategory[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -61,6 +111,86 @@ const AddTestPage: React.FC = () => {
     (s) => s.organizationDetails?.organization_id ?? ""
   );
   const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (!row) {
+      setForm({
+        name: "",
+        shortName: "",
+        category: "",
+        unit: "",
+        inputType: "numeric",
+        defaultResult: "",
+        optional: false,
+        price: "",
+        method: "",
+        instrument: "",
+        interpretation: "",
+        notes: "",
+        comments: "",
+      });
+      setDisplayData(null);
+      return;
+    }
+
+    // Pre-fill form with row data
+    setForm({
+      name: row.name || "",
+      shortName: row.shortName || "",
+      category: row.categoryId || "",
+      unit: row.unitId || "",
+      inputType: row.inputType || "numeric",
+      defaultResult: row.defaultResult || "",
+      optional: row.optional || false,
+      price: row.price || "",
+      method: row.method || "",
+      instrument: row.instrument || "",
+      interpretation: row.interpretation || "",
+      notes: row.notes || "",
+      comments: row.comments || "",
+    });
+
+    // Initialize displayData for display tab prefill
+    const tagFlags = extractTagsFromTags(row.tags);
+    setDisplayData({
+      organs: extractOrgansFromTags(row.tags),
+      categories: [],
+      displayCategoryId: row.displayCategoryId || "",
+      topRated: tagFlags.topRated,
+      topSelling: tagFlags.topSelling,
+      displayName: row.displayName || "",
+      shortAbout: row.shortAbout || "",
+      longAbout: row.longAbout || "",
+      sampleType: row.sampleType || "",
+      gender: row.gender || "any",
+      ageRange: row.ageRange || "",
+      icon: null,
+      images: [],
+      uploadedImages: (row.images || []).map((img) => ({
+        type: img.type as "icon" | "image",
+        target_type: img.target_type,
+        target_id: img.target_id,
+      })),
+      preparation: row.preparation || "",
+      mrp: row.mrp || "",
+      faqs: row.faq
+        ? (() => {
+            try {
+              const parsed = JSON.parse(row.faq);
+              return Array.isArray(parsed)
+                ? parsed
+                : [{ question: "", answer: "" }];
+            } catch (e) {
+              return [{ question: "", answer: "" }];
+            }
+          })()
+        : [{ question: "", answer: "" }],
+      homeCollectionPossible: row.homeCollection || false,
+      homeCollectionFee: row.homeCollectionFee || "",
+      machineBased: row.machineBased === "1" || row.machineBased === true,
+    });
+  }, [row]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -134,6 +264,7 @@ const AddTestPage: React.FC = () => {
           top_rated: displayData?.topRated || false,
           top_selling: displayData?.topSelling || false,
         },
+        display_category_id: displayData?.displayCategoryId || "",
         display_name: displayData?.displayName || "",
         short_about: displayData?.shortAbout || "",
         long_about: displayData?.longAbout || "",
@@ -155,16 +286,30 @@ const AddTestPage: React.FC = () => {
       // Log payload as requested
       console.log(JSON.stringify(payload, null, 2));
 
-      const response = await apis.AddTestToLabDatabase(
-        organizationId,
-        centerId,
-        payload
-      );
+      let response;
+      if (row) {
+        // Update existing test
+        response = await apis.UpdateTestInLabDatabase(
+          organizationId,
+          centerId,
+          row.id,
+          payload
+        );
+      } else {
+        // Create new test
+        response = await apis.AddTestToLabDatabase(
+          organizationId,
+          centerId,
+          payload
+        );
+      }
       console.log("API response:", response);
       if (response?.success) {
         notifications.show({
           title: "Success",
-          message: response.message,
+          message:
+            response.message ||
+            (row ? "Test updated successfully" : "Test created successfully"),
           color: "blue",
         });
         setTimeout(() => {
@@ -178,10 +323,10 @@ const AddTestPage: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error("Failed to add test:", error);
+      console.error("Failed to save test:", error);
       notifications.show({
         title: "Error",
-        message: "Failed to add test",
+        message: row ? "Failed to update test" : "Failed to add test",
         color: "red",
       });
     } finally {
@@ -222,10 +367,14 @@ const AddTestPage: React.FC = () => {
 
       <div className="mb-6">
         <h2 className="text-xl font-semibold">
-          Add New Test (Single Parameter)
+          {row
+            ? "Edit Test (Single Parameter)"
+            : "Add New Test (Single Parameter)"}
         </h2>
         <p className="text-sm text-gray-600">
-          Enter test information to create a new test record.
+          {row
+            ? "Update test information."
+            : "Enter test information to create a new test record."}
         </p>
       </div>
 
@@ -471,7 +620,10 @@ const AddTestPage: React.FC = () => {
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs onDataChange={handleDisplayDataChange} />
+            <DisplayTabs
+              onDataChange={handleDisplayDataChange}
+              initialData={displayData || undefined}
+            />
           </Tabs.Panel>
         </Tabs>
       </Paper>
@@ -496,7 +648,7 @@ const AddTestPage: React.FC = () => {
             loading={loading}
             onClick={handleSubmit}
           >
-            Save Test
+            {row ? "Update Test" : "Save Test"}
           </Button>
         )}
       </div>

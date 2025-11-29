@@ -12,7 +12,7 @@ const RichEditor: React.FC<Props> = ({ value, onChange }) => {
   const config = useMemo(
     () => ({
       readonly: false,
-      placeholder: "Start typing...",
+      placeholder: "",
       height: 350,
       uploader: {
         insertImageAsBase64URI: true,

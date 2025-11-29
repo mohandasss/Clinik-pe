@@ -27,31 +27,13 @@ import type {
 // ============================================================================
 
 type ItemType = "test" | "panel" | "package" | "special_package";
-type PurposeType = "test" | "home_collection";
-type PrincipalType = "home_collection_agent" | "technician" | "machine";
+type PurposeType = "string"; // Will be set dynamically from API
+type PrincipalType = "string"; // Will be set dynamically from API
 type PeriodUnit = "day" | "week" | "month" | "year";
 
 // ============================================================================
 // Constants
 // ============================================================================
-
-const ITEM_TYPES: { value: ItemType; label: string }[] = [
-  { value: "test", label: "Test" },
-  { value: "panel", label: "Panel" },
-  { value: "package", label: "Package" },
-  { value: "special_package", label: "Special Package" },
-];
-
-const PURPOSE_TYPES: { value: PurposeType; label: string }[] = [
-  { value: "test", label: "Test" },
-  { value: "home_collection", label: "Home Collection" },
-];
-
-const PRINCIPAL_TYPES: { value: PrincipalType; label: string }[] = [
-  { value: "home_collection_agent", label: "Home Collection Agent" },
-  { value: "technician", label: "Technician" },
-  { value: "machine", label: "Machine" },
-];
 
 const PERIOD_UNITS: { value: PeriodUnit; label: string }[] = [
   { value: "day", label: "Day" },
@@ -74,28 +56,6 @@ const DAYS = [
   "Saturday",
   "Sunday",
 ];
-
-// Mock data for principals (to be replaced with API)
-const MOCK_PRINCIPALS: Record<
-  PrincipalType,
-  { value: string; label: string }[]
-> = {
-  home_collection_agent: [
-    { value: "agent1", label: "Agent John" },
-    { value: "agent2", label: "Agent Sarah" },
-    { value: "agent3", label: "Agent Mike" },
-  ],
-  technician: [
-    { value: "tech1", label: "Tech David" },
-    { value: "tech2", label: "Tech Emma" },
-    { value: "tech3", label: "Tech Chris" },
-  ],
-  machine: [
-    { value: "machine1", label: "X-Ray Machine 1" },
-    { value: "machine2", label: "CT Scanner" },
-    { value: "machine3", label: "MRI Machine" },
-  ],
-};
 
 // ============================================================================
 // Main Component
@@ -143,12 +103,128 @@ const AddTestAvailibility = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [categories, setCategories] = useState<TestCategory[]>([]);
   const [items, setItems] = useState<{ value: string; label: string }[]>([]);
+  const [itemTypes, setItemTypes] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [purposeTypes, setPurposeTypes] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [principalTypes, setPrincipalTypes] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [principals, setPrincipals] = useState<
+    { value: string; label: string; type: string }[]
+  >([]);
 
   // Loading states
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [isLoadingItemTypes, setIsLoadingItemTypes] = useState(false);
+  const [isLoadingPurposes, setIsLoadingPurposes] = useState(false);
+  const [isLoadingPrincipals, setIsLoadingPrincipals] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ============================================================================
+  // Fetch Availability Types
+  // ============================================================================
+
+  useEffect(() => {
+    const fetchItemTypes = async () => {
+      setIsLoadingItemTypes(true);
+      try {
+        const response = await apis.getAvailabilityTypes();
+        if (response?.success && response?.data?.avaliablity_type) {
+          const options = response.data.avaliablity_type.map((item: any) => ({
+            value: item.uid,
+            label: item.name,
+          }));
+          setItemTypes(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch availability types:", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load availability types",
+          color: "red",
+        });
+      } finally {
+        setIsLoadingItemTypes(false);
+      }
+    };
+
+    fetchItemTypes();
+  }, []);
+
+  // ============================================================================
+  // Fetch Availability Purposes
+  // ============================================================================
+
+  useEffect(() => {
+    const fetchPurposes = async () => {
+      setIsLoadingPurposes(true);
+      try {
+        const response = await apis.getAvailabilityPurposes();
+        if (response?.success && response?.data?.avaliablity_purpose) {
+          const options = response.data.avaliablity_purpose.map(
+            (item: any) => ({
+              value: item.uid,
+              label: item.name,
+            })
+          );
+          setPurposeTypes(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch availability purposes:", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load availability purposes",
+          color: "red",
+        });
+      } finally {
+        setIsLoadingPurposes(false);
+      }
+    };
+
+    fetchPurposes();
+  }, []);
+
+  // ============================================================================
+  // Fetch Availability Principals
+  // ============================================================================
+
+  useEffect(() => {
+    const fetchPrincipals = async () => {
+      setIsLoadingPrincipals(true);
+      try {
+        const response = await apis.getAvailabilityPrincipals();
+        console.log("Principals response:", response);
+        if (response?.success && response?.data?.avaliablity_principal) {
+          // Treat the response as principal types
+          const typeOptions = response.data.avaliablity_principal.map(
+            (item: any) => ({
+              value: item.uid,
+              label: item.name,
+            })
+          );
+          setPrincipalTypes(typeOptions);
+          // Principals are empty for now
+          setPrincipals([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch availability principals:", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load availability principals",
+          color: "red",
+        });
+      } finally {
+        setIsLoadingPrincipals(false);
+      }
+    };
+
+    fetchPrincipals();
+  }, []);
 
   // ============================================================================
   // Fetch Departments
@@ -340,13 +416,13 @@ const AddTestAvailibility = () => {
   }, [startTime, endTime, is24x7]);
 
   // ============================================================================
-  // Get Principals based on Principal Type
+  // Filter Principals based on Selected Principal Type
   // ============================================================================
 
-  const principals = useMemo(() => {
+  const filteredPrincipals = useMemo(() => {
     if (!selectedPrincipalType) return [];
-    return MOCK_PRINCIPALS[selectedPrincipalType] || [];
-  }, [selectedPrincipalType]);
+    return principals.filter((p) => p.type === selectedPrincipalType);
+  }, [selectedPrincipalType, principals]);
 
   // ============================================================================
   // Handlers
@@ -400,15 +476,6 @@ const AddTestAvailibility = () => {
       notifications.show({
         title: "Validation Error",
         message: "Please select an item type",
-        color: "red",
-      });
-      return false;
-    }
-
-    if (!selectedItem) {
-      notifications.show({
-        title: "Validation Error",
-        message: "Please select an item",
         color: "red",
       });
       return false;
@@ -473,30 +540,30 @@ const AddTestAvailibility = () => {
 
     try {
       const payload = {
-        department_id: selectedDepartment,
-        category_id: selectedCategory,
-        item_type: selectedItemType,
-        item_id: selectedItem,
-        purpose: selectedPurpose,
-        principal_type: selectedPrincipalType,
-        principal_id: selectedPrincipal,
-        capacity,
-        period_value: parseInt(periodValue),
+        weekday: selectedDays,
+        department_id: selectedDepartment || "",
+        category_id: selectedCategory || "",
+        type: selectedItemType || "",
+        reference: selectedItem || "",
+        purpose: selectedPurpose || "",
+        principal_type: selectedPrincipalType || "",
+        principal_id: selectedPrincipal || "",
+        capacity: capacity,
+        period: periodValue,
         period_unit: periodUnit,
         slot_duration: slotDuration,
-        week_days: selectedDays,
-        is_24_hours: is24x7,
-        start_time: is24x7 ? "00:00" : startTime,
-        end_time: is24x7 ? "23:59" : endTime,
+        time_start: is24x7 ? "" : startTime,
+        time_end: is24x7 ? "" : endTime,
+        duration: calculateDuration,
+        is_24hrs: is24x7,
       };
 
-      console.log("Submitting payload:", payload);
+      console.log("Submitting payload:", JSON.stringify(payload, null, 2));
+      
+         const response  =await apis.AddTestAvailability(orgId, centerId, payload);
+      if( response.success){
 
-      // TODO: Replace with actual API call when available
-      // const response = await apis.AddTestAvailability(orgId, centerId, payload);
-
-      // Simulate success for now
-      notifications.show({
+        notifications.show({
         title: "Success",
         message: "Test availability added successfully",
         color: "green",
@@ -505,7 +572,12 @@ const AddTestAvailibility = () => {
       setTimeout(() => {
         navigate("/test-availability");
       }, 1500);
-    } catch (error) {
+      
+      }
+
+     
+    }
+     catch (error) {
       console.error("Error adding availability:", error);
       notifications.show({
         title: "Error",
@@ -653,11 +725,15 @@ const AddTestAvailibility = () => {
                   Type <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  placeholder="Select Type"
-                  data={ITEM_TYPES}
+                  placeholder={
+                    isLoadingItemTypes ? "Loading..." : "Select Type"
+                  }
+                  data={itemTypes}
                   value={selectedItemType}
                   onChange={handleItemTypeChange}
-                  disabled={!selectedDepartment}
+                  disabled={!selectedDepartment || isLoadingItemTypes}
+                  searchable
+                  clearable
                   classNames={{
                     input: "text-sm",
                   }}
@@ -667,7 +743,7 @@ const AddTestAvailibility = () => {
               {/* Item Selection */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">
-                  {getItemLabel()} <span className="text-red-500">*</span>
+                  {getItemLabel()}
                 </label>
                 <Select
                   placeholder={isLoadingItems ? "Loading..." : getItemLabel()}
@@ -699,10 +775,15 @@ const AddTestAvailibility = () => {
                   Purpose <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  placeholder="Select Purpose"
-                  data={PURPOSE_TYPES}
+                  placeholder={
+                    isLoadingPurposes ? "Loading..." : "Select Purpose"
+                  }
+                  data={purposeTypes}
                   value={selectedPurpose}
                   onChange={(v) => setSelectedPurpose(v as PurposeType | null)}
+                  disabled={isLoadingPurposes}
+                  searchable
+                  clearable
                   classNames={{
                     input: "text-sm",
                   }}
@@ -715,10 +796,15 @@ const AddTestAvailibility = () => {
                   Principal Type <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  placeholder="Select Principal Type"
-                  data={PRINCIPAL_TYPES}
+                  placeholder={
+                    isLoadingPrincipals ? "Loading..." : "Select Principal Type"
+                  }
+                  data={principalTypes}
                   value={selectedPrincipalType}
                   onChange={handlePrincipalTypeChange}
+                  disabled={isLoadingPrincipals}
+                  searchable
+                  clearable
                   classNames={{
                     input: "text-sm",
                   }}
@@ -729,7 +815,7 @@ const AddTestAvailibility = () => {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">
                   {selectedPrincipalType
-                    ? PRINCIPAL_TYPES.find(
+                    ? principalTypes.find(
                         (p) => p.value === selectedPrincipalType
                       )?.label
                     : "Principal"}
@@ -738,18 +824,20 @@ const AddTestAvailibility = () => {
                   placeholder={
                     selectedPrincipalType
                       ? `Select ${
-                          PRINCIPAL_TYPES.find(
+                          principalTypes.find(
                             (p) => p.value === selectedPrincipalType
                           )?.label
                         }`
                       : "Select Principal"
                   }
-                  data={principals}
+                  data={filteredPrincipals}
                   value={selectedPrincipal}
                   onChange={setSelectedPrincipal}
                   searchable
                   clearable
-                  disabled={!selectedPrincipalType}
+                  disabled={
+                    !selectedPrincipalType || filteredPrincipals.length === 0
+                  }
                   classNames={{
                     input: "text-sm",
                   }}

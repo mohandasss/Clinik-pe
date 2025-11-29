@@ -60,11 +60,132 @@ const AddTestPage: React.FC = () => {
 
   // Display tab data
   const [displayData, setDisplayData] = useState<DisplayTabsData | null>(null);
+  const [initialDisplayData, setInitialDisplayData] =
+    useState<Partial<DisplayTabsData> | null>(null);
 
   // Memoized callback to prevent infinite loops
   const handleDisplayDataChange = useCallback((data: DisplayTabsData) => {
     setDisplayData(data);
   }, []);
+
+  // Helper function to parse tags in various formats
+  const parseTags = (tagsData: any) => {
+    let parsedOrgans: string[] = [];
+    let parsedTopRated = false;
+    let parsedTopSelling = false;
+
+    if (!tagsData) return { parsedOrgans, parsedTopRated, parsedTopSelling };
+
+    // Handle JSON string format
+    if (typeof tagsData === "string") {
+      // Try JSON parsing first
+      try {
+        const tagsObj = JSON.parse(tagsData);
+        parsedOrgans = Array.isArray(tagsObj.organ) ? tagsObj.organ : [];
+        parsedTopRated =
+          tagsObj.top_rated === true || tagsObj.top_rated === "1";
+        parsedTopSelling =
+          tagsObj.top_selling === true || tagsObj.top_selling === "1";
+        return { parsedOrgans, parsedTopRated, parsedTopSelling };
+      } catch {
+        // Not JSON, try custom format
+      }
+
+      // Handle custom string format like "organ=heart,top_rated"
+      const parts = tagsData.split(",");
+      for (const part of parts) {
+        const trimmed = part.trim();
+        if (trimmed.startsWith("organ=")) {
+          const organ = trimmed.substring(6).trim();
+          if (organ) parsedOrgans.push(organ);
+        } else if (trimmed === "top_rated") {
+          parsedTopRated = true;
+        } else if (trimmed === "top_selling") {
+          parsedTopSelling = true;
+        }
+      }
+    } else if (typeof tagsData === "object") {
+      // Handle object format
+      parsedOrgans = Array.isArray(tagsData.organ) ? tagsData.organ : [];
+      parsedTopRated =
+        tagsData.top_rated === true || tagsData.top_rated === "1";
+      parsedTopSelling =
+        tagsData.top_selling === true || tagsData.top_selling === "1";
+    }
+
+    return { parsedOrgans, parsedTopRated, parsedTopSelling };
+  };
+
+  // Initialize display data from testData when editing
+  useEffect(() => {
+    if (isEdit && testData) {
+      const td = testData as any;
+      const { parsedOrgans, parsedTopRated, parsedTopSelling } = parseTags(
+        td.tags
+      );
+
+      // Parse FAQ
+      let parsedFaqs: { question: string; answer: string }[] = [];
+      if (td.faq) {
+        if (typeof td.faq === "string") {
+          try {
+            parsedFaqs = JSON.parse(td.faq);
+          } catch {
+            parsedFaqs = [];
+          }
+        } else if (Array.isArray(td.faq)) {
+          parsedFaqs = td.faq;
+        }
+      }
+      if (parsedFaqs.length === 0) {
+        parsedFaqs = [{ question: "", answer: "" }];
+      }
+
+      // Parse images
+      const parsedImages: {
+        type: "icon" | "image";
+        target_type: string;
+        target_id: string;
+      }[] = [];
+      if (td.images && Array.isArray(td.images)) {
+        td.images.forEach((img: any) => {
+          if (typeof img === "object" && img.target_id) {
+            parsedImages.push({
+              type: img.type || "image",
+              target_type: img.target_type || "",
+              target_id: img.target_id,
+            });
+          } else if (typeof img === "string") {
+            parsedImages.push({
+              type: "image",
+              target_type: "",
+              target_id: img,
+            });
+          }
+        });
+      }
+
+      setInitialDisplayData({
+        organs: parsedOrgans,
+        topRated: parsedTopRated,
+        topSelling: parsedTopSelling,
+        displayName: td.display_name || "",
+        shortAbout: td.short_about || "",
+        longAbout: td.long_about || "",
+        sampleType: td.sample_type || "",
+        gender: td.gender || "any",
+        ageRange: td.age_range || "",
+        preparation: td.preparation || "",
+        mrp: td.mrp || "",
+        faqs: parsedFaqs,
+        homeCollectionPossible: td.home_collection_possible || false,
+        homeCollectionFee: td.home_collection_fee || "",
+        machineBased: td.machine_based || false,
+        uploadedImages: parsedImages,
+        displayCategoryId: td.display_category_id || "",
+      });
+    }
+  }, [isEdit, testData]);
 
   useEffect(() => {
     let mounted = true;
@@ -131,6 +252,7 @@ const AddTestPage: React.FC = () => {
           top_selling: displayData?.topSelling || false,
         },
         display_name: displayData?.displayName || "",
+        display_category_id: displayData?.displayCategoryId || "",
         short_about: displayData?.shortAbout || "",
         long_about: displayData?.longAbout || "",
         sample_type: displayData?.sampleType || "",
@@ -296,7 +418,10 @@ const AddTestPage: React.FC = () => {
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs onDataChange={handleDisplayDataChange} />
+            <DisplayTabs
+              onDataChange={handleDisplayDataChange}
+              initialData={initialDisplayData || undefined}
+            />
           </Tabs.Panel>
         </Tabs>
       </Paper>

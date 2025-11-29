@@ -81,6 +81,8 @@ import { AddTestPackage } from "./Pages/Radiology/OtherTestPackage";
 import OtherTestPackageDetailPage from "./Pages/Radiology/OtherTestPackage/OtherTestPackageDetailPage";
 import TestAvailibility from "./Pages/TestAvailibility/TestAvailibility";
 import AddTestAvailibility from "./Pages/TestAvailibility/AddTestAvailibility";
+import SpecialPackages from "./Pages/SpecialPackages/SpecialPackages";
+import AddSpecialPackage from "./Pages/SpecialPackages/AddSpecialPackage";
 
 function AppContents() {
   const CLinic = "clinic";
@@ -163,8 +165,15 @@ function AppContents() {
         <Route path="/test-categories" element={<TestCategories />} />
         <Route path="/test-database" element={<TestDatabase />} />
         <Route path="/test-database/add" element={<AddTestPage />} />
+        <Route path="/test-database/edit" element={<AddTestPage />} />
         <Route
           path="/test-database/add-multiple"
+          element={<AddMultipleTestPage />}
+        />
+        <Route path="/special-packages" element={<SpecialPackages />} />
+        <Route path="/special-packages/add" element={<AddSpecialPackage />} />
+        <Route
+          path="/test-database/edit-multiple"
           element={<AddMultipleTestPage />}
         />
         <Route
@@ -172,7 +181,15 @@ function AppContents() {
           element={<AddMultipleNestedTestPage />}
         />
         <Route
+          path="/test-database/edit-nested"
+          element={<AddMultipleNestedTestPage />}
+        />
+        <Route
           path="/test-database/add-document"
+          element={<AddDocumentTestPage />}
+        />
+        <Route
+          path="/test-database/edit-document"
           element={<AddDocumentTestPage />}
         />
 

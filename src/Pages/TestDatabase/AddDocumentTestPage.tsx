@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Paper,
   TextInput,
@@ -20,9 +20,38 @@ import RichEditor from "../../components/Global/RichEditor";
 import DisplayTabs, {
   type DisplayTabsData,
 } from "../../components/Global/DisplayTabs";
+import type { TestRow } from "./Components/TestTable";
+
+// Helper function to extract organs from tags
+const extractOrgansFromTags = (tags?: Record<string, any>): string[] => {
+  if (!tags) return [];
+  if (Array.isArray(tags.organ)) {
+    return tags.organ.map((o: string) => o.toLowerCase());
+  }
+  return [];
+};
+
+// Helper function to extract boolean flags from tags
+const extractTagsFromTags = (
+  tags?: Record<string, any>
+): { topRated: boolean; topSelling: boolean } => {
+  if (!tags) return { topRated: false, topSelling: false };
+  return {
+    topRated: Boolean(tags.top_rated),
+    topSelling: Boolean(tags.top_selling),
+  };
+};
+
+interface LocationState {
+  row?: TestRow;
+}
 
 const AddDocumentTestPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { row } = (location.state as LocationState) || {};
+  const isEditMode = Boolean(row);
+
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     []
   );
@@ -65,6 +94,78 @@ const AddDocumentTestPage: React.FC = () => {
     (s) => s.organizationDetails?.organization_id ?? ""
   );
   const centerId = useAuthStore((s) => s.organizationDetails?.center_id ?? "");
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (!row) {
+      setForm({
+        name: "",
+        shortName: "",
+        category: "",
+        price: "",
+        displayTestNameInReport: true,
+        defaultResult: "",
+      });
+      setDisplayData(null);
+      return;
+    }
+
+    // Pre-fill form with row data
+    setForm({
+      name: row.name || "",
+      shortName: row.shortName || "",
+      category: row.categoryId || "",
+      price: row.price || "",
+      displayTestNameInReport: true,
+      defaultResult: row.defaultResult || "",
+      method: row.method || "",
+      instrument: row.instrument || "",
+      interpretation: row.interpretation || "",
+      notes: row.notes || "",
+      comments: row.comments || "",
+      optional: row.optional || false,
+    });
+
+    // Initialize displayData for display tab prefill
+    const tagFlags = extractTagsFromTags(row.tags);
+    setDisplayData({
+      organs: extractOrgansFromTags(row.tags),
+      categories: [],
+      displayCategoryId: row.displayCategoryId || "",
+      topRated: tagFlags.topRated,
+      topSelling: tagFlags.topSelling,
+      displayName: row.displayName || "",
+      shortAbout: row.shortAbout || "",
+      longAbout: row.longAbout || "",
+      sampleType: row.sampleType || "",
+      gender: row.gender || "any",
+      ageRange: row.ageRange || "",
+      icon: null,
+      images: [],
+      uploadedImages: (row.images || []).map((img) => ({
+        type: img.type as "icon" | "image",
+        target_type: img.target_type,
+        target_id: img.target_id,
+      })),
+      preparation: row.preparation || "",
+      mrp: row.mrp || "",
+      faqs: row.faq
+        ? (() => {
+            try {
+              const parsed = JSON.parse(row.faq);
+              return Array.isArray(parsed)
+                ? parsed
+                : [{ question: "", answer: "" }];
+            } catch (e) {
+              return [{ question: "", answer: "" }];
+            }
+          })()
+        : [{ question: "", answer: "" }],
+      homeCollectionPossible: row.homeCollection || false,
+      homeCollectionFee: row.homeCollectionFee || "",
+      machineBased: row.machineBased === "1" || row.machineBased === true,
+    });
+  }, [row]);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -135,11 +236,23 @@ const AddDocumentTestPage: React.FC = () => {
       // Log payload to console for debugging
       console.log(JSON.stringify(payload, null, 2));
 
-      const response = await apis.AddTestToLabDatabase(
-        organizationId,
-        centerId,
-        payload
-      );
+      let response;
+      if (row) {
+        // Update existing test
+        response = await apis.UpdateTestInLabDatabase(
+          organizationId,
+          centerId,
+          row.id,
+          payload
+        );
+      } else {
+        // Create new test
+        response = await apis.AddTestToLabDatabase(
+          organizationId,
+          centerId,
+          payload
+        );
+      }
       if (response?.success) {
         notifications.show({
           title: "Success",
@@ -155,10 +268,10 @@ const AddDocumentTestPage: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error("Failed to add document test", err);
+      console.error("Failed to save document test", err);
       notifications.show({
         title: "Error",
-        message: "Failed to add document test",
+        message: `Failed to ${row ? "update" : "add"} document test`,
         color: "red",
       });
     } finally {
@@ -197,6 +310,7 @@ const AddDocumentTestPage: React.FC = () => {
       top_rated: displayData?.topRated || false,
       top_selling: displayData?.topSelling || false,
     };
+    pRecord["display_category_id"] = displayData?.displayCategoryId || "";
     pRecord["display_name"] = displayData?.displayName || "";
     pRecord["short_about"] = displayData?.shortAbout || "";
     pRecord["long_about"] = displayData?.longAbout || "";
@@ -262,10 +376,13 @@ const AddDocumentTestPage: React.FC = () => {
       </div>
 
       <div className="mb-6">
-        <h2 className="text-xl font-semibold">New test (document)</h2>
+        <h2 className="text-xl font-semibold">
+          {isEditMode ? "Edit test (document)" : "New test (document)"}
+        </h2>
         <p className="text-sm text-gray-600">Test details</p>
         <p className="text-xs text-gray-500 mt-1">
-          This test will be added to the ratelist automatically.
+          This test will be {isEditMode ? "updated in" : "added to"} the
+          ratelist automatically.
         </p>
       </div>
 
@@ -368,7 +485,10 @@ const AddDocumentTestPage: React.FC = () => {
           </Tabs.Panel>
 
           <Tabs.Panel value="display" pt="md">
-            <DisplayTabs onDataChange={handleDisplayDataChange} />
+            <DisplayTabs
+              onDataChange={handleDisplayDataChange}
+              initialData={displayData || undefined}
+            />
           </Tabs.Panel>
         </Tabs>
       </Paper>

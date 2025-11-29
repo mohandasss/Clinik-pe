@@ -5,30 +5,33 @@ import {
   Button,
   Text,
   Select,
-  MultiSelect,
   Tabs,
+  Badge,
+  ActionIcon,
 } from "@mantine/core";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { notifications } from "@mantine/notifications";
-import useAuthStore from "../../../GlobalStore/store";
-import apis from "../../../APis/Api";
-import { IconArrowLeft } from "@tabler/icons-react";
+import useAuthStore from "../../GlobalStore/store";
+import apis from "../../APis/Api";
+import { IconArrowLeft, IconX } from "@tabler/icons-react";
 import { Anchor } from "@mantine/core";
-import RichEditor from "../../../components/Global/RichEditor";
+import RichEditor from "../../components/Global/RichEditor";
 import DisplayTabs, {
   type DisplayTabsData,
-} from "../../../components/Global/DisplayTabs";
-import type { OtherTestPackageRow } from "../../../APis/Types";
+} from "../../components/Global/DisplayTabs";
+import TestPanelSelectorDialog, {
+  type SelectedItem,
+} from "./Components/TestPanelSelectorDialog";
+import type { OtherTestPackageRow } from "../../APis/Types";
 
 interface LocationState {
   isEdit?: boolean;
   packageData?: OtherTestPackageRow;
 }
 
-const AddTestPackage: React.FC = () => {
+const AddSpecialPackage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { department } = useParams();
   const state = location.state as LocationState | null;
   const isEdit = state?.isEdit ?? false;
   const packageData = state?.packageData;
@@ -43,29 +46,20 @@ const AddTestPackage: React.FC = () => {
     packageData?.description ?? ""
   );
   const [price, setPrice] = useState(String(packageData?.price ?? ""));
-  const [status, setStatus] = useState<
-    "male" | "female" | "both" | "active" | "inactive"
-  >(packageData?.status ?? "active");
+  const [status, setStatus] = useState<"active" | "inactive">(
+    (packageData?.status as "active" | "inactive") ?? "active"
+  );
   const [data, setData] = useState(packageData?.data ?? "");
 
-  // Tests and Panels selection
-  const [tests, setTests] = useState<string[]>([]);
-  const [panels, setPanels] = useState<string[]>([]);
+  // Tests and Panels selection with full info
+  const [selectedTests, setSelectedTests] = useState<SelectedItem[]>([]);
+  const [selectedPanels, setSelectedPanels] = useState<SelectedItem[]>([]);
 
-  // Original values for tracking removals in edit mode
-  const [originalTests, setOriginalTests] = useState<string[]>([]);
-  const [originalPanels, setOriginalPanels] = useState<string[]>([]);
-
-  // Available options
-  const [availableTests, setAvailableTests] = useState<
-    { value: string; label: string }[]
-  >([]);
-  const [availablePanels, setAvailablePanels] = useState<
-    { value: string; label: string }[]
-  >([]);
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<"tests" | "panels">("tests");
 
   const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(false);
   const [activeTab, setActiveTab] = useState<string | null>("core");
 
   // Display tab data
@@ -86,9 +80,7 @@ const AddTestPackage: React.FC = () => {
 
     if (!tagsData) return { parsedOrgans, parsedTopRated, parsedTopSelling };
 
-    // Handle JSON string format
     if (typeof tagsData === "string") {
-      // Try JSON parsing first
       try {
         const tagsObj = JSON.parse(tagsData);
         parsedOrgans = Array.isArray(tagsObj.organ) ? tagsObj.organ : [];
@@ -101,7 +93,6 @@ const AddTestPackage: React.FC = () => {
         // Not JSON, try custom format
       }
 
-      // Handle custom string format like "organ=heart,top_rated"
       const parts = tagsData.split(",");
       for (const part of parts) {
         const trimmed = part.trim();
@@ -115,7 +106,6 @@ const AddTestPackage: React.FC = () => {
         }
       }
     } else if (typeof tagsData === "object") {
-      // Handle object format
       parsedOrgans = Array.isArray(tagsData.organ) ? tagsData.organ : [];
       parsedTopRated =
         tagsData.top_rated === true || tagsData.top_rated === "1";
@@ -194,92 +184,64 @@ const AddTestPackage: React.FC = () => {
         uploadedImages: parsedImages,
         displayCategoryId: pd.display_category_id || "",
       });
+
+      // Parse existing tests and panels for edit mode
+      if (Array.isArray(packageData.tests)) {
+        const testItems: SelectedItem[] = packageData.tests.map((t: any) => ({
+          uid: typeof t === "string" ? t : t.test_id || t.uid || "",
+          name: typeof t === "string" ? "" : t.name || t.test_name || "",
+          type: "test" as const,
+          department: typeof t === "string" ? "" : t.department || "",
+          departmentName: typeof t === "string" ? "" : t.department_name || "",
+        }));
+        setSelectedTests(testItems.filter((t) => t.uid));
+      }
+
+      if (Array.isArray(packageData.panels)) {
+        const panelItems: SelectedItem[] = packageData.panels.map((p: any) => ({
+          uid: typeof p === "string" ? p : p.panel_id || p.uid || "",
+          name: typeof p === "string" ? "" : p.name || p.panel_name || "",
+          type: "panel" as const,
+          department: typeof p === "string" ? "" : p.department || "",
+          departmentName: typeof p === "string" ? "" : p.department_name || "",
+        }));
+        setSelectedPanels(panelItems.filter((p) => p.uid));
+      }
     }
   }, [isEdit, packageData]);
 
-  // Load available tests and panels
-  useEffect(() => {
-    if (!organizationId || !centerId) return;
+  // Open dialog for tests or panels
+  const openTestDialog = () => {
+    setDialogType("tests");
+    setDialogOpen(true);
+  };
 
-    const loadData = async () => {
-      try {
-        setLoadingData(true);
+  const openPanelDialog = () => {
+    setDialogType("panels");
+    setDialogOpen(true);
+  };
 
-        // Fetch Radiology Tests
-        const testsResp = await apis.GetOtherTestDatabase(
-          "radiology",
-          1,
-          100,
-          organizationId,
-          centerId,
-          ""
-        );
-        if (testsResp?.data?.tests && Array.isArray(testsResp.data.tests)) {
-          setAvailableTests(
-            testsResp.data.tests.map((t: any) => ({
-              value: t.uid,
-              label: t.name,
-            }))
-          );
-        }
+  // Handle dialog save
+  const handleDialogSave = (
+    items: SelectedItem[],
+    type: "tests" | "panels"
+  ) => {
+    if (type === "tests") {
+      setSelectedTests(items);
+    } else {
+      setSelectedPanels(items);
+    }
+  };
 
-        // Fetch Radiology Panels
-        const panelsResp = await apis.GetOtherTestPanels(
-          "radiology",
-          organizationId,
-          centerId,
-          1,
-          100,
-          ""
-        );
-        if (panelsResp?.data?.panels && Array.isArray(panelsResp.data.panels)) {
-          setAvailablePanels(
-            panelsResp.data.panels.map((p: any) => ({
-              value: p.uid || p.panel_id || p.id,
-              label: p.name,
-            }))
-          );
-        }
-      } catch (err: any) {
-        notifications.show({
-          title: "Error",
-          message: "Failed to load tests and panels",
-          color: "red",
-        });
-      } finally {
-        setLoadingData(false);
-      }
-    };
+  // Remove test
+  const removeTest = (uid: string) => {
+    setSelectedTests((prev) => prev.filter((t) => t.uid !== uid));
+  };
 
-    loadData();
-  }, [organizationId, centerId]);
-
-  // Pre-fill data on edit
-  useEffect(() => {
-    if (!packageData) return;
-
-    // Extract test/panel IDs
-    const testIds = Array.isArray(packageData.tests)
-      ? packageData.tests
-          .map((t: any) =>
-            typeof t === "string" ? t : t.test_id || t.uid || ""
-          )
-          .filter(Boolean)
-      : [];
-
-    const panelIds = Array.isArray(packageData.panels)
-      ? packageData.panels
-          .map((p: any) =>
-            typeof p === "string" ? p : p.panel_id || p.uid || ""
-          )
-          .filter(Boolean)
-      : [];
-
-    setTests(testIds);
-    setPanels(panelIds);
-    setOriginalTests(testIds);
-    setOriginalPanels(panelIds);
-  }, [packageData]);
+  // Remove panel
+  const removePanel = (uid: string) => {
+    setSelectedPanels((prev) => prev.filter((p) => p.uid !== uid));
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -307,10 +269,6 @@ const AddTestPackage: React.FC = () => {
       const imagesPayload =
         displayData?.uploadedImages?.map((img) => img.target_id) || [];
 
-      // Calculate removed tests and panels for edit mode
-      const removeTests = originalTests.filter((t) => !tests.includes(t));
-      const removePanels = originalPanels.filter((p) => !panels.includes(p));
-
       // Build payload with all fields including display data
       const payload: any = {
         name: name.trim(),
@@ -318,8 +276,14 @@ const AddTestPackage: React.FC = () => {
         price: Number(price) || 0,
         data: data || "",
         status: status,
-        tests: tests.map((t) => ({ test_id: t })),
-        panels: panels.map((p) => ({ panel_id: p })),
+        tests: selectedTests.map((t) => ({
+          test_id: t.uid,
+          department: t.department,
+        })),
+        panels: selectedPanels.map((p) => ({
+          panel_id: p.uid,
+          department: p.department,
+        })),
         // Display tab fields
         tags: {
           organ: displayData?.organs || [],
@@ -344,32 +308,50 @@ const AddTestPackage: React.FC = () => {
         machine_based: displayData?.machineBased || false,
       };
 
-      console.log("Payload:", JSON.stringify(payload, null, 2));
+      console.log("Special Package Payload:", JSON.stringify(payload, null, 2));
 
       let response;
       if (isEdit && packageData?.uid) {
-        // Add remove arrays for update
-        payload.remove_tests = removeTests.map((test_id) => ({ test_id }));
-        payload.remove_panels = removePanels.map((panel_id) => ({ panel_id }));
+        // Calculate removed tests and panels
+        const originalTestIds = Array.isArray(packageData.tests)
+          ? packageData.tests.map((t: any) =>
+              typeof t === "string" ? t : t.test_id || t.uid || ""
+            )
+          : [];
+        const originalPanelIds = Array.isArray(packageData.panels)
+          ? packageData.panels.map((p: any) =>
+              typeof p === "string" ? p : p.panel_id || p.uid || ""
+            )
+          : [];
 
-        // Update existing package
+        const currentTestIds = selectedTests.map((t) => t.uid);
+        const currentPanelIds = selectedPanels.map((p) => p.uid);
+
+        payload.remove_tests = originalTestIds
+          .filter((id: string) => !currentTestIds.includes(id))
+          .map((test_id: string) => ({ test_id }));
+        payload.remove_panels = originalPanelIds
+          .filter((id: string) => !currentPanelIds.includes(id))
+          .map((panel_id: string) => ({ panel_id }));
+
+        // Update existing package - using "special" as department
         response = await apis.UpdateOtherTestPackage(
-          department || "radiology",
+          "special",
           organizationId,
           centerId,
           packageData.uid,
           payload
         );
-        console.log("UpdateOtherTestPackage response:", response);
+        console.log("UpdateSpecialPackage response:", response);
       } else {
-        // Add new package
+        // Add new package - using "special" as department
         response = await apis.AddOtherTestPackage(
-          department || "radiology",
+          "special",
           payload,
           organizationId,
           centerId
         );
-        console.log("AddOtherTestPackage response:", response);
+        console.log("AddSpecialPackage response:", response);
       }
 
       if (response?.success) {
@@ -378,8 +360,8 @@ const AddTestPackage: React.FC = () => {
           message:
             response.message ||
             (isEdit
-              ? "Package updated successfully"
-              : "Package added successfully"),
+              ? "Special package updated successfully"
+              : "Special package added successfully"),
           color: "green",
         });
         setTimeout(() => navigate(-1), 800);
@@ -388,20 +370,22 @@ const AddTestPackage: React.FC = () => {
           title: "Error",
           message:
             response?.message ||
-            (isEdit ? "Failed to update package" : "Failed to add package"),
+            (isEdit
+              ? "Failed to update special package"
+              : "Failed to add special package"),
           color: "red",
         });
       }
     } catch (err) {
       console.error(
-        isEdit
-          ? "UpdateOtherTestPackage failed:"
-          : "AddOtherTestPackage failed:",
+        isEdit ? "UpdateSpecialPackage failed:" : "AddSpecialPackage failed:",
         err
       );
       notifications.show({
         title: "Error",
-        message: isEdit ? "Failed to update package" : "Failed to add package",
+        message: isEdit
+          ? "Failed to update special package"
+          : "Failed to add special package",
         color: "red",
       });
     } finally {
@@ -423,21 +407,19 @@ const AddTestPackage: React.FC = () => {
         >
           <IconArrowLeft size={16} />
           <Text size="sm" fw={600}>
-            Back to Radiology Test Packages
+            Back to Special Packages
           </Text>
         </Anchor>
       </div>
 
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900">
-          {isEdit
-            ? "Edit Radiology Test Package"
-            : "Add Radiology Test Package"}
+          {isEdit ? "Edit Special Package" : "Add Special Package"}
         </h2>
         <p className="text-sm text-gray-600">
           {isEdit
-            ? "Update details for this radiology test package"
-            : "Enter details for a new radiology test package"}
+            ? "Update details for this special package"
+            : "Enter details for a new special package"}
         </p>
       </div>
 
@@ -492,14 +474,7 @@ const AddTestPackage: React.FC = () => {
                   ]}
                   value={status}
                   onChange={(v) =>
-                    setStatus(
-                      (v as
-                        | "male"
-                        | "female"
-                        | "both"
-                        | "active"
-                        | "inactive") ?? "active"
-                    )
+                    setStatus((v as "active" | "inactive") ?? "active")
                   }
                 />
               </div>
@@ -513,30 +488,105 @@ const AddTestPackage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <MultiSelect
-                  label="Tests"
-                  placeholder="Select radiology tests"
-                  data={availableTests}
-                  value={tests}
-                  onChange={setTests}
-                  searchable
-                  clearable
-                  disabled={loadingData}
-                />
+            {/* Tests Selection */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <Text size="sm" fw={500}>
+                  Tests
+                </Text>
               </div>
-              <div>
-                <MultiSelect
-                  label="Panels"
-                  placeholder="Select radiology panels"
-                  data={availablePanels}
-                  value={panels}
-                  onChange={setPanels}
-                  searchable
-                  clearable
-                  disabled={loadingData}
-                />
+              <div
+                className="border rounded-md p-3 min-h-[80px] bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={openTestDialog}
+              >
+                {selectedTests.length === 0 ? (
+                  <Text size="sm" c="dimmed" className="text-center py-4">
+                    Click here to select tests from different departments.
+                  </Text>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTests.map((test) => (
+                      <Badge
+                        key={test.uid}
+                        variant="light"
+                        color="blue"
+                        size="lg"
+                        rightSection={
+                          <ActionIcon
+                            size="xs"
+                            color="blue"
+                            radius="xl"
+                            variant="transparent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeTest(test.uid);
+                            }}
+                          >
+                            <IconX size={12} />
+                          </ActionIcon>
+                        }
+                      >
+                        {test.name || test.uid}
+                        {test.departmentName && (
+                          <Text span size="xs" c="dimmed" ml={4}>
+                            ({test.departmentName})
+                          </Text>
+                        )}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Panels Selection */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <Text size="sm" fw={500}>
+                  Panels
+                </Text>
+              </div>
+              <div
+                className="border rounded-md p-3 min-h-[80px] bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={openPanelDialog}
+              >
+                {selectedPanels.length === 0 ? (
+                  <Text size="sm" c="dimmed" className="text-center py-4">
+                    Click here to select panels from different departments.
+                  </Text>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedPanels.map((panel) => (
+                      <Badge
+                        key={panel.uid}
+                        variant="light"
+                        color="green"
+                        size="lg"
+                        rightSection={
+                          <ActionIcon
+                            size="xs"
+                            color="green"
+                            radius="xl"
+                            variant="transparent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removePanel(panel.uid);
+                            }}
+                          >
+                            <IconX size={12} />
+                          </ActionIcon>
+                        }
+                      >
+                        {panel.name || panel.uid}
+                        {panel.departmentName && (
+                          <Text span size="xs" c="dimmed" ml={4}>
+                            ({panel.departmentName})
+                          </Text>
+                        )}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </Tabs.Panel>
@@ -574,8 +624,18 @@ const AddTestPackage: React.FC = () => {
           </Button>
         )}
       </div>
+
+      {/* Test/Panel Selector Dialog */}
+      <TestPanelSelectorDialog
+        opened={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSave={handleDialogSave}
+        initialSelectedTests={selectedTests}
+        initialSelectedPanels={selectedPanels}
+        selectionType={dialogType}
+      />
     </div>
   );
 };
 
-export default AddTestPackage;
+export default AddSpecialPackage;
