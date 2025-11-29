@@ -124,20 +124,16 @@ function AppContents() {
         <Route path="/organization/add" element={<AddOrganization />} />
         <Route path="/centers" element={<ClinicList />} />
         <Route path="/centers/add" element={<AddCenter />} />
-
         {/* ---------------- 🟨 Providers ---------------- */}
         <Route path={`${CLinic}/providers`} element={<ProviderList />} />
         <Route path="/providers/add" element={<AddProvider />} />
-
         {/* ---------------- 🟪 Availability ---------------- */}
         <Route
           path={`${CLinic}/availabilities`}
           element={<ProviderAvailability />}
         />
         {/* <Route path="/availability/add/:providerUid" element={<AddProviderAvailability />} /> */}
-
         {/* ---------------- 🟥 Doctor (Inside Admin Layout) ---------------- */}
-
         {/* ---------------- ⚪ Settings, Billing, Tests ---------------- */}
         <Route
           path={`${CLinic}/settings/payment`}
@@ -149,9 +145,7 @@ function AppContents() {
           path={`${CLinic}/general-settings`}
           element={<GeneralSettings />}
         />
-
         <Route path="/appointments" element={<BookingPage />} />
-
         {/* Test Packages & Panels */}
         <Route path="/test-packages" element={<TestPackage />} />
         <Route path="/test-packages/add" element={<EditPackagePage />} />
@@ -160,7 +154,6 @@ function AppContents() {
         <Route path="/test-panels/:id" element={<TestPanelsDetails />} />
         <Route path="/test-panels/add" element={<EditPanelPage />} />
         <Route path="/test-panels/edit" element={<EditPanelPage />} />
-
         {/* Test Categories & Database */}
         <Route path="/test-categories" element={<TestCategories />} />
         <Route path="/test-database" element={<TestDatabase />} />
@@ -192,20 +185,15 @@ function AppContents() {
           path="/test-database/edit-document"
           element={<AddDocumentTestPage />}
         />
-
         <Route path="/units" element={<Units />} />
-
         {/* Billing */}
         <Route path="/bookings" element={<DiagnosticBillsPage />} />
         <Route path="/bills/add" element={<AddDiagnosticBillsPage />} />
-
         <Route path="/interpretation" element={<InterpretationPage />} />
         <Route path="/qr-code" element={<QrCodePage />} />
-
         {/* Roles & Access */}
         <Route path="/access-management" element={<AccessManagement />} />
         <Route path="/roles" element={<Roles />} />
-
         {/* ---------------- 🟫 Radiology ---------------- */}
         <Route path="/test-department" element={<TestDepartment />} />
         <Route
@@ -252,8 +240,8 @@ function AppContents() {
           path="/:department/test-categories"
           element={<OtherTestCategory />}
         />
-        <Route path="/test-availibility" element={<TestAvailibility />} />
-        <Route path="/test-availability" element={<TestAvailibility />} />
+        <Route path="/test-availibility" element={<TestAvailibility />} />`{" "}
+        {/* <Route path="/test-availability" element={<TestAvailibility />} />` */}
         <Route
           path="/test-availability/add"
           element={<AddTestAvailibility />}

@@ -543,7 +543,7 @@ const AddTestAvailibility = () => {
         weekday: selectedDays,
         department_id: selectedDepartment || "",
         category_id: selectedCategory || "",
-        type: selectedItemType || "",
+        type_id: selectedItemType || "",
         reference: selectedItem || "",
         purpose: selectedPurpose || "",
         principal_type: selectedPrincipalType || "",
@@ -559,25 +559,20 @@ const AddTestAvailibility = () => {
       };
 
       console.log("Submitting payload:", JSON.stringify(payload, null, 2));
-      
-         const response  =await apis.AddTestAvailability(orgId, centerId, payload);
-      if( response.success){
 
+      const response = await apis.AddTestAvailability(orgId, centerId, payload);
+      if (response.success) {
         notifications.show({
-        title: "Success",
-        message: "Test availability added successfully",
-        color: "green",
-      });
+          title: "Success",
+          message: "Test availability added successfully",
+          color: "green",
+        });
 
-      setTimeout(() => {
-        navigate("/test-availability");
-      }, 1500);
-      
+        setTimeout(() => {
+          navigate("/test-availability");
+        }, 1500);
       }
-
-     
-    }
-     catch (error) {
+    } catch (error) {
       console.error("Error adding availability:", error);
       notifications.show({
         title: "Error",

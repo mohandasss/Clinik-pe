@@ -93,6 +93,9 @@ const TestAvailibility = () => {
           const displayItems: AvailabilityDisplayItem[] =
             response.data.tests.map((item: AvailabilityItem) => ({
               ...item,
+              // Normalize status to be capitalized
+              status:
+                item.status.charAt(0).toUpperCase() + item.status.slice(1),
               departmentName: item.department_id || "-",
               categoryName: item.category_id || "-",
               itemName: item.reference || "-",
